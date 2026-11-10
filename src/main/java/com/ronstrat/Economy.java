@@ -141,6 +141,7 @@ public final class Economy {
 
     private final Map<Integer, long[]> huntSince = new HashMap<>();
     private long fleeLog = -10000;
+    static final java.util.Set<Integer> TEST_HOLD = new java.util.HashSet<>();
     private final java.util.Set<Integer> badPrey = new java.util.HashSet<>();
     /** where prey could not be caught (a pen): every animal standing there is off the list for 3 min */
     private final Map<BlockPos, Long> badPreySpots = new HashMap<>();
@@ -159,11 +160,16 @@ public final class Economy {
      * 1:16). A spawn bug, not a game decision: in the first two minutes a villager standing on leaves
      * is set down on the ground below it.
      */
+    private final Map<Integer, long[]> leafSince = new HashMap<>();
     private void unstickFromTrees(Intel in) {
         if (com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks > 2400) return;
         for (Mob w : in.workers) {
             BlockPos below = w.blockPosition().below();
-            if (!(bot.level.getBlockState(below).getBlock() instanceof net.minecraft.world.level.block.LeavesBlock)) continue;
+            if (!(bot.level.getBlockState(below).getBlock() instanceof net.minecraft.world.level.block.LeavesBlock)) { leafSince.remove(w.getId()); continue; }
+            // a woodcutter steps on leaves all the time: only one that has stood up there for 10 s is stuck
+            long[] ls = leafSince.computeIfAbsent(w.getId(), k -> new long[] { bot.now, w.getBlockX(), w.getBlockZ() });
+            if (Math.abs(ls[1] - w.getBlockX()) + Math.abs(ls[2] - w.getBlockZ()) > 2) { ls[0] = bot.now; ls[1] = w.getBlockX(); ls[2] = w.getBlockZ(); }
+            if (bot.now - ls[0] < 200) continue;
             int x = w.getBlockX(), z = w.getBlockZ();
             int y = bot.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
             if (y >= w.getBlockY()) continue;
@@ -193,6 +199,7 @@ public final class Economy {
             for (LivingEntity e : in.neutrals)
                 if (e instanceof Mob m && m.getTarget() != null && m.getTarget().isAlive() && in.workers.contains(m.getTarget())) chasers.add(e);
         for (Mob w : in.workers) {
+            if (TEST_HOLD.contains(w.getId())) continue; // autotest water drop: hands off these villagers
             Job recorded = jobs.getOrDefault(w.getId(), Job.IDLE);
             if (!chasers.isEmpty() && recorded != Job.MILITARY && !(((WorkerUnit) w).getGatherResourceGoal() != null && ((WorkerUnit) w).getGatherResourceGoal().isFarming())) {
                 boolean hunted = false;
@@ -487,6 +494,12 @@ public final class Economy {
         // even game: the army is vindicators (160 food) and pillagers (food + wood) - no ore at all. A human
         // mines none and puts the workers on fields; ore is only for the odd upgrade
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n >= 14) { food = Math.max(food, 0.44); ore = Math.min(ore, 0.05); }
+        // ...except a few miners from minute 5: golems (50 wood + 250 ore, no food) are the army food
+        // cannot pay for when the first wave comes at minute 9-10 (Snowplow: the hard AI mined 1100 ore
+        // by then and brought a golem; the expert had 3-5 soldiers and lost the base)
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n >= 16
+                && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks > 6000
+                && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks < 18000) ore = Math.max(ore, 0.12);
         // no game to hunt near home: the opening lives on berries and the first fields - more hands on food
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n < 14 && animalsNearHome == 0) food = Math.max(food, 0.6);
         double wood = 1 - food - ore;

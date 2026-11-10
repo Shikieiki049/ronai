@@ -180,7 +180,7 @@ public final class Intel {
             else if (UnitEval.isScout(e)) scouts.add(m);
             else if (e instanceof com.solegendary.reignofnether.unit.units.villagers.MilitiaUnit) militia.add(m);
             else if (u.isGarrisoned()) garrisoned.add(m);
-            else army.add(m);
+            else if (!Economy.TEST_HOLD.contains(m.getId())) army.add(m); // autotest water units stay out of the army
             int r = Math.max(8, u.getSightRange());
             eyes.add(new Eye(e.getX(), e.getZ(), (double) r * r));
         }

@@ -246,7 +246,9 @@ public final class BotManager {
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent evt) {
-        if (evt.phase != TickEvent.Phase.END || BOTS.isEmpty()) return;
+        if (evt.phase != TickEvent.Phase.END) return;
+        try { WaterRescue.tick(); } catch (Exception ex) { RonStrategist.LOG.error("RON Strategist: water rescue failed", ex); }
+        if (BOTS.isEmpty()) return;
         serverTicks++;
         List<String> gone = new ArrayList<>();
         for (Bot b : BOTS.values()) {

@@ -998,7 +998,14 @@ public final class Army {
             List<BlockPos> route = wedged * 2 >= force.size() ? Terrain.route(bot.level, cb, goal, bot.now) : null;
             if (route != null && route.size() > 2) {
                 Orders.stop(bot.name, force);
-                for (Mob u : force) Orders.move(bot.name, List.of(u), Terrain.ahead(route, u.position(), 8));
+                // each unit hops along its own route: a split army's centroid lies between the halves, and
+                // hops along the centroid's route sent the front half back 40 blocks (Mir's: 15 minutes of
+                // ping-pong in the middle of the map, then a timeout with the enemy beaten)
+                for (Mob u : force) {
+                    List<BlockPos> own = u.position().distanceToSqr(c) > 12 * 12 ? Terrain.route(bot.level, u.blockPosition(), goal, bot.now) : null;
+                    List<BlockPos> r = own != null && own.size() > 2 ? own : route;
+                    Orders.move(bot.name, List.of(u), Terrain.ahead(r, u.position(), 8));
+                }
                 bot.log("army wedged (" + wedged + "/" + force.size() + "): short hops along the route");
                 // the same goal again and again: that building cannot be reached from here, try others
                 if (goal.equals(lastWedgedGoal)) wedgedOnGoal++; else { lastWedgedGoal = goal; wedgedOnGoal = 1; }
