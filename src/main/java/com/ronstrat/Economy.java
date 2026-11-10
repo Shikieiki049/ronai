@@ -140,6 +140,7 @@ public final class Economy {
     }
 
     private final Map<Integer, long[]> huntSince = new HashMap<>();
+    private long fleeLog = -10000;
     private final java.util.Set<Integer> badPrey = new java.util.HashSet<>();
     /** where prey could not be caught (a pen): every animal standing there is off the list for 3 min */
     private final Map<BlockPos, Long> badPreySpots = new HashMap<>();
@@ -163,8 +164,25 @@ public final class Economy {
         List<Mob> idle = new ArrayList<>();
         Map<Job, List<Mob>> byJob = new EnumMap<>(Job.class);
         for (Job j : Job.values()) byJob.put(j, new ArrayList<>());
+        // a monster closing in on villagers: they run before the first one dies, not after (camps that
+        // wander into the wood line killed 3-4 villagers per game in the first ten minutes)
+        List<LivingEntity> chasers = new ArrayList<>();
+        if (bot.difficulty == Difficulty.EXPERT)
+            for (LivingEntity e : in.neutrals)
+                if (e instanceof Mob m && m.getTarget() != null && m.getTarget().isAlive() && in.workers.contains(m.getTarget())) chasers.add(e);
         for (Mob w : in.workers) {
             Job recorded = jobs.getOrDefault(w.getId(), Job.IDLE);
+            if (!chasers.isEmpty() && recorded != Job.MILITARY && !(((WorkerUnit) w).getGatherResourceGoal() != null && ((WorkerUnit) w).getGatherResourceGoal().isFarming())) {
+                boolean hunted = false;
+                for (LivingEntity c : chasers) if (c.distanceToSqr(w) < 12 * 12) { hunted = true; break; }
+                if (hunted) {
+                    if (bot.now - fleeLog > 200) { fleeLog = bot.now; bot.log("monsters closing in at " + w.blockPosition().toShortString() + ": villagers run home"); }
+                    Orders.move(bot.name, List.of(w), in.home());
+                    idle.add(w); jobs.put(w.getId(), Job.IDLE);
+                    assignedAt.put(w.getId(), bot.now);
+                    continue;
+                }
+            }
             if (recorded == Job.MILITARY) { byJob.get(Job.MILITARY).add(w); continue; }
             Job seen = observed(w);
             // standing around with a full pack (e.g. after a hunt, or pushed off its path): go drop it off

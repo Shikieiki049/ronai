@@ -1431,6 +1431,11 @@ public final class Army {
             BlockPos rb = bot.economy.blockedByDanger;
             if (d == null && rb != null && bot.now - bot.economy.blockedAt < 2400) d = in.nearestDanger(rb, 30);
             if (d == null || in.army.size() < (bot.outnumbered() ? 8 : bot.hazardDeaths >= 4 && d.distSqr(in.home()) < 50 * 50 ? 3 : 5) || waveTime || strongCamp(d)) return false;
+            // even game: a far camp is not worth the army being away when the enemy's first attack comes
+            // (minute 10-11 on Mir's: the army chased camps 70 blocks out, lost units to them, and the
+            // hard AI's eight vindicators walked into an empty base)
+            if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && d.distSqr(in.home()) > 40 * 40
+                    && (!safeToBoom(in) || in.army.size() < 8)) return false;
             Vec3 c = centroid(in.army);
             if (c.distanceToSqr(Vec3.atCenterOf(d)) < 8 * 8) { // nothing there any more
                 in.forgetDanger(d, 18);
