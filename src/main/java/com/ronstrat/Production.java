@@ -35,6 +35,15 @@ public final class Production {
 
     public int plannedFoodUnits() { return queuedFoodUnits; }
 
+    /** town centre ticks: busy, housed, no food, army first, enough villagers, other */
+    final long[] tcIdle = new long[6];
+
+    String tcIdleText() {
+        long n = 0; for (long v : tcIdle) n += v;
+        if (n == 0) return "";
+        return String.format(" tc=busy%d/house%d/food%d/army%d/full%d/other%d", 100 * tcIdle[0] / n, 100 * tcIdle[1] / n, 100 * tcIdle[2] / n, 100 * tcIdle[3] / n, 100 * tcIdle[4] / n, 100 * tcIdle[5] / n);
+    }
+
     void think(Intel in) {
         BotParams p = bot.params;
         FactionPlan plan = bot.plan;
@@ -81,6 +90,12 @@ public final class Production {
                 in.pop += cost(plan.worker).population;
                 f -= cost(plan.worker).food;
             }
+            // why the town centre stands idle (status line): every idle second is a villager lost
+            if (pp.productionQueue.isEmpty()) {
+                int why = workersNow + queuedWorkers >= workerTarget ? 4 : !room(in, plan.worker) ? 1
+                        : in.food < cost(plan.worker).food ? 2 : foodFloor > 0 ? 3 : 5;
+                tcIdle[why]++;
+            } else tcIdle[0]++;
             if (p.b("scout") && in.scouts.isEmpty() && scoutsMade < 2 && plan.scout != null
                     && in.workers.size() >= 9 && pp.productionQueue.isEmpty() && in.food >= cost(plan.scout).food + 50
                     && room(in, plan.scout)) {
@@ -222,6 +237,8 @@ public final class Production {
         Map<FactionPlan.Role, Double> m = new EnumMap<>(FactionPlan.Role.class);
         double golem = p.get("golemShare"), caster = p.get("casterShare");
         if (bot.outnumbered() && golem >= 0.3 && in.ore > 500) golem = 0.6; // ore-fed army when food is the war
+        // even game, ore idle while food is short: golems cost no food
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && golem > 0 && in.ore >= 350) golem = Math.max(golem, 0.35);
         double melee = 0.5, ranged = 0.5;
         // counter what the enemy fields: ranged armies are punished by melee and tanks, melee by ranged
         double k = p.get("counterComposition");
@@ -275,7 +292,7 @@ public final class Production {
      */
     private int wFor(FactionPlan.UnitOption u, Intel in, int w, int o) {
         if (u.item == com.solegendary.reignofnether.building.production.ProductionItems.IRON_GOLEM
-                && bot.outnumbered() && o >= 450) return Math.max(w, in.wood - WOOD_RESERVE);
+                && (bot.outnumbered() && o >= 450 || bot.difficulty == Difficulty.EXPERT && o >= 250 && !bot.army.safeToBoom(in))) return Math.max(w, in.wood - WOOD_RESERVE);
         return w;
     }
 

@@ -63,9 +63,22 @@ public final class Builder {
             // a lean start (1v1 from a seat: 150 wood) cannot afford three houses ahead: one at a time,
             // just ahead of need, so the first farms get the wood
             if (bot.difficulty == Difficulty.EXPERT && in.popCap <= 30 && in.wood < 250) { buffer = Math.min(buffer, 3); maxHouses = 1; }
+            // the player's own games: first house by 0:30, five by 4:30, ten by 10:00 - the town centre
+            // never stops for supply (the ally expert sat at 10/10, 20/20, 40/40 four times in ten minutes)
+            boolean evenEx = bot.difficulty == Difficulty.EXPERT && !bot.outnumbered();
+            if (evenEx) {
+                double hs = com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks / 20.0;
+                int sched = hs < 270 ? (hs < 120 ? 1 : hs < 150 ? 2 : hs < 210 ? 3 : 4) : Math.min(10, 5 + (int) ((hs - 270) / 66));
+                // ahead of farms only once supply is getting close; with room left the fields come first
+                // (four houses and no field at 2:30 left a start without hunt at 125 food in 5 minutes)
+                if (in.total(plan.house) < sched && in.popCap < 150 && in.built(plan.capitol) > 0 && unbuiltHouses < 2 && freeSupply <= 10)
+                    reqs.add(new Request(plan.house, freeSupply <= 6 ? 98 : 88, home, 9, 44));
+                buffer = Math.max(buffer, 5);
+            }
             if (in.popCap < 150 && freeSupply <= buffer && unbuiltHouses < maxHouses
                     && in.built(plan.capitol) > 0) {
-                reqs.add(new Request(plan.house, freeSupply <= 3 ? 100 : 90 - freeSupply, home, 9, 44));
+                // about to be housed: ahead of farms and barracks, a stalled town centre costs more than either
+                reqs.add(new Request(plan.house, freeSupply <= 3 ? (evenEx ? 108 : 100) : 90 - freeSupply, home, 9, 44));
             }
             // even game: the field schedule a good human player keeps (from the player's own games: 3 farms
             // by minute 3, 6 by 4.5, 10 by 6.5, 14 by 9) - fields are what keeps the town centre busy
@@ -73,7 +86,9 @@ public final class Builder {
                 double mins = com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks / 1200.0;
                 int sched = mins < 1.5 ? 1 : mins < 3 ? 3 : mins < 4.5 ? 6 : mins < 6.5 ? 10 : mins < 9 ? 14 : 16;
                 // the first six fields outrank everything; later ones must not starve the barracks
-                if (in.total(plan.farm) < sched && workers >= 6) reqs.add(new Request(plan.farm, in.total(plan.farm) < 6 ? 96 : 84, home, 10, 34));
+                // no animals to hunt near home: fields are the only food - the first two before anything
+                boolean noWildFood = bot.economy.animalsNearHome <= 3 && in.food < 200;
+                if (in.total(plan.farm) < sched && workers >= (noWildFood ? 4 : 6)) reqs.add(new Request(plan.farm, noWildFood && in.total(plan.farm) < 2 ? 104 : in.total(plan.farm) < 6 ? 96 : 84, home, 10, 34));
             }
             // farms
             int farms = in.total(plan.farm);
@@ -185,14 +200,15 @@ public final class Builder {
             if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && in.built(plan.barracks) >= 1
                     && workers >= 18 && in.ore >= 350) {
                 Building smith = bot.plan.option(com.solegendary.reignofnether.building.production.ProductionItems.IRON_GOLEM).producer;
-                if (in.total(smith) == 0) reqs.add(new Request(smith, 86, home, 12, 30));
+                // a rich start (handicap ore) sat unused for 18 min behind barracks and houses: go first
+                if (in.total(smith) == 0) reqs.add(new Request(smith, in.ore >= 550 || !bot.army.safeToBoom(in) ? 97 : 86, home, 12, 30));
                 // ore keeps piling up with one smith busy: a second one turns it into army twice as fast
                 else if (in.total(smith) == 1 && in.built(smith) == 1 && in.ore >= 700 && workers >= 28) reqs.add(new Request(smith, 70, home, 12, 34));
             }
             // market once the economy is lopsided (one resource piling up while another starves)
             if (p.b("useMarket") && bot.plan.market != null && in.total(bot.plan.market) == 0 && workers >= 22) {
                 int hi = Math.max(in.food, Math.max(in.wood, in.ore)), lo = Math.min(in.food, Math.min(in.wood, in.ore));
-                if (hi > 700 && lo < 200) reqs.add(new Request(bot.plan.market, 74, home, 12, 34));
+                if (hi > 700 && lo < 200) reqs.add(new Request(bot.plan.market, hi >= 1000 && lo < 150 ? 88 : 74, home, 12, 34));
                 // the expert puts one up ahead of need: once the wood is gone the market is the only
                 // way to get any, and it costs wood itself
                 else if (bot.difficulty == Difficulty.EXPERT && workers >= 26 && in.wood >= 200 && in.ore >= 150)

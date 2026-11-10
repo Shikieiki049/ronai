@@ -447,6 +447,8 @@ public final class Economy {
         // even game: the army is vindicators (160 food) and pillagers (food + wood) - no ore at all. A human
         // mines none and puts the workers on fields; ore is only for the odd upgrade
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n >= 14) { food = Math.max(food, 0.44); ore = Math.min(ore, 0.05); }
+        // no game to hunt near home: the opening lives on berries and the first fields - more hands on food
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n < 14 && animalsNearHome == 0) food = Math.max(food, 0.6);
         double wood = 1 - food - ore;
         // stock controller: a resource piling up loses workers, a scarce one gains them
         // (the role sn-food/wood/gold-modifier rules play in AoE2 scripts, but continuous)

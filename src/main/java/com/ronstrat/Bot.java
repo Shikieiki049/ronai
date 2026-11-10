@@ -100,6 +100,24 @@ public final class Bot {
 
     boolean useStockpilesNow() { return params.b("useStockpiles"); }
 
+    private long lastChat = -100000;
+
+    /** human teammates hear what we are about to do (chat), so they can come along */
+    void tellAllies(String msg, boolean urgent) {
+        if (!urgent && now - lastChat < 600) return;
+        try {
+            var players = level.getServer().getPlayerList().getPlayers();
+            boolean any = false;
+            for (var pl : players) {
+                String n = pl.getName().getString();
+                if (BotManager.get(n) != null || !com.solegendary.reignofnether.alliance.AlliancesServerEvents.isAllied(name, n)) continue;
+                pl.sendSystemMessage(net.minecraft.network.chat.Component.literal("§b<" + name + ">§r " + msg));
+                any = true;
+            }
+            if (any) { lastChat = now; log("chat: " + msg); }
+        } catch (Throwable ignored) { }
+    }
+
     void log(String s) {
         if (verbose) RonStrategist.LOG.info("[{}|{}] {}", name, difficulty.key(), s);
     }
@@ -118,7 +136,7 @@ public final class Bot {
         return String.format("%s [%s] workers=%d(F%d W%d O%d B%d I%d) army=%d(g%d m%d s%d) pop=%d/%d res F%d W%d O%d%s farms=%d/%d mode=%s target=%s",
                 name, difficulty.zh, in.workers.size(), c.get(Economy.Job.FOOD), c.get(Economy.Job.WOOD), c.get(Economy.Job.ORE),
                 c.get(Economy.Job.BUILD), c.get(Economy.Job.IDLE), in.army.size(), in.garrisoned.size(), in.militia.size(), in.scouts.size(), in.pop, in.popCap, in.food, in.wood, in.ore,
-                harvested, in.built(plan.farm), economy.farmsWanted, army.mode, army.target) + " animals=" + economy.animalsNearHome + " deaths=" + deaths + "/" + hazardDeaths + " unreach=" + economy.unreachableCount + String.format(" threat=%.0f own=%.0f", army.threatPower(in), army.ownPower(in)) + (production.idleReason.isEmpty() ? "" : " prodIdle=" + production.idleReason);
+                harvested, in.built(plan.farm), economy.farmsWanted, army.mode, army.target) + " animals=" + economy.animalsNearHome + " deaths=" + deaths + "/" + hazardDeaths + " unreach=" + economy.unreachableCount + String.format(" threat=%.0f own=%.0f", army.threatPower(in), army.ownPower(in)) + production.tcIdleText() + (production.idleReason.isEmpty() ? "" : " prodIdle=" + production.idleReason);
     }
 
     /** per-worker dump for debugging the economy */

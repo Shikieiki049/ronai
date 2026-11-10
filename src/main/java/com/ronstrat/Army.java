@@ -134,9 +134,11 @@ public final class Army {
         }
 
         if (mode == Mode.ATTACK) {
+            campSquad(in);
             runAttack(in);
             return;
         }
+        campSquad.clear(); campSquadAt = null;
 
         // monster camps next to the base first: they kill villagers and block the resources around them
         if (mode == Mode.GATHER && clearNeutrals(in)) return;
@@ -146,6 +148,9 @@ public final class Army {
             trackedTarget = null; // fresh progress clock for this attack
             ledgePushes = 0;
             bot.log("attack -> " + target + " army=" + in.army.size() + " pop=" + in.pop);
+            bot.tellAllies(joinedHuman != null ? "看到你在打 " + target + "，我带 " + in.army.size() + " 个兵过来帮忙！"
+                    : "我要进攻 " + target + " 了，兵力 " + in.army.size() + "，一起上！", true);
+            joinedHuman = null;
             lastReissue = -1000;
             stageUntil = bot.difficulty.ordinal() >= Difficulty.HARD.ordinal() ? bot.now + 800 : -1;
             stageStarted = bot.now;
@@ -197,8 +202,29 @@ public final class Army {
      * Join an allied expert's attack the moment it starts, with whatever army is at home:
      * the two waves land together instead of one after the other.
      */
+    private String joinedHuman;
+
     private boolean joinPartner(Intel in, double armyPop) {
         if (bot.difficulty != Difficulty.EXPERT || armyPop < 15 || bot.now - lastAttackEnd < 300) return false;
+        // a human teammate fighting at an enemy base: go and help
+        for (String h : in.allies) {
+            if (BotManager.get(h) != null) continue;
+            for (Intel.EnemyMemory em : in.enemies.values()) {
+                if (!em.alive || em.buildings.isEmpty() || em.anyBuilding() == null) continue;
+                int n = 0;
+                for (LivingEntity e : com.solegendary.reignofnether.unit.UnitServerEvents.getAllUnits()) {
+                    if (!(e instanceof Unit u) || !h.equals(u.getOwnerName()) || !e.isAlive() || UnitEval.isWorker(e) || UnitEval.isScout(e)) continue;
+                    for (BlockPos b : em.buildings.keySet()) if (e.blockPosition().distSqr(b) < 40 * 40) { n++; break; }
+                }
+                if (n >= 5) {
+                    target = em.name;
+                    targetPos = em.anyBuilding();
+                    joinedHuman = h;
+                    bot.log("joint attack with " + h + " (human, " + n + " units at " + em.name + ")");
+                    return true;
+                }
+            }
+        }
         for (Bot o : BotManager.bots()) {
             if (o == bot || o.difficulty != Difficulty.EXPERT || o.army.mode != Mode.ATTACK || o.army.target == null) continue;
             if (!allied(o)) continue; // only allies attack together
@@ -208,6 +234,7 @@ public final class Army {
             target = o.army.target;
             targetPos = em.anyBuilding();
             bot.log("joint attack with " + o.name + " on " + target + " (theirs " + o.intel.army.size() + ")");
+            bot.tellAllies("跟上 " + o.name + "，一起打 " + target + "！", true);
             return true;
         }
         return false;
@@ -357,6 +384,51 @@ public final class Army {
 
     /** units sent home against a small raid while the rest of the army keeps attacking */
     private final java.util.Set<Integer> raidSquad = new java.util.HashSet<>();
+    private final java.util.Set<Integer> campSquad = new java.util.HashSet<>();
+    private BlockPos campSquadAt;
+    private long campSquadSince, campSquadOrder;
+
+    /**
+     * Attacking far away while monsters kill villagers at home: the units nearest home go back and
+     * deal with them (a human teammate had to clear them for us), the rest keep attacking.
+     */
+    private void campSquad(Intel in) {
+        if (bot.difficulty != Difficulty.EXPERT) return;
+        if (campSquadAt != null) {
+            final BlockPos at = campSquadAt;
+            boolean left = false;
+            for (LivingEntity e : in.neutrals) if (e.isAlive() && e.blockPosition().distSqr(at) < 18 * 18) { left = true; break; }
+            List<Mob> sq = new ArrayList<>();
+            for (Mob m : in.army) if (campSquad.contains(m.getId())) sq.add(m);
+            if (!left || sq.isEmpty() || bot.now - campSquadSince > 2400) {
+                bot.log("camp squad done at " + at.toShortString() + (left ? " (gave up)" : ""));
+                campSquad.clear(); campSquadAt = null;
+                return;
+            }
+            if (bot.now - campSquadOrder > 200) { Orders.attackMove(bot.name, sq, at); campSquadOrder = bot.now; }
+            return;
+        }
+        BlockPos d = in.recentDeath(in.home(), 90, 600);
+        if (d == null) return;
+        List<LivingEntity> beasts = new ArrayList<>();
+        for (LivingEntity e : in.neutrals) if (e.isAlive() && e.blockPosition().distSqr(d) < 18 * 18) beasts.add(e);
+        if (beasts.isEmpty()) return;
+        double need = UnitEval.strength(beasts) * 2.0;
+        List<Mob> army = new ArrayList<>(in.army);
+        Vec3 dv = Vec3.atCenterOf(d);
+        army.sort(Comparator.comparingDouble(m -> m.distanceToSqr(dv)));
+        List<Mob> sq = new ArrayList<>();
+        for (Mob m : army) {
+            if (sq.size() >= army.size() / 2) break;
+            sq.add(m);
+            if (UnitEval.strength(sq) >= need) break;
+        }
+        if (UnitEval.strength(sq) < need) return;
+        for (Mob m : sq) campSquad.add(m.getId());
+        campSquadAt = d; campSquadSince = bot.now; campSquadOrder = bot.now;
+        Orders.attackMove(bot.name, sq, d);
+        bot.log("camp squad: " + sq.size() + " units go home to clear monsters at " + d.toShortString() + " (" + beasts.size() + " beasts)");
+    }
     private java.util.Set<Integer> upgradeVisits = java.util.Set.of();
     /** home itself is being raided: nobody wanders off to the library */
     private boolean underAttackNear(Intel in) { return underAttack && bot.now - lastThreatTick < 40; }
@@ -617,9 +689,9 @@ public final class Army {
 
     private List<Mob> attackForce(Intel in) {
         List<Mob> avail = in.army;
-        if (!raidSquad.isEmpty() || !upgradeVisits.isEmpty()) {
+        if (!raidSquad.isEmpty() || !upgradeVisits.isEmpty() || !campSquad.isEmpty()) {
             avail = new ArrayList<>(in.army);
-            avail.removeIf(m -> raidSquad.contains(m.getId()) || upgradeVisits.contains(m.getId()));
+            avail.removeIf(m -> raidSquad.contains(m.getId()) || upgradeVisits.contains(m.getId()) || campSquad.contains(m.getId()));
             if (avail.isEmpty()) avail = in.army;
         }
         return attackForce(in, avail);
@@ -684,6 +756,7 @@ public final class Army {
                 retreatUntil = bot.now + 500;
                 lastAttackEnd = bot.now;
                 bot.log("retreat ratio=" + String.format("%.2f", ratio));
+                bot.tellAllies("打不过 " + target + "，先撤回来补兵", true);
                 Orders.move(bot.name, force, rally(in));
                 return;
             }

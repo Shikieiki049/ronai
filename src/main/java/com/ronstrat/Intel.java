@@ -116,7 +116,8 @@ public final class Intel {
         if (bot.difficulty != Difficulty.EXPERT) return false; // the lower tiers stay as naive as they were
         double r2 = r * r;
         // a monster merely seen: keep a small berth only - a wide one once monsters have been killing villagers
-        double cap = bot.hazardDeaths >= 2 ? 18 : 10;
+        // (camps killed 4-6 villagers per game in the first ten minutes on Mir's: the wide berth from the start)
+        double cap = 18;
         double rn = Math.min(r, cap) * Math.min(r, cap);
         for (BlockPos n : neutralPos.values()) if (n.distSqr(p) <= rn) return true;
         for (BlockPos n : deathSpots.keySet()) if (n.distSqr(p) <= r2) return true;
