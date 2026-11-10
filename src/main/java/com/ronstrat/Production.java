@@ -69,7 +69,9 @@ public final class Production {
             // not safe (what can come is bigger than what we have): soldiers before more villagers
             if (!armyFirst && bot.difficulty == Difficulty.EXPERT && !turtle && workersNow >= 16
                     && in.built(plan.barracks) > 0 && !bot.army.safeToBoom(in)) armyFirst = true;
-            int foodFloor = armyFirst ? 220 : 0;
+            // ...but a gutted economy cannot pay for an army either: below 26 villagers they still come
+            // from any food past one soldier's price (16 villagers for 10 minutes starved the army too)
+            int foodFloor = armyFirst ? (bot.difficulty == Difficulty.EXPERT && !turtle && workersNow < 26 ? 120 : 220) : 0;
             while (workersNow + queuedWorkers < workerTarget && pp.productionQueue.size() < p.i("workerQueue")
                     && in.food >= cost(plan.worker).food + foodFloor && room(in, plan.worker)) {
                 if (!bot.attentive()) break;

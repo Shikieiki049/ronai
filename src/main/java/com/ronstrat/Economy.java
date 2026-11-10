@@ -139,6 +139,9 @@ public final class Economy {
         return Job.IDLE;
     }
 
+    private final Map<Integer, long[]> huntSince = new HashMap<>();
+    private final java.util.Set<Integer> badPrey = new java.util.HashSet<>();
+
     void think(Intel in) {
         BotParams p = bot.params;
         counts.clear();
@@ -170,6 +173,20 @@ public final class Economy {
                 idle.add(w); jobs.put(w.getId(), Job.IDLE);
                 continue;
             }
+            // a hunter that has not caught its prey in 25 s cannot get at it (penned in, across water):
+            // that animal is off the list and the worker takes other work (food stayed at 0 for 5 min)
+            if (bot.difficulty.ordinal() >= Difficulty.HARD.ordinal() && ((Unit) w).getTargetGoal().getTarget() instanceof Animal prey && prey.isAlive()) {
+                long[] hs = huntSince.get(w.getId());
+                if (hs == null || hs[0] != prey.getId()) huntSince.put(w.getId(), new long[] { prey.getId(), bot.now });
+                else if (bot.now - hs[1] > 500 && w.distanceToSqr(prey) > 3 * 3) {
+                    badPrey.add(prey.getId());
+                    huntSince.remove(w.getId());
+                    bot.log("cannot catch " + prey.getType().toShortString() + " at " + prey.blockPosition().toShortString() + ", giving up on it");
+                    Orders.move(bot.name, List.of(w), in.home());
+                    idle.add(w); jobs.put(w.getId(), Job.IDLE);
+                    continue;
+                }
+            } else huntSince.remove(w.getId());
             // a wood/ore gatherer whose pack has not changed for 30 s is not gathering: its tree or
             // ore vein is out of reach (cliff, fence, water). Remember the spot and send it elsewhere.
             if ((seen == Job.WOOD || seen == Job.ORE) && assignedPos.containsKey(w.getId())) {
@@ -483,7 +500,7 @@ public final class Economy {
     private int countAnimals(Intel in, double r) {
         BlockPos h = in.home();
         AABB box = new AABB(h).inflate(r, 12, r);
-        return bot.level.getEntitiesOfClass(Animal.class, box, a -> a.isAlive() && worthHunting(a)
+        return bot.level.getEntitiesOfClass(Animal.class, box, a -> a.isAlive() && worthHunting(a) && !badPrey.contains(a.getId())
                 && !(a instanceof Unit)).size();
     }
 
@@ -514,7 +531,7 @@ public final class Economy {
             BlockPos h = in.home();
             AABB box = new AABB(h).inflate(36, 12, 36);
             Optional<Animal> prey = bot.level.getEntitiesOfClass(Animal.class, box,
-                            a -> a.isAlive() && !(a instanceof Unit) && worthHunting(a) && !in.dangerous(a.blockPosition(), 26))
+                            a -> a.isAlive() && !(a instanceof Unit) && worthHunting(a) && !badPrey.contains(a.getId()) && !in.dangerous(a.blockPosition(), 26))
                     .stream().min(Comparator.comparingDouble(a -> a.distanceToSqr(w)));
             if (prey.isPresent()) {
                 bot.log("hunt " + prey.get().getType().toShortString() + " d=" + (int) Math.sqrt(prey.get().distanceToSqr(w)) + " by #" + w.getId());

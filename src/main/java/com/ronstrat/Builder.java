@@ -370,6 +370,9 @@ public final class Builder {
                 // never put a foundation where monsters have been killing villagers: the builders die on it
                 // and the site blocks that building for good (a 1v1 with no barracks for 20 minutes)
                 if (bot.difficulty == Difficulty.EXPERT && bot.intel.dangerous(new BlockPos(cx, y, cz), 18)) continue;
+                // a town centre is a 350-wood, three-builder job that then draws villagers for good: none
+                // within reach of any monster seen or any monster kill (one went up 21 blocks from a camp)
+                if (bot.difficulty == Difficulty.EXPERT && b == bot.plan.capitol && bot.intel.nearestDanger(new BlockPos(cx, y, cz), 32) != null) continue;
                 if (!flatEnough(ox, oz, sx, sz, y, flatTol)) continue;
                 for (int dy : flatTol > 1 ? new int[] { 0, -1, 1 } : new int[] { 0, -1 }) {
                     BlockPos origin = new BlockPos(ox, y + dy, oz);
