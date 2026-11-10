@@ -175,10 +175,12 @@ public final class Economy {
             }
             // a hunter that has not caught its prey in 25 s cannot get at it (penned in, across water):
             // that animal is off the list and the worker takes other work (food stayed at 0 for 5 min)
-            if (bot.difficulty.ordinal() >= Difficulty.HARD.ordinal() && ((Unit) w).getTargetGoal().getTarget() instanceof Animal prey && prey.isAlive()) {
+            if (bot.difficulty.ordinal() >= Difficulty.HARD.ordinal() && ((Unit) w).getTargetGoal().getTarget() instanceof Animal prey && prey.isAlive() && !(prey instanceof Unit)) {
                 long[] hs = huntSince.get(w.getId());
-                if (hs == null || hs[0] != prey.getId()) huntSince.put(w.getId(), new long[] { prey.getId(), bot.now });
-                else if (bot.now - hs[1] > 500 && w.distanceToSqr(prey) > 3 * 3) {
+                // the clock restarts on every hit: a fleeing pig being chased down is fine
+                long hp = (long) (prey.getHealth() * 10);
+                if (hs == null || hs[0] != prey.getId() || hp < hs[2]) huntSince.put(w.getId(), new long[] { prey.getId(), bot.now, hp });
+                else if (bot.now - hs[1] > 500) {
                     badPrey.add(prey.getId());
                     huntSince.remove(w.getId());
                     bot.log("cannot catch " + prey.getType().toShortString() + " at " + prey.blockPosition().toShortString() + ", giving up on it");
