@@ -102,11 +102,22 @@ public final class Intel {
         return best;
     }
 
+    /** the latest spot within r of p where a monster killed one of ours in the last `within` ticks */
+    public BlockPos recentDeath(BlockPos p, double r, long within) {
+        BlockPos best = null;
+        long bt = Long.MIN_VALUE;
+        for (Map.Entry<BlockPos, Long> e : deathSpots.entrySet())
+            if (lastTick - e.getValue() <= within && e.getKey().distSqr(p) < r * r && e.getValue() > bt) { bt = e.getValue(); best = e.getKey(); }
+        return best;
+    }
+
     /** a remembered neutral monster within r of p: workers keep away from there */
     public boolean dangerous(BlockPos p, double r) {
         if (bot.difficulty != Difficulty.EXPERT) return false; // the lower tiers stay as naive as they were
         double r2 = r * r;
-        double rn = Math.min(r, 10) * Math.min(r, 10); // a monster merely seen: keep a small berth only
+        // a monster merely seen: keep a small berth only - a wide one once monsters have been killing villagers
+        double cap = bot.hazardDeaths >= 2 ? 18 : 10;
+        double rn = Math.min(r, cap) * Math.min(r, cap);
         for (BlockPos n : neutralPos.values()) if (n.distSqr(p) <= rn) return true;
         for (BlockPos n : deathSpots.keySet()) if (n.distSqr(p) <= r2) return true;
         return false;

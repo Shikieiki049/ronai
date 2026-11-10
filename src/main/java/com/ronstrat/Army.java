@@ -1146,6 +1146,8 @@ public final class Army {
     /** army size when each strong camp beat us: worth another try with twice that many */
     private final Map<BlockPos, Integer> strongCampArmy = new HashMap<>();
     private int armyNow;
+    private BlockPos remGoal;
+    private long remSince;
 
     /** attack attrition: own soldiers lost {x,z,tick}, enemies killed by the army {tick} */
     private final List<long[]> attackLosses = new ArrayList<>();
@@ -1252,7 +1254,9 @@ public final class Army {
         double secs = PlayerServerEvents.rtsGameTicks / 20.0;
         boolean waveTime = bot.outnumbered() && secs >= 780 && in.army.size() < 16;
         // a camp hunt may not eat the army's whole game: at most one minute, then two minutes off
-        if (bot.now < clearCooldownUntil) return false;
+        // monsters are killing villagers right now: protecting the economy beats the usual pause
+        boolean killing = bot.difficulty == Difficulty.EXPERT && !waveTime && in.recentDeath(in.home(), 90, 1200) != null;
+        if (bot.now < clearCooldownUntil && !(killing && bot.now >= clearCooldownUntil - 2000)) return false;
         if (bot.now - lastNeutralOrder > 300) clearBegan = bot.now;
         if (bot.now - clearBegan > 1200) { clearCooldownUntil = bot.now + 2400; return false; }
         Vec3 h = Vec3.atCenterOf(in.home());
@@ -1278,15 +1282,30 @@ public final class Army {
         } else {
             // a camp we remember (or where villagers died) but cannot see right now: go and look,
             // with a force big enough for a typical camp
-            BlockPos d = in.nearestDanger(in.home(), 70);
+            // the spot where villagers are being killed right now comes first, then the nearest danger
+            BlockPos d = bot.difficulty == Difficulty.EXPERT ? in.recentDeath(in.home(), 90, 1200) : null;
+            if (d == null) d = in.nearestDanger(in.home(), 70);
             // monsters sitting on the next woods / ore the economy needs (further out than the base)
             BlockPos rb = bot.economy.blockedByDanger;
             if (d == null && rb != null && bot.now - bot.economy.blockedAt < 2400) d = in.nearestDanger(rb, 30);
             if (d == null || in.army.size() < (bot.outnumbered() ? 8 : bot.hazardDeaths >= 4 && d.distSqr(in.home()) < 50 * 50 ? 3 : 5) || waveTime || strongCamp(d)) return false;
             Vec3 c = centroid(in.army);
             if (c.distanceToSqr(Vec3.atCenterOf(d)) < 8 * 8) { in.forgetDanger(d, 18); return false; } // nothing there any more
-            goal = d;
-            what = "remembered";
+            // the army cannot get there (cliff, water): forget that spot after 45 s so the next one gets a turn
+            if (bot.difficulty == Difficulty.EXPERT) {
+                if (remGoal == null || remGoal.distSqr(d) > 6 * 6) { remGoal = d; remSince = bot.now; }
+                else if (bot.now - remSince > 900) { bot.log("cannot reach danger at " + d.toShortString() + ", dropping it"); in.forgetDanger(d, 10); remGoal = null; return false; }
+                // monsters met on the way are fought, not walked past
+                LivingEntity met = null;
+                for (LivingEntity n : in.neutrals) if (n.position().distanceToSqr(c) < 18 * 18 && !strongCamp(n.blockPosition()) && (met == null || n.position().distanceToSqr(c) < met.position().distanceToSqr(c))) met = n;
+                if (met != null) {
+                    List<LivingEntity> camp = new ArrayList<>();
+                    for (LivingEntity n : in.neutrals) if (n.distanceToSqr(met) < 16 * 16) camp.add(n);
+                    if (UnitEval.strength(in.army) >= 2.0 * UnitEval.strength(camp)) near = met;
+                }
+            }
+            goal = near != null ? near.blockPosition() : d;
+            what = near != null ? "met on the way" : "remembered";
         }
         if (bot.now - lastNeutralOrder > 100) {
             lastNeutralOrder = bot.now;
