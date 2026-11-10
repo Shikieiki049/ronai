@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="GPL-3.0-only"
+[[mods]]
+modId="ronstrat"
+version="1.0.0"
+displayName="RON Strategist"
+authors="RON Strategist"
+description='''
+Computer opponents for Reign of Nether, modelled on the strongest Age of Empires II community AIs.
+Economy, build orders, army composition, attack timing and micro, with four difficulty levels.
+'''
+[[dependencies.ronstrat]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.ronstrat]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1,1.20.2)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.ronstrat]]
+    modId="reignofnether"
+    mandatory=true
+    versionRange="[1.5,)"
+    ordering="AFTER"
+    side="BOTH"

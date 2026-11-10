@@ -1,0 +1,16 @@
+# only the mod's own source and scripts are versioned
+/*
+!/src/
+!/build.gradle
+!/settings.gradle
+!/gradle.properties
+!/build.ps1
+!/selfplay.ps1
+!/report.ps1
+!/tune.ps1
+!/README.md
+!/tuning/
+!/tmp/
+/tmp/*
+!/tmp/*.sh
+!/.gitignore

@@ -1,0 +1,8 @@
+{
+  "ronstrat.joined": "Computer player %s (%s) has joined the game",
+  "ronstrat.lobby_started": "%s computer player(s) started from the lobby",
+  "ronstrat.lobby_button": "AI",
+  "ronstrat.lobby_tip": "Click: seat a computer player here (cycles Easy, Normal, Hard, Expert, off)",
+  "ronstrat.key.panel": "RON Strategist panel",
+  "ronstrat.key.category": "RON Strategist"
+}

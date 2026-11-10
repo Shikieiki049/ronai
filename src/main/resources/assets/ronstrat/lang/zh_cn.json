@@ -1,0 +1,8 @@
+{
+  "ronstrat.joined": "电脑玩家 %s（%s）加入了对局",
+  "ronstrat.lobby_started": "%s 个电脑玩家已从选位界面开局",
+  "ronstrat.lobby_button": "电脑",
+  "ronstrat.lobby_tip": "点击：让电脑玩家占这个位置（依次切换 简单/普通/困难/专家/取消）",
+  "ronstrat.key.panel": "RON 电脑玩家面板",
+  "ronstrat.key.category": "RON Strategist"
+}

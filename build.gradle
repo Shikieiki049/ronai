@@ -1,0 +1,67 @@
+buildscript {
+    repositories { maven { url = 'https://maven.minecraftforge.net' }; mavenCentral() }
+    dependencies { classpath 'net.minecraftforge.gradle:ForgeGradle:5.1.77' }
+}
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'java'
+
+version = '1.0.0'
+group = 'com.ronstrat'
+archivesBaseName = 'ron-strategist'
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+    runs {
+        client {
+            workingDirectory project.file('run-client')
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', file('build/srg-to-mcp.srg').absolutePath
+            args '--username', 'Tester', '--width', '1280', '--height', '800'
+            mods { ronstrat { source sourceSets.main } }
+        }
+        server {
+            workingDirectory project.file('run-server')
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', file('build/srg-to-mcp.srg').absolutePath
+            args '--nogui'
+            mods { ronstrat { source sourceSets.main } }
+        }
+    }
+}
+
+repositories { flatDir { dirs 'libs' }; mavenCentral() }
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.4.28'
+    implementation fg.deobf('local:reignofnether:1.5.1b')
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+jar.finalizedBy('reobfJar')
+
+// Export the dev-server launch so the self-play tuner can start many servers in parallel
+tasks.register('dumpServerCmd') {
+    dependsOn 'prepareRunServer', 'classes'
+    doLast {
+        def t = tasks.getByName('runServer')
+        def m = [
+            java: t.javaLauncher.get().executablePath.asFile.absolutePath,
+            main: t.mainClass.get(),
+            jvmArgs: t.allJvmArgs,
+            args: t.args,
+            classpath: t.classpath.files.collect { it.absolutePath },
+            env: t.environment.findAll { k, v -> !(k in System.getenv().keySet()) || k.startsWith('MOD') || k.startsWith('MC') || k.startsWith('FORGE') }
+        ]
+        file('build/servercmd.json').text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(m))
+    }
+}
+
+// RON's mixins carry SRG names; in the dev runtime they must be remapped to official names
+tasks.register('srgToMcp') {
+    dependsOn 'createMcpToSrg'
+    doLast {
+        net.minecraftforge.srgutils.IMappingFile.load(file('build/createMcpToSrg/output.tsrg')).reverse()
+            .write(file('build/srg-to-mcp.srg').toPath(), net.minecraftforge.srgutils.IMappingFile.Format.SRG, false)
+    }
+}
+tasks.named('dumpServerCmd') { dependsOn 'srgToMcp' }
+tasks.matching { it.name in ['runServer', 'runClient'] }.configureEach { dependsOn 'srgToMcp' }
