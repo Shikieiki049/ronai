@@ -148,6 +148,7 @@ public final class Army {
             bot.log("attack -> " + target + " army=" + in.army.size() + " pop=" + in.pop);
             lastReissue = -1000;
             stageUntil = bot.difficulty.ordinal() >= Difficulty.HARD.ordinal() ? bot.now + 800 : -1;
+            stageStarted = bot.now;
             stagePos = null;
             runAttack(in);
             return;
@@ -156,8 +157,61 @@ public final class Army {
     }
 
     /** attack staging: march to a point short of the target and wait for the army to close up */
-    private long stageUntil = -1;
+    private long stageUntil = -1, stageStarted = -1;
     private BlockPos stagePos;
+
+    /**
+     * The other allied expert bots whose armies are attacking the same enemy right now. Allied bots
+     * coming one after another get beaten one at a time; together they are one army.
+     */
+    List<Bot> partners() {
+        List<Bot> out = new ArrayList<>();
+        if (bot.difficulty != Difficulty.EXPERT || target == null) return out;
+        for (Bot o : BotManager.bots()) {
+            if (o == bot || o.difficulty != Difficulty.EXPERT || o.army.mode != Mode.ATTACK || !target.equals(o.army.target)) continue;
+            if (!allied(o)) continue; // free-for-all: everyone fights alone
+            if (o.intel.army.isEmpty()) continue;
+            out.add(o);
+        }
+        return out;
+    }
+
+    private boolean allied(Bot o) {
+        try { return com.solegendary.reignofnether.alliance.AlliancesServerEvents.isAllied(bot.name, o.name); }
+        catch (Throwable t) { return false; }
+    }
+
+    /** a partner's army still well behind ours on the way in: hold at the staging point for it */
+    private boolean partnerLagging() {
+        if (targetPos == null) return false;
+        Vec3 t = Vec3.atCenterOf(targetPos);
+        for (Bot o : partners()) {
+            List<Mob> body = mainBody(o.intel.army);
+            if (body.isEmpty()) continue;
+            if (centroid(body).distanceTo(t) > 28 + 35) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Join an allied expert's attack the moment it starts, with whatever army is at home:
+     * the two waves land together instead of one after the other.
+     */
+    private boolean joinPartner(Intel in, double armyPop) {
+        if (bot.difficulty != Difficulty.EXPERT || armyPop < 15 || bot.now - lastAttackEnd < 300) return false;
+        for (Bot o : BotManager.bots()) {
+            if (o == bot || o.difficulty != Difficulty.EXPERT || o.army.mode != Mode.ATTACK || o.army.target == null) continue;
+            if (!allied(o)) continue; // only allies attack together
+            Intel.EnemyMemory em = in.enemies.get(o.army.target);
+            if (em == null || !em.alive || em.anyBuilding() == null) continue;
+            if (o.intel.army.size() < 4) continue;
+            target = o.army.target;
+            targetPos = em.anyBuilding();
+            bot.log("joint attack with " + o.name + " on " + target + " (theirs " + o.intel.army.size() + ")");
+            return true;
+        }
+        return false;
+    }
 
     private boolean staging(Intel in, List<Mob> force) {
         if (stageUntil < 0 || bot.now > stageUntil || targetPos == null || force.isEmpty()) { stageUntil = -1; return false; }
@@ -174,7 +228,9 @@ public final class Army {
         }
         int there = 0;
         for (Mob u : force) if (u.blockPosition().distSqr(stagePos) < 14 * 14) there++;
-        if (there >= force.size() * 0.75) { stageUntil = -1; lastReissue = -1000; return false; }
+        boolean wait = partnerLagging() && bot.now - stageStarted < 1800;
+        if (wait) stageUntil = Math.max(stageUntil, bot.now + 40);
+        if (there >= force.size() * 0.75 && !wait) { stageUntil = -1; lastReissue = -1000; return false; }
         if (bot.now - lastReissue > 200) {
             List<Mob> late = new ArrayList<>();
             for (Mob u : force) if (u.blockPosition().distSqr(stagePos) >= 14 * 14 && ((Unit) u).isIdle()) late.add(u);
@@ -379,9 +435,10 @@ public final class Army {
         BotParams p = bot.params;
         double secs = PlayerServerEvents.rtsGameTicks / 20.0;
         if (secs < p.get("firstAttackSeconds") * jitter()) return false;
-        if (bot.now - lastAttackEnd < p.get("attackWaveCooldown") * 20) return false;
         double armyPop = 0;
         for (Mob m : in.army) armyPop += UnitEval.popValue(m);
+        if (joinPartner(in, armyPop)) return true;
+        if (bot.now - lastAttackEnd < p.get("attackWaveCooldown") * 20) return false;
         boolean maxed = in.pop >= 140;
         // 1vN: hit the nearest opponent while the field is still empty, before the weak bots have
         // armies, then the next one - defeating them in detail instead of waiting for all of them
@@ -604,17 +661,23 @@ public final class Army {
         // base must neither make the whole army retreat nor decide where the army is
         List<Mob> body = mainBody(force);
         Vec3 c = centroid(body);
+        List<Bot> partners = partners();
+        java.util.Set<String> partnerNames = new java.util.HashSet<>();
+        for (Bot o : partners) partnerNames.add(o.name);
         List<LivingEntity> localEnemies = new ArrayList<>();
         for (LivingEntity e : in.visibleEnemies) {
             if (untouchable(e, false)) continue;
+            if (e instanceof Unit eu && partnerNames.contains(eu.getOwnerName())) continue;
             for (Mob u : body) if (u.distanceToSqr(e) < 20 * 20) { localEnemies.add(e); break; }
         }
         List<Mob> localOwn = localEnemies.isEmpty() ? List.of() : near(force, centroid(localEnemies), 40);
+        List<LivingEntity> localFriends = new ArrayList<>(localOwn);
+        if (!localEnemies.isEmpty()) for (Bot o : partners) localFriends.addAll(near(o.intel.army, centroid(localEnemies), 40));
 
         // lost the fight? fall back and rebuild instead of feeding units one by one
         double rr = p.get("retreatRatio");
         if (rr > 0 && !localEnemies.isEmpty() && !localOwn.isEmpty()) {
-            double ratio = UnitEval.strength(localOwn) / Math.max(1, UnitEval.strength(localEnemies));
+            double ratio = UnitEval.strength(localFriends) / Math.max(1, UnitEval.strength(localEnemies));
             if (ratio < rr) {
                 mode = Mode.RETREAT;
                 retreats++;

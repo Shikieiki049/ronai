@@ -141,6 +141,18 @@ public final class Economy {
 
     private final Map<Integer, long[]> huntSince = new HashMap<>();
     private final java.util.Set<Integer> badPrey = new java.util.HashSet<>();
+    /** where prey could not be caught (a pen): every animal standing there is off the list for 3 min */
+    private final Map<BlockPos, Long> badPreySpots = new HashMap<>();
+
+    private boolean badPrey(Animal a) {
+        if (badPrey.contains(a.getId())) return true;
+        for (Map.Entry<BlockPos, Long> e : badPreySpots.entrySet())
+            if (bot.now - e.getValue() < 3600 && e.getKey().distSqr(a.blockPosition()) < 49) return true;
+        return false;
+    }
+
+    /** at the population limit the army cannot grow: food stops mattering, upgrades and ore units do */
+    boolean popMaxed(Intel in) { return in.popCap >= 150 && in.pop >= in.popCap - 10; }
 
     void think(Intel in) {
         BotParams p = bot.params;
@@ -182,6 +194,7 @@ public final class Economy {
                 if (hs == null || hs[0] != prey.getId() || hp < hs[2]) huntSince.put(w.getId(), new long[] { prey.getId(), bot.now, hp });
                 else if (bot.now - hs[1] > 500) {
                     badPrey.add(prey.getId());
+                    badPreySpots.put(prey.blockPosition(), bot.now);
                     huntSince.remove(w.getId());
                     bot.log("cannot catch " + prey.getType().toShortString() + " at " + prey.blockPosition().toShortString() + ", giving up on it");
                     Orders.move(bot.name, List.of(w), in.home());
@@ -293,7 +306,7 @@ public final class Economy {
         want[1] = Math.max(0, gatherers - want[0] - want[2]);
         // farms already built are the cheapest food there is: keep every one of them worked, and let
         // the market turn a food surplus into what is short, rather than leave fields standing empty
-        if (bot.difficulty == Difficulty.EXPERT && in.food < 4000) {
+        if (bot.difficulty == Difficulty.EXPERT && in.food < (popMaxed(in) ? 400 : 1500)) {
             int fields = Math.min(in.built(bot.plan.farm), (int) (gatherers * 0.6));
             int extra = fields - want[0];
             if (extra > 0) {
@@ -446,6 +459,9 @@ public final class Economy {
         if (bot.outnumbered() && p.get("golemShare") >= 0.3) ore = Math.max(ore, 0.22);
         // ore piling up while wood is short: golems (50 wood + 250 ore) are waiting for wood
         if (in.ore > 600 && p.get("golemShare") > 0.2) { tw += 300; ore = Math.min(ore, 0.08); }
+        // population maxed: the army only replaces losses, banked food is wasted - wood and ore buy
+        // armour, enchants and the ore units that pack the most fighting into each population slot
+        if (bot.difficulty == Difficulty.EXPERT && popMaxed(in)) { tf = Math.min(tf, 300); to = Math.max(to, 500); tw = Math.max(tw, 400); ore = Math.max(ore, 0.2); }
         double k = 0.7;
         food *= 1 + k * clamp((tf - in.food) / tf);
         wood *= 1 + k * clamp((tw - in.wood) / tw);
@@ -502,7 +518,7 @@ public final class Economy {
     private int countAnimals(Intel in, double r) {
         BlockPos h = in.home();
         AABB box = new AABB(h).inflate(r, 12, r);
-        return bot.level.getEntitiesOfClass(Animal.class, box, a -> a.isAlive() && worthHunting(a) && !badPrey.contains(a.getId())
+        return bot.level.getEntitiesOfClass(Animal.class, box, a -> a.isAlive() && worthHunting(a) && !badPrey(a)
                 && !(a instanceof Unit)).size();
     }
 
@@ -533,7 +549,7 @@ public final class Economy {
             BlockPos h = in.home();
             AABB box = new AABB(h).inflate(36, 12, 36);
             Optional<Animal> prey = bot.level.getEntitiesOfClass(Animal.class, box,
-                            a -> a.isAlive() && !(a instanceof Unit) && worthHunting(a) && !badPrey.contains(a.getId()) && !in.dangerous(a.blockPosition(), 26))
+                            a -> a.isAlive() && !(a instanceof Unit) && worthHunting(a) && !badPrey(a) && !in.dangerous(a.blockPosition(), 26))
                     .stream().min(Comparator.comparingDouble(a -> a.distanceToSqr(w)));
             if (prey.isPresent()) {
                 bot.log("hunt " + prey.get().getType().toShortString() + " d=" + (int) Math.sqrt(prey.get().distanceToSqr(w)) + " by #" + w.getId());

@@ -70,8 +70,18 @@ final class Upgrades {
     /** spare resources: upgrades are a late luxury and must not starve production or buildings */
     private boolean rich(Intel in) {
         // cheap (30-60 ore each) but ore is the scarce one late: on above 100, off only below 60
-        int bar = wasRich ? 30 : 100;
+        // at the population limit nothing else can use the money: buy them as soon as it is there
+        int bar = wasRich ? 30 : bot.economy.popMaxed(in) ? 60 : 100;
         return in.wood >= bar && in.ore >= bar;
+    }
+
+    private boolean wasArmourRich;
+
+    /** a chestplate costs 30 ore and nothing else: it must not wait for wood as well */
+    private boolean armourRich(Intel in) {
+        boolean r = in.ore >= (wasArmourRich ? 30 : bot.economy.popMaxed(in) ? 40 : 80);
+        wasArmourRich = r;
+        return r;
     }
 
     /** sharpness and vigor need the grand library; before it vindicators get maiming instead */
@@ -91,7 +101,7 @@ final class Upgrades {
     void think(Intel in) {
         if (!bot.params.b("upgrades") || !init()) return;
         if (!costsLogged) { costsLogged = true; StringBuilder sb = new StringBuilder("upgrade costs:"); for (EnchantAbility e : wantedEnchants) sb.append(" ").append(e.getClass().getSimpleName()).append("=").append(e.cost.food).append("/").append(e.cost.wood).append("/").append(e.cost.ore); sb.append(" leather=").append(leather.cost.food).append("/").append(leather.cost.wood).append("/").append(leather.cost.ore).append(" chain=").append(chainmail.cost.food).append("/").append(chainmail.cost.wood).append("/").append(chainmail.cost.ore); bot.log(sb.toString()); }
-        boolean rich = rich(in);
+        boolean rich = rich(in), armRich = armourRich(in);
         if (rich != wasRich) { wasRich = rich; if (bot.verbose) bot.log("upgrades autocast " + (rich ? "on" : "off")); }
         for (BuildingPlacement b : in.own) {
             if (!b.isBuilt) continue;
@@ -100,7 +110,7 @@ final class Upgrades {
                     for (EnchantAbility e : wantedEnchants)
                         if (Library.isAutoCasting(b, e) != (rich && enchantsFor(b).contains(e))) Library.toggleAutoCast(b, e);
                 } else if (b.getBuilding() == Buildings.BLACKSMITH) {
-                    EquipAbility want = rich ? armourFor(b) : null;
+                    EquipAbility want = armRich ? armourFor(b) : null;
                     if (b.getDataStorage().getData(Blacksmith.AUTO_CAST_EQUIP) != want)
                         b.getDataStorage().setData(Blacksmith.AUTO_CAST_EQUIP, want);
                 }
@@ -164,10 +174,10 @@ final class Upgrades {
             if (!b.isBuilt) continue;
             if (failedAt.containsKey(u.getId() + "@" + b.centrePos.asLong())) continue;
             if (failedAt.containsKey("all@" + b.centrePos.asLong())) continue;
-            if (b.getBuilding() == Buildings.LIBRARY) {
+            if (b.getBuilding() == Buildings.LIBRARY && wasRich) {
                 for (EnchantAbility e : enchantsFor(b))
                     if (e.isCorrectUnitAndEquipment(u) && !e.hasSameEnchant(u) && e.canAfford(b)) return b.centrePos;
-            } else if (b.getBuilding() == Buildings.BLACKSMITH) {
+            } else if (b.getBuilding() == Buildings.BLACKSMITH && wasArmourRich) {
                 EquipAbility a = armourFor(b);
                 if (a.isCorrectUnit(u) && !a.isWindcaller(u) && !a.hasSameItem(u) && a.canAfford(b)) return b.centrePos;
             }
@@ -181,7 +191,7 @@ final class Upgrades {
      */
     Set<Integer> visits(Intel in) {
         Set<Integer> out = new HashSet<>();
-        if (!bot.params.b("upgrades") || !init() || !rich(in)) { visiting.clear(); return out; }
+        if (!bot.params.b("upgrades") || !init() || !(wasRich || wasArmourRich)) { visiting.clear(); return out; }
         for (Mob u : in.army) {
             Long t = visiting.get(u.getId());
             if (t == null || bot.now - t < 580 || bot.now - t > 600 || diagLogs >= 12 || !bot.verbose) continue;
@@ -227,7 +237,7 @@ final class Upgrades {
         for (BuildingPlacement b : in.own) {
             if (!b.isBuilt || u.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(new BlockPos(b.centrePos.getX(), b.minCorner.getY(), b.centrePos.getZ()))) >= 144) continue;
             try {
-                if (b.getBuilding() == Buildings.LIBRARY) {
+                if (b.getBuilding() == Buildings.LIBRARY && wasRich) {
                     for (EnchantAbility e : enchantsFor(b))
                         if (e.isCorrectUnitAndEquipment(u) && !e.hasSameEnchant(u) && e.canAfford(b) && e.isOffCooldown(b)) { e.use(bot.level, b, u); if (bot.verbose && libLogs++ < 10) bot.log("enchant " + e.getClass().getSimpleName() + " on " + u.getType().toShortString() + " d=" + (int) Math.sqrt(u.blockPosition().distSqr(b.centrePos)) + " now=" + e.hasSameEnchant(u)); return; }
                 } else if (b.getBuilding() == Buildings.BLACKSMITH) {
