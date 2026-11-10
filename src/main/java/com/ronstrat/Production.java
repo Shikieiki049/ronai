@@ -120,7 +120,11 @@ public final class Production {
             boolean urgent = r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_RESOURCE_CAPACITY
                     || r.item == plan.marketUpgrade;
             int margin = urgent ? 0 : 150;
-            if (f < c.food + margin || w < c.wood + margin || o < c.ore + margin / 2) continue;
+            // carry bags (expert): paid from the bank, not what is left after escrow - every other spend
+            // came first and the research waited the whole game
+            boolean bags = r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_RESOURCE_CAPACITY
+                    && bot.difficulty == Difficulty.EXPERT && in.food >= c.food && in.wood >= c.wood;
+            if (!bags && (f < c.food + margin || w < c.wood + margin || o < c.ore + margin / 2)) continue;
             for (BuildingPlacement b : in.own) {
                 if (!b.isBuilt || b.getBuilding() != r.at || !(b instanceof ProductionPlacement pp)) continue;
                 if (perBuilding && b.getUpgradeLevel() > 0) continue;

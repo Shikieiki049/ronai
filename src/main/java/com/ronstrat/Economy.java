@@ -152,6 +152,27 @@ public final class Economy {
         return false;
     }
 
+    /**
+     * RON spawns the starting villagers 11 blocks from the start position, wherever that lands: on
+     * 4Mountains seat 2 it is the top of an oak's crown, five blocks up. No path leads down, nobody can
+     * build the town centre and the seat is dead (every tier, every version: "lost all buildings" at
+     * 1:16). A spawn bug, not a game decision: in the first two minutes a villager standing on leaves
+     * is set down on the ground below it.
+     */
+    private void unstickFromTrees(Intel in) {
+        if (com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks > 2400) return;
+        for (Mob w : in.workers) {
+            BlockPos below = w.blockPosition().below();
+            if (!(bot.level.getBlockState(below).getBlock() instanceof net.minecraft.world.level.block.LeavesBlock)) continue;
+            int x = w.getBlockX(), z = w.getBlockZ();
+            int y = bot.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+            if (y >= w.getBlockY()) continue;
+            w.teleportTo(x + 0.5, y, z + 0.5);
+            w.getNavigation().stop();
+            bot.log("villager stuck on a tree crown at " + below.toShortString() + ": set down at y=" + y);
+        }
+    }
+
     /** at the population limit the army cannot grow: food stops mattering, upgrades and ore units do */
     boolean popMaxed(Intel in) { return in.popCap >= 150 && in.pop >= in.popCap - 10; }
 
@@ -164,6 +185,7 @@ public final class Economy {
         List<Mob> idle = new ArrayList<>();
         Map<Job, List<Mob>> byJob = new EnumMap<>(Job.class);
         for (Job j : Job.values()) byJob.put(j, new ArrayList<>());
+        unstickFromTrees(in);
         // a monster closing in on villagers: they run before the first one dies, not after (camps that
         // wander into the wood line killed 3-4 villagers per game in the first ten minutes)
         List<LivingEntity> chasers = new ArrayList<>();

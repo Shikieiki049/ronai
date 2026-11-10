@@ -97,6 +97,13 @@ public final class Builder {
                 double pri = in.food > 900 ? 35 : farms < bot.economy.farmsWanted * 0.75 ? (bot.difficulty == Difficulty.EXPERT && workers < 34 ? 94 : 82) : 60;
                 reqs.add(new Request(plan.farm, pri + Math.min(6, bot.economy.farmsWanted - farms), home, 10, 34));
             }
+            // even game: carry bags (200 food + 200 wood at a stockpile) double what a villager brings per
+            // trip - 50 to 100. Without a stockpile the expert never researched them in a whole game
+            if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && in.total(plan.stockpile) == 0
+                    && workers >= 20 && in.built(plan.farm) >= 6) {
+                // by the town centre (a spot in the woods found no room): it is there for the research
+                reqs.add(new Request(plan.stockpile, workers >= 24 ? 92 : 80, home, 8, 26));
+            }
             // no drop site left at all (capitols and stockpiles destroyed): nothing can be delivered
             if (bot.economy.dropSites(in).isEmpty() && in.total(plan.stockpile) - in.built(plan.stockpile) == 0) {
                 reqs.add(new Request(plan.stockpile, 110, home, 2, 20));
@@ -319,6 +326,9 @@ public final class Builder {
             int[] pr = siteProgress.computeIfAbsent(b.originPos, k -> new int[] { placed, (int) bot.now });
             if (placed != pr[0]) { pr[0] = placed; pr[1] = (int) bot.now; continue; }
             if (bot.now - pr[1] < 1500) continue;
+            // the first town centre is the whole base: cancelling it loses the game on the spot
+            // (4Mountains: a stalled start site was cancelled at 0:76 - "lost all their buildings")
+            if (b.isCapitol && in.built(bot.plan.capitol) == 0) { pr[1] = (int) bot.now; continue; }
             siteProgress.remove(b.originPos);
             badSpots.add(b.originPos);
             bot.log("cancel stalled " + name(b.getBuilding()) + " at " + b.originPos.toShortString());
