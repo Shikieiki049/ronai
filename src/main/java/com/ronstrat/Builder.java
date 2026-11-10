@@ -215,7 +215,10 @@ public final class Builder {
             // market once the economy is lopsided (one resource piling up while another starves)
             if (p.b("useMarket") && bot.plan.market != null && in.total(bot.plan.market) == 0 && workers >= 22) {
                 int hi = Math.max(in.food, Math.max(in.wood, in.ore)), lo = Math.min(in.food, Math.min(in.wood, in.ore));
-                if (hi > 700 && lo < 200) reqs.add(new Request(bot.plan.market, hi >= 1000 && lo < 150 ? 88 : 74, home, 12, 34));
+                // ore piling up while wood is gone (a player's game: 1185 ore, 0 wood, no market in 22 min - the
+                // 88 request never beat the fields and houses to the 75 wood): the market comes first
+                if (bot.difficulty == Difficulty.EXPERT && in.ore >= 400 && in.wood < 150) reqs.add(new Request(bot.plan.market, 106, home, 12, 34));
+                else if (hi > 700 && lo < 200) reqs.add(new Request(bot.plan.market, hi >= 1000 && lo < 150 ? 88 : 74, home, 12, 34));
                 // the expert puts one up ahead of need: once the wood is gone the market is the only
                 // way to get any, and it costs wood itself
                 else if (bot.difficulty == Difficulty.EXPERT && workers >= 26 && in.wood >= 200 && in.ore >= 150)
@@ -350,7 +353,47 @@ public final class Builder {
             List<Mob> ws = bot.economy.borrow(in, b.centrePos, b.isCapitol ? 3 : 1);
             if (!ws.isEmpty()) Orders.buildRepair(bot.name, ws, b.centrePos);
         }
+        repairDamaged(in);
     }
+
+    /**
+     * Damaged buildings were never repaired (a player saw the AI's base worn down over a long game).
+     * Below 85% health and no enemy within 20 blocks: one or two villagers (three for a town centre)
+     * mend it, two buildings at a time, town centres first.
+     */
+    private void repairDamaged(Intel in) {
+        if (bot.now - lastRepairCheck < 100) return;
+        lastRepairCheck = bot.now;
+        List<BuildingPlacement> hurt = new ArrayList<>();
+        for (BuildingPlacement b : in.own) {
+            if (!b.isBuilt || b.isDestroyedServerside) continue;
+            int max = b.getMaxHealth();
+            if (max <= 0 || b.getHealth() >= max * 0.85) continue;
+            boolean enemyNear = false;
+            for (net.minecraft.world.entity.LivingEntity e : in.visibleEnemies)
+                if (!UnitEval.isWorker(e) && e.blockPosition().distSqr(b.centrePos) < 20 * 20) { enemyNear = true; break; }
+            if (!enemyNear) hurt.add(b);
+        }
+        hurt.sort((x, y) -> Boolean.compare(y.isCapitol, x.isCapitol) != 0 ? Boolean.compare(y.isCapitol, x.isCapitol)
+                : Double.compare(x.getHealth() / (double) x.getMaxHealth(), y.getHealth() / (double) y.getMaxHealth()));
+        int n = 0;
+        for (BuildingPlacement b : hurt) {
+            if (n++ >= 2) break;
+            int on = 0;
+            for (Mob w : in.workers) {
+                var g = ((WorkerUnit) w).getBuildRepairGoal();
+                if (g != null && g.getBuildingTarget() == b) on++;
+            }
+            int want = b.isCapitol ? 3 : b.getHealth() < b.getMaxHealth() * 0.5 ? 2 : 1;
+            if (on >= want) continue;
+            List<Mob> ws = bot.economy.borrow(in, b.centrePos, want - on);
+            if (!ws.isEmpty()) {
+                Orders.buildRepair(bot.name, ws, b.centrePos);
+                if (bot.now - lastRepairLog > 600) { lastRepairLog = bot.now; bot.log("repair " + name(b.getBuilding()) + " at " + b.centrePos.toShortString() + " (" + b.getHealth() + "/" + b.getMaxHealth() + ") with " + ws.size()); }
+            }
+        }
+    }
+    private long lastRepairCheck, lastRepairLog = -10000;
 
     private boolean dropSiteNear(Intel in, BlockPos p, int r) {
         for (BuildingPlacement b : in.own) {

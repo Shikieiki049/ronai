@@ -499,7 +499,9 @@ public final class Economy {
         // by then and brought a golem; the expert had 3-5 soldiers and lost the base)
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n >= 16
                 && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks > 6000
-                && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks < 18000) ore = Math.max(ore, 0.12);
+                && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks < 18000 && in.ore < 400) ore = Math.max(ore, 0.12);
+        // ore piled up, wood gone: every miner to the woods (a player's game: 1185 ore, wood at 0 for 10 min)
+        if (bot.difficulty == Difficulty.EXPERT && in.ore >= 600 && in.wood < 150) { ore = 0; food = Math.min(food, 0.5); }
         // no game to hunt near home: the opening lives on berries and the first fields - more hands on food
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n < 14 && animalsNearHome == 0) food = Math.max(food, 0.6);
         double wood = 1 - food - ore;

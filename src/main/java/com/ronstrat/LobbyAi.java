@@ -105,7 +105,9 @@ public final class LobbyAi {
                 for (Map.Entry<String, Seat> e : SEATS.entrySet()) {
                     Seat s = e.getValue();
                     try {
-                        BotManager.startReadied(level, e.getKey(), s.difficulty(), s.pos().above(), s.colorId());
+                        // the start block itself, as RON does for a human (startRTS gets startPos.pos): .above() put the
+                        // AI's town centre one block above the ground, on stilts
+                        BotManager.startReadied(level, e.getKey(), s.difficulty(), s.pos(), s.colorId());
                     } catch (Exception ex) {
                         RonStrategist.LOG.error("RON Strategist: could not start lobby bot {}", e.getKey(), ex);
                     }

@@ -33,7 +33,7 @@ minecraft {
 repositories { flatDir { dirs 'libs' }; mavenCentral() }
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.4.28'
-    implementation fg.deobf('local:reignofnether:1.5.1b')
+    implementation fg.deobf('local:reignofnether:1.5.1c')
 }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 jar.finalizedBy('reobfJar')

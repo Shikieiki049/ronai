@@ -68,7 +68,7 @@ public final class BotManager {
         synchronized (PlayerServerEvents.rtsPlayers) {
             PlayerServerEvents.rtsPlayers.add(RTSPlayer.getNewBot(name, faction));
         }
-        FogOfWarServerEvents.invalidateRtsCache();
+        // (RON 1.5.1c dropped the fog's rts-player cache: nothing to invalidate any more)
         ResourcesServerEvents.assignResources(name);
 
         EntityType<?> worker = ForgeRegistries.ENTITY_TYPES.getValue(faction.workerEntityType);
@@ -101,7 +101,7 @@ public final class BotManager {
         RTSPlayer rp = RTSPlayer.getNewBot(name, faction);
         rp.startPosColorId = colorId;
         synchronized (PlayerServerEvents.rtsPlayers) { PlayerServerEvents.rtsPlayers.add(rp); }
-        FogOfWarServerEvents.invalidateRtsCache();
+        // (RON 1.5.1c dropped the fog's rts-player cache: nothing to invalidate any more)
         ResourcesServerEvents.assignResources(name);
         com.solegendary.reignofnether.building.Building capitol =
                 com.solegendary.reignofnether.api.ReignOfNetherRegistries.BUILDING.get(faction.capitolBuilding);
@@ -121,6 +121,8 @@ public final class BotManager {
             ids.add(e.getId());
         }
         if (capitol != null) {
+            RonStrategist.LOG.info("RON Strategist: {} town centre origin {} (start block {}, ground at the start {})", name, origin.toShortString(), pos.toShortString(),
+                    level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, pos.getX(), pos.getZ()));
             com.solegendary.reignofnether.building.BuildingServerEvents.placeBuilding(capitol, origin,
                     net.minecraft.world.level.block.Rotation.NONE, name, ids.stream().mapToInt(Integer::intValue).toArray(),
                     false, false, true, true);

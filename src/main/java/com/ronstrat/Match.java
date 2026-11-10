@@ -26,7 +26,7 @@ public final class Match {
     public void useMapSeats(ServerLevel level) {
         List<BlockPos> all = new ArrayList<>();
         for (var sp : com.solegendary.reignofnether.startpos.StartPosServerEvents.startPoses)
-            if (sp.enabled) all.add(sp.pos.above());
+            if (sp.enabled) all.add(sp.pos); // the start block itself, like a human's start
         if (all.size() < spec.players())
             throw new IllegalStateException("map has " + all.size() + " start positions, match needs " + spec.players());
         java.util.Collections.shuffle(all, new java.util.Random(seed));
