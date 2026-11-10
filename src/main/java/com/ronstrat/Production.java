@@ -191,6 +191,11 @@ public final class Production {
                 double gap = share - have.getOrDefault(u.role, 0.0) / Math.max(1, totalPop);
                 // spend what is piling up: a unit made of surplus resources is worth more right now
                 if (bot.difficulty.ordinal() >= Difficulty.HARD.ordinal()) gap += p.get("resourceFitWeight") * resourceFit(cost(u.item), f, w, o);
+                // even game: food and wood run short while ore piles up - a unit paid in ore is army for free
+                if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && o >= 400) {
+                    ResourceCost cu = cost(u.item);
+                    if (cu.ore >= 2 * (cu.food + cu.wood)) gap += 0.5;
+                }
                 if (gap > bestGap) { bestGap = gap; best = u; }
             }
             if (best == null) { idleReason = "nothing affordable f=" + f + " w=" + w + " o=" + o + " pop=" + in.pop + "/" + in.popCap; continue; }

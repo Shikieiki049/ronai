@@ -1199,6 +1199,12 @@ public final class Army {
         }
     }
 
+    /** a camp that beat our soldiers lies within r of p: villagers do not gather there until it is cleared */
+    boolean nearStrongCamp(BlockPos p, double r) {
+        for (BlockPos s : strongCamps) if (s.distSqr(p) < r * r) return true;
+        return false;
+    }
+
     private boolean strongCamp(BlockPos p) {
         // the expert comes back with twice the army that failed (a camp guarding the next woods must go)
         for (BlockPos s : strongCamps)
@@ -1290,7 +1296,12 @@ public final class Army {
             if (d == null && rb != null && bot.now - bot.economy.blockedAt < 2400) d = in.nearestDanger(rb, 30);
             if (d == null || in.army.size() < (bot.outnumbered() ? 8 : bot.hazardDeaths >= 4 && d.distSqr(in.home()) < 50 * 50 ? 3 : 5) || waveTime || strongCamp(d)) return false;
             Vec3 c = centroid(in.army);
-            if (c.distanceToSqr(Vec3.atCenterOf(d)) < 8 * 8) { in.forgetDanger(d, 18); return false; } // nothing there any more
+            if (c.distanceToSqr(Vec3.atCenterOf(d)) < 8 * 8) { // nothing there any more
+                in.forgetDanger(d, 18);
+                final BlockPos gone = d;
+                strongCamps.removeIf(sc -> sc.distSqr(gone) < 24 * 24);
+                return false;
+            }
             // the army cannot get there (cliff, water): forget that spot after 45 s so the next one gets a turn
             if (bot.difficulty == Difficulty.EXPERT) {
                 if (remGoal == null || remGoal.distSqr(d) > 6 * 6) { remGoal = d; remSince = bot.now; }

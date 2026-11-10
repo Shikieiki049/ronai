@@ -120,6 +120,8 @@ public final class Intel {
         double rn = Math.min(r, cap) * Math.min(r, cap);
         for (BlockPos n : neutralPos.values()) if (n.distSqr(p) <= rn) return true;
         for (BlockPos n : deathSpots.keySet()) if (n.distSqr(p) <= r2) return true;
+        // a camp too strong for our soldiers stays dangerous after its memory fades, until it is cleared
+        if (bot.army != null && bot.army.nearStrongCamp(p, Math.max(r, 22))) return true;
         return false;
     }
     public final List<BuildingPlacement> visibleEnemyBuildings = new ArrayList<>();

@@ -183,9 +183,11 @@ public final class Builder {
             // even game: food is the bottleneck while the starting/stray ore sits idle - golems cost no
             // food and beat the first vindicator raids, so a golem smith once the barracks are going
             if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && in.built(plan.barracks) >= 1
-                    && workers >= 18 && in.ore >= (in.built(plan.barracks) >= 2 ? 250 : 500)) {
+                    && workers >= 18 && in.ore >= 350) {
                 Building smith = bot.plan.option(com.solegendary.reignofnether.building.production.ProductionItems.IRON_GOLEM).producer;
-                if (in.total(smith) == 0) reqs.add(new Request(smith, 82, home, 12, 30));
+                if (in.total(smith) == 0) reqs.add(new Request(smith, 86, home, 12, 30));
+                // ore keeps piling up with one smith busy: a second one turns it into army twice as fast
+                else if (in.total(smith) == 1 && in.built(smith) == 1 && in.ore >= 700 && workers >= 28) reqs.add(new Request(smith, 70, home, 12, 34));
             }
             // market once the economy is lopsided (one resource piling up while another starves)
             if (p.b("useMarket") && bot.plan.market != null && in.total(bot.plan.market) == 0 && workers >= 22) {
