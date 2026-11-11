@@ -95,6 +95,10 @@ public final class Army {
     // ------------------------------------------------------------------ macro
 
     private CombatSim.Probe probe;
+    private TeamPlan teamPlan;
+    boolean inAttack() { return mode == Mode.ATTACK; }
+    String targetName() { return target; }
+    private boolean teamOn() { return bot.difficulty == Difficulty.EXPERT && bot.params.b("teamV2") && !bot.outnumbered(); }
     private ArmyV2 v2;
     private long lastLostCheck = -1000;
     private boolean v2on() {
@@ -106,6 +110,7 @@ public final class Army {
     void think(Intel in) {
         BotParams p = bot.params;
         if (probe != null && probe.finished(bot.now, null)) probe = null;
+        if (mode != Mode.ATTACK && mode != Mode.DEFEND) teamPlan = null;
         double defendR = p.get("defendRadius");
         if (mode != Mode.ATTACK) curForce = in.army;
         stopFriendlyFire(in);
@@ -164,6 +169,14 @@ public final class Army {
                     : "我要进攻 " + target + " 了，兵力 " + in.army.size() + "，一起上！", true);
             joinedHuman = null;
             lastReissue = -1000;
+            if (teamOn()) {
+                if (teamPlan == null || !target.equals(teamPlan.target)) {
+                    TeamPlan tp = TeamPlan.current(bot);
+                    if (tp == null || !tp.target.equals(target)) tp = TeamPlan.open(bot, target, targetPos);
+                    if (tp != null) tp.members.add(bot.name);
+                    teamPlan = tp;
+                }
+            } else teamPlan = null;
             stageUntil = bot.difficulty.ordinal() >= Difficulty.HARD.ordinal() ? bot.now + 800 : -1;
             stageStarted = bot.now;
             stagePos = null;
@@ -238,6 +251,7 @@ public final class Army {
             }
         }
         for (Bot o : Bot.peers()) {
+            if (teamOn()) break; // the team plan does this
             if (o == bot || o.difficulty != Difficulty.EXPERT || o.army.mode != Mode.ATTACK || o.army.target == null) continue;
             if (!allied(o)) continue; // only allies attack together
             Intel.EnemyMemory em = in.enemies.get(o.army.target);
@@ -521,6 +535,18 @@ public final class Army {
         if (secs < p.get("firstAttackSeconds") * jitter()) return false;
         double armyPop = 0;
         for (Mob m : in.army) armyPop += UnitEval.popValue(m);
+        if (teamOn()) {
+            TeamPlan tp = TeamPlan.current(bot);
+            Intel.EnemyMemory tm = tp == null ? null : in.enemies.get(tp.target);
+            if (tp != null && !tp.members.contains(bot.name) && tm != null && tm.alive && armyPop >= bot.params.get("teamJoinPop")) {
+                target = tp.target;
+                targetPos = tp.targetPos;
+                tp.members.add(bot.name);
+                teamPlan = tp;
+                bot.log("team plan: joining on " + target + " with army pop " + (int) armyPop);
+                return true;
+            }
+        }
         if (joinPartner(in, armyPop)) return true;
         if (bot.now - lastAttackEnd < p.get("attackWaveCooldown") * 20) return false;
         boolean maxed = in.pop >= 140;
@@ -749,6 +775,7 @@ public final class Army {
     }
 
     private void endAttack() {
+        teamPlan = null;
         mode = Mode.GATHER;
         lastAttackEnd = bot.now;
     }
@@ -764,6 +791,18 @@ public final class Army {
         }
         List<Mob> force = attackForce(in);
         if (targetPos == null) targetPos = m.anyBuilding();
+        if (teamPlan != null && teamPlan.target.equals(target) && !teamPlan.released(bot)) {
+            stageUntil = -1;
+            List<Mob> body0 = mainBody(force);
+            Vec3 c0 = body0.isEmpty() ? centroid(force) : centroid(body0);
+            if (bot.now - lastReissue > 100) {
+                List<Mob> go = new ArrayList<>();
+                for (Mob u : force) if (u.position().distanceTo(Vec3.atCenterOf(teamPlan.assembly)) > 10) go.add(u);
+                if (!go.isEmpty()) Orders.move(bot.name, go, waypoint(c0, teamPlan.assembly));
+                lastReissue = bot.now;
+            }
+            return;
+        }
         if (staging(in, force)) return;
         // judge the fight by the main body of the army: one straggler that wandered into the enemy
         // base must neither make the whole army retreat nor decide where the army is

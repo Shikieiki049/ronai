@@ -1,0 +1,9 @@
+{
+  "description": "two experts attacking by team plan (profile t2: teamV2 on) against two of the same build without it",
+  "items": [
+    { "name": "t2 first", "spec": "expert:t2,expert:t2 vs expert,expert readied nohandicap", "us": 0, "pair": "t2",
+      "maps": ["4Mountains", "New_York_City", "4Rivers", "Hostile_Hostel"], "seeds": [401, 402, 403, 404] },
+    { "name": "t2 second", "spec": "expert,expert vs expert:t2,expert:t2 readied nohandicap", "us": 1, "pair": "t2",
+      "maps": ["4Mountains", "New_York_City", "4Rivers", "Hostile_Hostel"], "seeds": [401, 402, 403, 404] }
+  ]
+}

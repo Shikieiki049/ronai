@@ -498,8 +498,12 @@ public final class Economy {
         // cannot pay for when the first wave comes at minute 9-10 (Snowplow: the hard AI mined 1100 ore
         // by then and brought a golem; the expert had 3-5 soldiers and lost the base)
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n >= 16
-                && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks > 6000
+                && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks > p.get("oreFromMinute") * 1200
                 && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks < 18000 && in.ore < 400) ore = Math.max(ore, 0.12);
+        // nothing to spend ore on yet in an even opening: no miners at all, every hand on wood and fields
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered()
+                && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks < p.get("oreFromMinute") * 1200
+                && in.ore >= p.get("earlyOreFloor")) ore = 0;
         // armour and enchants are paid in ore: a few miners for good after minute 15 (ore sat at 5-85 for
         // twenty minutes in a player's game and 2 of 21 soldiers had armour)
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n >= 28 && in.ore < 500
@@ -530,7 +534,7 @@ public final class Economy {
         double sum = food + wood + ore;
         food /= sum; wood /= sum; ore /= sum;
         food = Math.max(0.2, Math.min(0.7, food));
-        ore = Math.max(0.02, Math.min(0.4, ore));
+        ore = ore <= 0 ? 0 : Math.max(0.02, Math.min(0.4, ore));
         return new double[] { food, Math.max(0.1, 1 - food - ore), ore };
     }
 

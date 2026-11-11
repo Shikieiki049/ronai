@@ -126,6 +126,8 @@ public final class BotParams {
         p.put("dropDistance",               30,    24,     20,    16);   // build a stockpile when gathering further than this
         p.put("rebalanceSlack",             4,     3,      2,     1);    // how far worker split may drift before reassigning
         p.put("farmWorkersShare",           0.45,  0.45,   0.42,  0.40); // food share of workers in mid game
+        p.put("oreFromMinute",              5,     5,      5,     5);    // even game: no early miners before this minute (golem / upgrade ore after it)
+        p.put("earlyOreFloor",              9999,  9999,   9999,  9999); // ...while ore is at least this (9999 = rule off)
         p.put("oreShare",                   0.15,  0.15,   0.15,  0.15);
         p.put("houseBuffer",                2,     4,      6,     9);    // free supply kept ahead of population
         p.put("maxParallelHouses",          1,     1,      2,     3);
@@ -171,6 +173,8 @@ public final class BotParams {
         p.put("attackWaveCooldown",         240,   180,    120,   45);   // seconds between committed attacks
         // --- playing styles (sparring profiles in tuning/profiles; 0 = off) ---
         p.put("styleBarracksAtWorkers",     0,     0,      0,     0);    // first barracks at this many villagers, top priority; a second six later
+        p.put("teamV2",                     0,     0,      0,     1);    // allied experts attack as one: shared target, assembly point, going in together
+        p.put("teamJoinPop",                0,     0,      0,     10);   // army pop needed to join a team plan already running
         p.put("armyV2",                     0,     0,      0,     0);    // attack and retreat by fight forecast (CombatSim) instead of strength ratios
         p.put("v2Leave",                    0,     0,      0,     1);    // armyV2 also decides when to leave (0 = only retreats by forecast)
         p.put("v2Retreat",                  0,     0,      0,     1);    // armyV2 also decides retreats (0 = old retreat rule)
