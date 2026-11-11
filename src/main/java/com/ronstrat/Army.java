@@ -92,8 +92,18 @@ public final class Army {
 
     // ------------------------------------------------------------------ macro
 
+    private CombatSim.Probe probe;
+    private ArmyV2 v2;
+    private long lastLostCheck = -1000;
+    private boolean v2on() {
+        if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("armyV2")) return false;
+        if (v2 == null) v2 = new ArmyV2(bot);
+        return true;
+    }
+
     void think(Intel in) {
         BotParams p = bot.params;
+        if (probe != null && probe.finished(bot.now, null)) probe = null;
         double defendR = p.get("defendRadius");
         if (mode != Mode.ATTACK) curForce = in.army;
         stopFriendlyFire(in);
@@ -542,7 +552,7 @@ public final class Army {
         // even game, small but real edge: we have just seen their army and ours is clearly bigger -
         // hit now (raid their villagers) instead of waiting for the full attack size; a human with
         // fewer units punishes waiting by teching up
-        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && armyPop >= 30) {
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && armyPop >= 30 && !(v2on() && p.b("v2Leave"))) {
             String t0 = chooseTarget(in);
             Intel.EnemyMemory m0 = t0 == null ? null : in.enemies.get(t0);
             if (m0 != null && bot.now - m0.lastSeenArmy < 20 * 90) {
@@ -565,6 +575,19 @@ public final class Army {
                 bot.log("style attack at " + (int) secs + "s with army pop " + (int) armyPop);
                 return true;
             }
+        }
+        // forecast instead of ratios: go as soon as the army we have beats what they probably have
+        if (v2on() && p.b("v2Leave") && !bot.outnumbered()) {
+            if (armyPop < p.get("v2MinPop") && !maxed) return false;
+            String tv = chooseTarget(in);
+            Intel.EnemyMemory mv = tv == null ? null : in.enemies.get(tv);
+            if (mv == null || mv.anyBuilding() == null) return false;
+            String old = target;
+            target = tv;
+            boolean go = maxed || v2.worthLeaving(in, mv, attackForce(in), partners());
+            if (!go) { target = old; return false; }
+            targetPos = mv.anyBuilding();
+            return true;
         }
         double minPop = p.get("attackMinArmyPop") * (bot.outnumbered() ? 1.8 : 1.0);
         // even game: go as one real wave (a human pushes back a dozen units with a few more from four barracks)
@@ -757,6 +780,15 @@ public final class Army {
         List<LivingEntity> localFriends = new ArrayList<>(localOwn);
         if (!localEnemies.isEmpty()) for (Bot o : partners) localFriends.addAll(near(o.intel.army, centroid(localEnemies), 40));
 
+        // check the fight forecast against what happens (self-play only: the result line carries it)
+        if (bot.difficulty == Difficulty.EXPERT) {
+            List<LivingEntity> mil0 = new ArrayList<>();
+            for (LivingEntity e : localEnemies) if (!UnitEval.isWorker(e)) mil0.add(e);
+            if (probe == null && mil0.size() >= 3 && localFriends.size() >= 3)
+                probe = new CombatSim.Probe(localFriends, mil0, 0, 12, bot.now);
+            else if (probe != null && !mil0.isEmpty()) probe.lastContact = bot.now;
+        }
+
         // lost the fight? fall back and rebuild instead of feeding units one by one
         double rr = p.get("retreatRatio");
         if (rr > 0 && !localEnemies.isEmpty() && !localOwn.isEmpty()) {
@@ -770,11 +802,19 @@ public final class Army {
                 for (Bot o : partners) allOwn += UnitEval.strength(o.intel.army);
                 committed = m != null && ratio >= 0.25 && allOwn >= 1.3 * Math.max(1, decayedStrength(m) + homeDefenceBonus(m));
             }
-            if (ratio < rr && !committed) {
+            boolean giveUp = ratio < rr && !committed;
+            if (v2on() && p.b("v2Retreat")) {
+                List<LivingEntity> everyone = new ArrayList<>(force);
+                for (Bot o : partners) everyone.addAll(o.intel.army);
+                giveUp = bot.now - lastLostCheck >= 40 && v2.lost(localFriends, localEnemies, everyone);
+                if (bot.now - lastLostCheck >= 40) lastLostCheck = bot.now;
+            }
+            if (giveUp) {
                 mode = Mode.RETREAT;
                 retreats++;
-                retreatUntil = bot.now + 500;
+                retreatUntil = bot.now + (v2on() && p.b("v2Retreat") ? 1200 : 500);
                 lastAttackEnd = bot.now;
+                if (probe != null && probe.finished(bot.now, "retreat")) probe = null;
                 bot.log("retreat ratio=" + String.format("%.2f", ratio));
                 bot.tellAllies("打不过 " + target + "，先撤回来补兵", true);
                 Orders.move(bot.name, force, rally(in));

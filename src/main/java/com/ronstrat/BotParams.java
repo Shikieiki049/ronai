@@ -171,6 +171,15 @@ public final class BotParams {
         p.put("attackWaveCooldown",         240,   180,    120,   45);   // seconds between committed attacks
         // --- playing styles (sparring profiles in tuning/profiles; 0 = off) ---
         p.put("styleBarracksAtWorkers",     0,     0,      0,     0);    // first barracks at this many villagers, top priority; a second six later
+        p.put("armyV2",                     0,     0,      0,     0);    // attack and retreat by fight forecast (CombatSim) instead of strength ratios
+        p.put("v2Leave",                    0,     0,      0,     1);    // armyV2 also decides when to leave (0 = only retreats by forecast)
+        p.put("v2Retreat",                  0,     0,      0,     1);    // armyV2 also decides retreats (0 = old retreat rule)
+        p.put("v2MinPop",                   0,     0,      0,     16);   // no forecast attack below this army population
+        p.put("v2LeaveLeft",                0,     0,      0,     0.4);  // leave when the forecast win keeps this share of the army
+        p.put("v2RetreatLeft",              0,     0,      0,     0.25); // retreat when the forecast leaves less than this
+        p.put("v2GrowthPerMinute",          0,     0,      0,     1.2);  // enemy units assumed per barracks per minute since we last saw their army
+        p.put("v2UnseenPerMinute",          0,     0,      0,     2.0);  // enemy units assumed per minute after 6:30 when never seen
+        p.put("v2DefenceUnits",             0,     0,      0,     2);    // extra defenders assumed at an enemy base (militia, garrison)
         p.put("styleAttackAt",              0,     0,      0,     0);    // from this second on: attack with what there is, no strength check
         p.put("styleAttackMinPop",          8,     8,      8,     8);    // ...once the army is at least this big
         p.put("armyKeepHome",               0,     0.1,    0.15,  0.0);  // fraction of army left as home guard

@@ -1,0 +1,7 @@
+{
+  "armyV2": 1,
+  "v2LeaveLeft": 0.6,
+  "v2GrowthPerMinute": 2.0,
+  "v2UnseenPerMinute": 2.5,
+  "v2DefenceUnits": 4
+}

@@ -1,11 +1,11 @@
 {
   "description": "current expert against playing styles (tuning/profiles): an early rush, a timed push, a greedy boom",
   "items": [
-    { "name": "vs rush7", "spec": "expert vs expert:rush7 readied nohandicap", "us": 0,
+    { "name": "vs rush7", "spec": "expert vs expert:rush7 readied nohandicap fog", "us": 0,
       "maps": ["Mirs_Landing", "Cabana_Republic", "Snowplow"], "seeds": [201, 202, 203, 204] },
-    { "name": "vs push12", "spec": "expert vs expert:push12 readied nohandicap", "us": 0,
+    { "name": "vs push12", "spec": "expert vs expert:push12 readied nohandicap fog", "us": 0,
       "maps": ["Mirs_Landing", "Cabana_Republic", "Snowplow"], "seeds": [201, 202, 203, 204] },
-    { "name": "vs boom", "spec": "expert vs expert:boom readied nohandicap", "us": 0,
+    { "name": "vs boom", "spec": "expert vs expert:boom readied nohandicap fog", "us": 0,
       "maps": ["Mirs_Landing", "Cabana_Republic", "Snowplow"], "seeds": [201, 202, 203, 204] }
   ]
 }

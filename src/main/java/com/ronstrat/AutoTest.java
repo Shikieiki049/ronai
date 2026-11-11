@@ -401,6 +401,9 @@ public final class AutoTest {
             teams.add(t);
         }
         o.add("teams", teams);
+        JsonArray checks = new JsonArray();
+        for (String c : CombatSim.checks()) checks.add(c);
+        o.add("simChecks", checks); // start s, own n, enemy n, towers, forecast own/enemy left, real own/enemy left, seconds, how it ended
         String line = new Gson().toJson(o);
         RonStrategist.LOG.info("RON Strategist autotest result: {}", line);
         String out = System.getProperty("ronstrat.out");

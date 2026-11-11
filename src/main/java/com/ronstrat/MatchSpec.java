@@ -28,6 +28,8 @@ public final class MatchSpec {
     public boolean handicap = true;
     /** "readied": every player starts the way RON starts a seat from its lobby (town centre placed, 150/150/50) */
     public boolean readied;
+    /** "fog": fog of war on, as in the user's lobby games (each player sees only what its units and buildings see) */
+    public boolean fog;
     public final String text;
 
     private MatchSpec(String text) { this.text = text; }
@@ -39,6 +41,7 @@ public final class MatchSpec {
             again = false;
             if (t.endsWith(" readied")) { m.readied = true; t = t.substring(0, t.length() - 8); again = true; }
             if (t.endsWith(" nohandicap")) { m.handicap = false; t = t.substring(0, t.length() - 11); again = true; }
+            if (t.endsWith(" fog")) { m.fog = true; t = t.substring(0, t.length() - 4); again = true; }
             if (t.endsWith(" ffa")) { m.ffa = true; t = t.substring(0, t.length() - 4); again = true; }
         }
         for (String side : t.split("\\s+vs\\s+")) {
