@@ -11,6 +11,8 @@ param(
     [string]$Seeds = "1",
     [int]$Parallel = 4,
     [string]$Out = "results\results.jsonl",
+    # -AltRon: run the server on the alternate RON build (build.gradle ronAlt, e.g. 1.5.0b-2 with RON's own bots)
+    [switch]$AltRon,
     [int]$TimeoutMinutes = 45,
     [string]$ExpertParams = "",
     [string]$HardParams = "",
@@ -52,6 +54,11 @@ function Test-Away {
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $cmd = Get-Content (Join-Path $root 'build\servercmd.json') -Raw | ConvertFrom-Json
+if ($AltRon) {
+    $alt = (Get-Content (Join-Path $root 'build\ronalt.txt') -Raw).Trim()
+    if (-not (Test-Path $alt)) { throw "alternate RON jar missing: run build.ps1 altRonPath" }
+    $cmd.classpath = @($cmd.classpath | ForEach-Object { if ($_ -like '*reignofnether-1.5.1c*') { $alt } else { $_ } })
+}
 $outPath = if ([IO.Path]::IsPathRooted($Out)) { $Out } else { Join-Path $root $Out }
 New-Item -ItemType Directory -Force (Split-Path $outPath) | Out-Null
 

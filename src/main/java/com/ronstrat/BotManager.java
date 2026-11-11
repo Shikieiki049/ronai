@@ -72,6 +72,7 @@ public final class BotManager {
      */
     static Agent create(String brain, String profile, String name, Difficulty d, Faction faction, BlockPos pos, ServerLevel level) {
         if (brain == null || brain.isEmpty()) return new Bot(name, d, faction, pos, level, level.getSeed(), profile);
+        if (brain.startsWith("ron")) return new RonBot(name, d, faction, pos, level, level.getSeed(), brain);
         try {
             return (Agent) Class.forName("com.ronstrat." + brain + ".Bot")
                     .getConstructor(String.class, Difficulty.class, Faction.class, BlockPos.class, ServerLevel.class, long.class, String.class)

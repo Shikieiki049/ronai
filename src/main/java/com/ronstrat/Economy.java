@@ -549,7 +549,7 @@ public final class Economy {
             BlockPos h = in.home();
             if (ResourceIndex.get(bot.level).findClosest(bot.level, h, 24, ResourceName.FOOD,
                     pos -> !com.solegendary.reignofnether.building.BuildingUtils.isPosInsideFarm(false, pos)
-                            && g.canGather(pos, ResourceName.FOOD)).isPresent()) foragers = 2;
+                            && RonCompat.canGather(g, bot.level, pos, ResourceName.FOOD)).isPresent()) foragers = 2;
         }
         // hunting and foraging are a bonus: nearly every food worker still needs a farm to fall back on
         if (bot.difficulty != Difficulty.EXPERT) return Math.max(0, foodWorkers - hunters - foragers);
@@ -661,7 +661,7 @@ public final class Economy {
         for (BlockPos d : drops) {
             for (int range : new int[] { 14, 24, 40 }) {
                 Optional<BlockPos> bp = ResourceIndex.get(bot.level).findClosest(bot.level, d, range, type,
-                        pos -> Math.abs(pos.getY() - d.getY()) <= 8 && g.canGather(pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos)
+                        pos -> Math.abs(pos.getY() - d.getY()) <= 8 && RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos)
                                 && (type != ResourceName.WOOD || crowd(pos, w) < 2));
                 if (bp.isPresent()) {
                     double dist = Math.sqrt(bp.get().distSqr(d));
@@ -676,7 +676,7 @@ public final class Economy {
         if (bot.difficulty == Difficulty.EXPERT && bot.now - blockedCheck > 200) {
             blockedCheck = bot.now;
             Optional<BlockPos> any = ResourceIndex.get(bot.level).findClosest(bot.level, in.home(), 90, type,
-                    pos -> g.canGather(pos, type) && in.dangerous(pos, 24) && !unreachableSpot(pos));
+                    pos -> RonCompat.canGather(g, bot.level, pos, type) && in.dangerous(pos, 24) && !unreachableSpot(pos));
             if (any.isPresent() && (best == null || any.get().distSqr(in.home()) + 400 < best.distSqr(in.home()))) {
                 blockedByDanger = any.get();
                 blockedAt = bot.now;
@@ -687,7 +687,7 @@ public final class Economy {
         if (bot.difficulty == Difficulty.EXPERT && bot.params.b("bridges") && bot.now - bridgeCheck > 1200) {
             bridgeCheck = bot.now;
             Optional<BlockPos> any = ResourceIndex.get(bot.level).findClosest(bot.level, in.home(), 100, type,
-                    pos -> g.canGather(pos, type) && !in.dangerous(pos, 24));
+                    pos -> RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24));
             if (any.isPresent() && (best == null || any.get().distSqr(in.home()) + 900 < best.distSqr(in.home()))) {
                 List<BlockPos> r = Terrain.route(bot.level, in.home(), any.get(), bot.now);
                 if (!Terrain.reaches(r, any.get())) {
@@ -699,11 +699,11 @@ public final class Economy {
         if (best == null) {
             // nothing near any drop site: look further out from the worker itself and ask for a stockpile
             Optional<BlockPos> far = ResourceIndex.get(bot.level).findClosest(bot.level, in.home(), 120, type,
-                    pos -> g.canGather(pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos));
+                    pos -> RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos));
             // nothing within reach of home: the expert looks across the map, on its own side only
             if (far.isEmpty() && bot.difficulty == Difficulty.EXPERT && bot.now >= farMissUntil[jobIndex(j)]) {
                 far = ResourceIndex.get(bot.level).findClosest(bot.level, in.home(), 280, type,
-                        pos -> safeFar(in, pos) && g.canGather(pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos));
+                        pos -> safeFar(in, pos) && RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos));
                 if (far.isEmpty()) farMissUntil[jobIndex(j)] = bot.now + 1200;
                 else if (bot.now - lastFarLog > 600) { lastFarLog = bot.now; bot.log("far " + type + " at " + far.get().toShortString() + " (d=" + (int) Math.sqrt(far.get().distSqr(in.home())) + ")"); }
             }

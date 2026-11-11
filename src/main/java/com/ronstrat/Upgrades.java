@@ -108,7 +108,7 @@ final class Upgrades {
             try {
                 if (b.getBuilding() == Buildings.LIBRARY) {
                     for (EnchantAbility e : wantedEnchants)
-                        if (Library.isAutoCasting(b, e) != (rich && enchantsFor(b).contains(e))) Library.toggleAutoCast(b, e);
+                        if (RonCompat.isAutoCasting(b, e) != (rich && enchantsFor(b).contains(e))) RonCompat.toggleAutoCast(b, e);
                 } else if (b.getBuilding() == Buildings.BLACKSMITH) {
                     EquipAbility want = armRich ? armourFor(b) : null;
                     if (b.getDataStorage().getData(Blacksmith.AUTO_CAST_EQUIP) != want)
@@ -140,9 +140,9 @@ final class Upgrades {
             sb.append(" [").append(t).append(" hand=").append(u.getMainHandItem().getItem());
             for (EnchantAbility e : wantedEnchants)
                 sb.append(" ").append(e.getClass().getSimpleName().replace("Enchant", "")).append("=")
-                        .append(e.isCorrectUnitAndEquipment(u) ? "C" : "c").append(e.hasSameEnchant(u) ? "S" : "s")
+                        .append(e.isCorrectUnitAndEquipment(u) ? "C" : "c").append(RonCompat.hasSameEnchant(e, u) ? "S" : "s")
                         .append(e.canAfford(lib) ? "A" : "a").append(e.isOffCooldown(lib) ? "O" : "o")
-                        .append(Library.isAutoCasting(lib, e) ? "+" : "-");
+                        .append(RonCompat.isAutoCasting(lib, e) ? "+" : "-");
             sb.append("]");
         }
         bot.log(sb.toString());
@@ -154,7 +154,7 @@ final class Upgrades {
         int en = 0, eq = 0, n = 0;
         for (Mob u : in.army) {
             boolean e = false, a = false, any = false;
-            for (EnchantAbility ab : wantedEnchants) if (ab.isCorrectUnitAndEquipment(u)) { any = true; if (ab.hasSameEnchant(u)) e = true; }
+            for (EnchantAbility ab : wantedEnchants) if (ab.isCorrectUnitAndEquipment(u)) { any = true; if (RonCompat.hasSameEnchant(ab, u)) e = true; }
             if (leather.isCorrectUnit(u) && !leather.isWindcaller(u)) { any = true; if (leather.hasItemInSlot(u)) a = true; }
             if (!any) continue;
             n++;
@@ -176,7 +176,7 @@ final class Upgrades {
             if (failedAt.containsKey("all@" + b.centrePos.asLong())) continue;
             if (b.getBuilding() == Buildings.LIBRARY && wasRich) {
                 for (EnchantAbility e : enchantsFor(b))
-                    if (e.isCorrectUnitAndEquipment(u) && !e.hasSameEnchant(u) && e.canAfford(b)) return b.centrePos;
+                    if (e.isCorrectUnitAndEquipment(u) && !RonCompat.hasSameEnchant(e, u) && e.canAfford(b)) return b.centrePos;
             } else if (b.getBuilding() == Buildings.BLACKSMITH && wasArmourRich) {
                 EquipAbility a = armourFor(b);
                 if (a.isCorrectUnit(u) && !a.isWindcaller(u) && !a.hasSameItem(u) && a.canAfford(b)) return b.centrePos;
@@ -239,7 +239,7 @@ final class Upgrades {
             try {
                 if (b.getBuilding() == Buildings.LIBRARY && wasRich) {
                     for (EnchantAbility e : enchantsFor(b))
-                        if (e.isCorrectUnitAndEquipment(u) && !e.hasSameEnchant(u) && e.canAfford(b) && e.isOffCooldown(b)) { e.use(bot.level, b, u); if (bot.verbose && libLogs++ < 10) bot.log("enchant " + e.getClass().getSimpleName() + " on " + u.getType().toShortString() + " d=" + (int) Math.sqrt(u.blockPosition().distSqr(b.centrePos)) + " now=" + e.hasSameEnchant(u)); return; }
+                        if (e.isCorrectUnitAndEquipment(u) && !RonCompat.hasSameEnchant(e, u) && e.canAfford(b) && e.isOffCooldown(b)) { e.use(bot.level, b, u); if (bot.verbose && libLogs++ < 10) bot.log("enchant " + e.getClass().getSimpleName() + " on " + u.getType().toShortString() + " d=" + (int) Math.sqrt(u.blockPosition().distSqr(b.centrePos)) + " now=" + RonCompat.hasSameEnchant(e, u)); return; }
                 } else if (b.getBuilding() == Buildings.BLACKSMITH) {
                     EquipAbility a = armourFor(b);
                     if (a.isCorrectUnit(u) && !a.isWindcaller(u) && !a.hasSameItem(u) && a.canAfford(b) && a.isOffCooldown(b)) { a.use(bot.level, b, u); return; }

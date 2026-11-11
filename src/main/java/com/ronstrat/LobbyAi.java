@@ -72,7 +72,7 @@ public final class LobbyAi {
                 sp.ready = false;
                 SEATS.put(name, new Seat(d, sp.pos, sp.colorId));
             }
-            StartPosServerEvents.syncAll();
+            RonCompat.syncStartPositions();
             broadcast();
             // re-evaluate "everyone ready" exactly the way a human readying up does
             readyAt = ticks + READY_DELAY;

@@ -70,7 +70,7 @@ public final class Match {
             for (MatchSpec.Player pl : team) {
                 Difficulty d = pl.difficulty();
                 // RON player names: letters, digits, '-' only. T1-expert-1 stays as it always was.
-                String name = "T" + (teams.size() + 1) + "-" + d.key() + (pl.brain().isEmpty() ? "" : "-" + pl.brain()) + "-" + (++idx);
+                String name = (pl.brain().startsWith("ron") ? "Bot-" : "") + "T" + (teams.size() + 1) + "-" + d.key() + (pl.brain().isEmpty() ? "" : "-" + pl.brain()) + "-" + (++idx);
                 bots.add(spec.readied
                         ? BotManager.startReadied(level, name, d, seats.get(seat++), spec.ffa ? 100 + idx : teams.size() + 1, pl.brain(), pl.profile())
                         : BotManager.start(level, name, d, seats.get(seat++), pl.brain(), pl.profile()));

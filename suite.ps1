@@ -27,6 +27,7 @@ param(
     [string]$Extra = "",
     [switch]$Verbose2,
     [switch]$Full,
+    [switch]$AltRon,
     [switch]$ReportOnly
 )
 $ErrorActionPreference = 'Stop'
@@ -47,6 +48,7 @@ if (-not $ReportOnly) {
     if (-not $Full -and $Games -eq 0) { $spArgs.StopCheck = "& py `"$tool`" sprt $Suite `"$out`"" }
     if ($Extra) { $spArgs.Extra = $Extra }
     if ($Verbose2) { $spArgs.Verbose2 = $true }
+    if ($AltRon) { $spArgs.AltRon = $true }
     & (Join-Path $root 'selfplay.ps1') @spArgs *>&1 | Out-File -Encoding utf8 (Join-Path $root "tmp\$Label.log")
 }
 & py $tool report $Suite $out
