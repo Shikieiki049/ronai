@@ -500,6 +500,10 @@ public final class Economy {
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n >= 16
                 && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks > 6000
                 && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks < 18000 && in.ore < 400) ore = Math.max(ore, 0.12);
+        // armour and enchants are paid in ore: a few miners for good after minute 15 (ore sat at 5-85 for
+        // twenty minutes in a player's game and 2 of 21 soldiers had armour)
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n >= 28 && in.ore < 500
+                && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks >= 18000) ore = Math.max(ore, 0.10);
         // ore piled up, wood gone: every miner to the woods (a player's game: 1185 ore, wood at 0 for 10 min)
         if (bot.difficulty == Difficulty.EXPERT && in.ore >= 600 && in.wood < 150) { ore = 0; food = Math.min(food, 0.5); }
         // no game to hunt near home: the opening lives on berries and the first fields - more hands on food
@@ -605,8 +609,13 @@ public final class Economy {
         if (hunting < Math.max(1, maxHunters(in))) {
             BlockPos h = in.home();
             AABB box = new AABB(h).inflate(36, 12, 36);
+            // one hunter per animal (a player watched several villagers chase the same sheep)
+            java.util.Set<Integer> chased = new java.util.HashSet<>();
+            for (Mob o : in.workers)
+                if (o != w && ((Unit) o).getTargetGoal().getTarget() instanceof Animal t) chased.add(t.getId());
             Optional<Animal> prey = bot.level.getEntitiesOfClass(Animal.class, box,
-                            a -> a.isAlive() && !(a instanceof Unit) && worthHunting(a) && !badPrey(a) && !in.dangerous(a.blockPosition(), 26))
+                            a -> a.isAlive() && !(a instanceof Unit) && worthHunting(a) && !badPrey(a) && !in.dangerous(a.blockPosition(), 26)
+                                    && !chased.contains(a.getId()))
                     .stream().min(Comparator.comparingDouble(a -> a.distanceToSqr(w)));
             if (prey.isPresent()) {
                 bot.log("hunt " + prey.get().getType().toShortString() + " d=" + (int) Math.sqrt(prey.get().distanceToSqr(w)) + " by #" + w.getId());
@@ -627,6 +636,21 @@ public final class Economy {
         return false;
     }
 
+    /**
+     * Woodcutters already working within 3 blocks of this spot. Each one used to be sent to the very nearest
+     * log, so a whole crew crowded one street tree (six logs) and waited, then the next one, while a pile of
+     * 142 logs 25 blocks out stood untouched (New_York_City: 270 wood in 4 minutes from 15 woodcutters).
+     */
+    private int crowd(BlockPos p, Mob self) {
+        int n = 0;
+        for (Map.Entry<Integer, BlockPos> e : assignedPos.entrySet()) {
+            if (e.getKey() == self.getId() || jobs.get(e.getKey()) != Job.WOOD) continue;
+            BlockPos q = e.getValue();
+            if (Math.abs(q.getX() - p.getX()) <= 3 && Math.abs(q.getZ() - p.getZ()) <= 3) n++;
+        }
+        return n;
+    }
+
     private boolean assignBlock(Intel in, Mob w, ResourceName type, Job j) {
         GatherResourcesGoal g = ((WorkerUnit) w).getGatherResourceGoal();
         if (g == null) return false;
@@ -637,7 +661,8 @@ public final class Economy {
         for (BlockPos d : drops) {
             for (int range : new int[] { 14, 24, 40 }) {
                 Optional<BlockPos> bp = ResourceIndex.get(bot.level).findClosest(bot.level, d, range, type,
-                        pos -> Math.abs(pos.getY() - d.getY()) <= 8 && g.canGather(pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos));
+                        pos -> Math.abs(pos.getY() - d.getY()) <= 8 && g.canGather(pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos)
+                                && (type != ResourceName.WOOD || crowd(pos, w) < 2));
                 if (bp.isPresent()) {
                     double dist = Math.sqrt(bp.get().distSqr(d));
                     double score = dist + 0.15 * Math.sqrt(bp.get().distSqr(w.blockPosition()));

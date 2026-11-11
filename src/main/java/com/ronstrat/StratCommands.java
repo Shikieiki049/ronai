@@ -63,8 +63,8 @@ public final class StratCommands {
                 .then(Commands.literal("arena")
                         .then(Commands.argument("spec", StringArgumentType.greedyString()).executes(StratCommands::arena)))
                 .then(Commands.literal("verbose").executes(c -> {
-                    boolean v = BotManager.bots().stream().noneMatch(b -> b.verbose);
-                    for (Bot b : BotManager.bots()) b.verbose = v;
+                    boolean v = BotManager.bots().stream().noneMatch(Agent::verbose);
+                    for (Agent b : BotManager.bots()) b.setVerbose(v);
                     boolean fv = v;
                     c.getSource().sendSuccess(() -> Component.literal("verbose " + fv), false);
                     return 1;
@@ -102,7 +102,7 @@ public final class StratCommands {
             c.getSource().sendSuccess(() -> Component.literal("no computer players"), false);
             return 0;
         }
-        for (Bot b : BotManager.bots()) c.getSource().sendSuccess(() -> Component.literal(b.status()), false);
+        for (Agent b : BotManager.bots()) c.getSource().sendSuccess(() -> Component.literal(b.status()), false);
         c.getSource().sendSuccess(() -> Component.literal("game time " + PlayerServerEvents.rtsGameTicks / 20 + "s"), false);
         return 1;
     }

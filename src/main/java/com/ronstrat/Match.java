@@ -11,7 +11,7 @@ import java.util.List;
 /** A bot-only match on a generated arena: used by the self-play harness and by /ronstrat arena. */
 public final class Match {
     public final MatchSpec spec;
-    public final List<List<Bot>> teams = new ArrayList<>();
+    public final List<List<Agent>> teams = new ArrayList<>();
     public final long seed;
     public BlockPos centre;
     public long startTick;
@@ -29,7 +29,11 @@ public final class Match {
             if (sp.enabled) all.add(sp.pos); // the start block itself, like a human's start
         if (all.size() < spec.players())
             throw new IllegalStateException("map has " + all.size() + " start positions, match needs " + spec.players());
-        java.util.Collections.shuffle(all, new java.util.Random(seed));
+        // java.util.Random gives neighbouring small seeds the same first draws (seeds 101..105 all dealt
+        // the same seats), so the seed is scrambled first
+        long mixed = (seed ^ (seed >>> 33)) * 0xff51afd7ed558ccdL;
+        mixed = (mixed ^ (mixed >>> 33)) * 0xc4ceb9fe1a85ec53L;
+        java.util.Collections.shuffle(all, new java.util.Random(mixed ^ (mixed >>> 33)));
         fixedSeats = new ArrayList<>(all.subList(0, spec.players()));
         // a headless server has no player cameras loading chunks: keep the whole playable map loaded,
         // otherwise armies freeze at the edge of the loaded area (a real game never has that problem)
@@ -59,26 +63,35 @@ public final class Match {
         List<BlockPos> seats = fixedSeats != null ? fixedSeats : Arena.build(level, centre, n, seed);
         int seat = 0;
         int idx = 0;
-        for (List<Difficulty> team : spec.teams) {
-            List<Bot> bots = new ArrayList<>();
-            for (Difficulty d : team) {
-                String name = "T" + (teams.size() + 1) + "-" + d.key() + "-" + (++idx);
+        List<int[]> handicaps = new ArrayList<>(); // {team, index in team, levels}
+        for (List<MatchSpec.Player> team : spec.teams) {
+            List<Agent> bots = new ArrayList<>();
+            for (MatchSpec.Player pl : team) {
+                Difficulty d = pl.difficulty();
+                // RON player names: letters, digits, '-' only. T1-expert-1 stays as it always was.
+                String name = "T" + (teams.size() + 1) + "-" + d.key() + (pl.brain().isEmpty() ? "" : "-" + pl.brain()) + "-" + (++idx);
                 bots.add(spec.readied
-                        ? BotManager.startReadied(level, name, d, seats.get(seat++), spec.ffa ? 100 + idx : teams.size() + 1)
-                        : BotManager.start(level, name, d, seats.get(seat++)));
+                        ? BotManager.startReadied(level, name, d, seats.get(seat++), spec.ffa ? 100 + idx : teams.size() + 1, pl.brain(), pl.profile())
+                        : BotManager.start(level, name, d, seats.get(seat++), pl.brain(), pl.profile()));
+                if (pl.handicap() > 0) handicaps.add(new int[] { teams.size(), bots.size() - 1, pl.handicap() });
             }
             teams.add(bots);
         }
+        // per-player handicap levels, the same bonus the lobby setting gives
+        for (int[] h : handicaps) {
+            Agent a = teams.get(h[0]).get(h[1]);
+            BotManager.applyHandicap(level, a.name(), a.startPos(), h[2]);
+        }
         if (!spec.ffa) {
-            for (List<Bot> t : teams)
+            for (List<Agent> t : teams)
                 for (int i = 0; i < t.size(); i++)
-                    for (int j = i + 1; j < t.size(); j++) BotManager.ally(t.get(i).name, t.get(j).name);
+                    for (int j = i + 1; j < t.size(); j++) BotManager.ally(t.get(i).name(), t.get(j).name());
             // 1vN: the lone player gets the handicap (2 villagers and +0.5x start resources per extra enemy)
             if (spec.handicap && teams.size() == 2) {
                 for (int s = 0; s < 2; s++) {
-                    List<Bot> lone = teams.get(s), other = teams.get(1 - s);
+                    List<Agent> lone = teams.get(s), other = teams.get(1 - s);
                     if (lone.size() == 1 && other.size() > 1)
-                        BotManager.applyHandicap(level, lone.get(0).name, lone.get(0).startPos, other.size() - 1);
+                        BotManager.applyHandicap(level, lone.get(0).name(), lone.get(0).startPos(), other.size() - 1);
                 }
             }
         }
@@ -88,7 +101,7 @@ public final class Match {
     public List<Integer> aliveTeams() {
         List<Integer> out = new ArrayList<>();
         for (int i = 0; i < teams.size(); i++) {
-            for (Bot b : teams.get(i)) if (BotManager.isRtsName(b.name)) { out.add(i); break; }
+            for (Agent b : teams.get(i)) if (BotManager.isRtsName(b.name())) { out.add(i); break; }
         }
         return out;
     }
@@ -97,7 +110,7 @@ public final class Match {
     public boolean decided() {
         if (spec.ffa) {
             int alive = 0;
-            for (List<Bot> t : teams) for (Bot b : t) if (BotManager.isRtsName(b.name)) alive++;
+            for (List<Agent> t : teams) for (Agent b : t) if (BotManager.isRtsName(b.name())) alive++;
             return alive <= 1;
         }
         return aliveTeams().size() <= 1;
@@ -121,11 +134,34 @@ public final class Match {
         if (bestS < ratio * Math.max(1, rest)) return -1;
         for (int i : alive) {
             if (i == best) continue;
-            for (Bot b : teams.get(i)) if (BotManager.isRtsName(b.name) && !b.intel.army.isEmpty()) return -1;
+            for (Agent b : teams.get(i)) if (BotManager.isRtsName(b.name()) && b.stat("army") > 0) return -1;
             // a big team is naturally "5x" a single player; it must actually be collapsing
             if (teamScore(i) > 0.4 * peak[i]) return -1;
         }
         return best;
+    }
+
+    /**
+     * Early verdict for two equal teams: the team that has at least ratio times the other's units
+     * (villagers and soldiers) and no smaller army, with five soldiers or more. -1 if none.
+     * Back-tested on 56 mirror games: 2:1 held for 90 s was never overturned.
+     */
+    public int popLeader(double ratio) {
+        if (spec.ffa || teams.size() != 2 || teams.get(0).size() != teams.get(1).size()) return -1;
+        java.util.Map<String, Integer> side = new java.util.HashMap<>();
+        for (int i = 0; i < 2; i++) for (Agent b : teams.get(i)) side.put(b.name(), i);
+        int[] pop = new int[2], army = new int[2];
+        for (var e : new ArrayList<>(com.solegendary.reignofnether.unit.UnitServerEvents.getAllUnits())) {
+            if (!(e instanceof com.solegendary.reignofnether.unit.interfaces.Unit u) || !e.isAlive()) continue;
+            Integer s = side.get(u.getOwnerName());
+            if (s == null) continue;
+            pop[s]++;
+            if (!(e instanceof com.solegendary.reignofnether.unit.interfaces.WorkerUnit) && !u.isScout()
+                    && !(e instanceof com.solegendary.reignofnether.unit.units.villagers.MilitiaUnit)) army[s]++;
+        }
+        for (int s = 0; s < 2; s++)
+            if (pop[s] >= ratio * Math.max(1, pop[1 - s]) && army[s] >= army[1 - s] && army[s] >= 5) return s;
+        return -1;
     }
 
     private double[] peak = new double[0];
@@ -139,9 +175,9 @@ public final class Match {
     /** used on timeout: total score of a team (army and economy still standing) */
     public double teamScore(int i) {
         double s = 0;
-        for (Bot b : teams.get(i)) {
-            if (!BotManager.isRtsName(b.name)) continue;
-            s += b.intel.pop + 3 * b.intel.own.size();
+        for (Agent b : teams.get(i)) {
+            if (!BotManager.isRtsName(b.name())) continue;
+            s += b.stat("pop") + 3 * b.stat("buildings");
         }
         return s;
     }

@@ -11,7 +11,6 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -25,7 +24,7 @@ public final class BotParams {
     private final Map<String, Double> v = new LinkedHashMap<>();
     public final Difficulty difficulty;
 
-    private static final Map<Difficulty, BotParams> CACHE = new EnumMap<>(Difficulty.class);
+    private static final Map<String, BotParams> CACHE = new LinkedHashMap<>();
 
     private BotParams(Difficulty d) { this.difficulty = d; }
 
@@ -39,13 +38,21 @@ public final class BotParams {
 
     public Map<String, Double> asMap() { return v; }
 
-    public static synchronized BotParams of(Difficulty d) {
-        return CACHE.computeIfAbsent(d, BotParams::load);
+    public static BotParams of(Difficulty d) { return of(d, ""); }
+
+    /**
+     * profile: a named set of overrides on top of the difficulty's values (a sparring style such as
+     * "rush7", or the switch of a new subsystem). Read from &lt;profile&gt;.json in the folder given by
+     * -Dronstrat.profiles, else config/ronstrat/profiles.
+     */
+    public static synchronized BotParams of(Difficulty d, String profile) {
+        String pf = profile == null ? "" : profile;
+        return CACHE.computeIfAbsent(d.key() + ":" + pf, k -> load(d, pf));
     }
 
     public static synchronized void reload() { CACHE.clear(); }
 
-    private static BotParams load(Difficulty d) {
+    private static BotParams load(Difficulty d, String profile) {
         BotParams p = defaults(d);
         // the built-in values are written out for reference; a params-<tier>.json next to them overrides
         Path dir = FMLPaths.CONFIGDIR.get().resolve("ronstrat");
@@ -63,6 +70,15 @@ public final class BotParams {
         if (override != null) {
             try { p.merge(Path.of(override)); }
             catch (Exception e) { RonStrategist.LOG.warn("RON Strategist: bad override {}: {}", override, e.toString()); }
+        }
+        if (!profile.isEmpty()) {
+            String pd = System.getProperty("ronstrat.profiles");
+            Path file = (pd != null ? Path.of(pd) : dir.resolve("profiles")).resolve(profile + ".json");
+            // a misspelt profile must not quietly play as the plain difficulty: the test would measure nothing
+            if (!Files.exists(file)) throw new IllegalStateException("no parameter profile " + file);
+            try { p.merge(file); }
+            catch (Exception e) { throw new IllegalStateException("bad parameter profile " + file + ": " + e); }
+            RonStrategist.LOG.info("RON Strategist: {} profile '{}' loaded from {}", d.key(), profile, file);
         }
         return p;
     }
@@ -153,6 +169,10 @@ public final class BotParams {
         p.put("raidWorkers",                0,     0,      0,     1);
         p.put("scout",                      0,     1,      1,     1);
         p.put("attackWaveCooldown",         240,   180,    120,   45);   // seconds between committed attacks
+        // --- playing styles (sparring profiles in tuning/profiles; 0 = off) ---
+        p.put("styleBarracksAtWorkers",     0,     0,      0,     0);    // first barracks at this many villagers, top priority; a second six later
+        p.put("styleAttackAt",              0,     0,      0,     0);    // from this second on: attack with what there is, no strength check
+        p.put("styleAttackMinPop",          8,     8,      8,     8);    // ...once the army is at least this big
         p.put("armyKeepHome",               0,     0.1,    0.15,  0.0);  // fraction of army left as home guard
         return p;
     }

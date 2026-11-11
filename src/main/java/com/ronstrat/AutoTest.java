@@ -37,7 +37,7 @@ public final class AutoTest {
     private static Field nextTickTime;
     private static long lastProgress;
 
-    static boolean enabled() { return System.getProperty("ronstrat.autotest") != null || System.getProperty("ronstrat.lobbytest") != null; }
+    public static boolean enabled() { return System.getProperty("ronstrat.autotest") != null || System.getProperty("ronstrat.lobbytest") != null; }
 
     @SubscribeEvent
     public static void onStarted(ServerStartedEvent evt) {
@@ -72,12 +72,12 @@ public final class AutoTest {
         }
         if (ticks == 400 || ticks == 2400) {
             RonStrategist.LOG.info("lobbytest: t={} rtsPlayers={} bots={}", ticks, PlayerServerEvents.rtsPlayers.size(), BotManager.bots().size());
-            for (Bot b : BotManager.bots()) RonStrategist.LOG.info("lobbytest:   {}", b.status());
-            java.util.List<Bot> all = new java.util.ArrayList<>(BotManager.bots());
+            for (Agent b : BotManager.bots()) RonStrategist.LOG.info("lobbytest:   {}", b.status());
+            java.util.List<Agent> all = new java.util.ArrayList<>(BotManager.bots());
             for (int i = 0; i < all.size(); i++)
                 for (int j = i + 1; j < all.size(); j++)
-                    RonStrategist.LOG.info("lobbytest: allied {} {} = {}", all.get(i).name, all.get(j).name,
-                            com.solegendary.reignofnether.alliance.AlliancesServerEvents.isAllied(all.get(i).name, all.get(j).name));
+                    RonStrategist.LOG.info("lobbytest: allied {} {} = {}", all.get(i).name(), all.get(j).name(),
+                            com.solegendary.reignofnether.alliance.AlliancesServerEvents.isAllied(all.get(i).name(), all.get(j).name()));
         }
         if (ticks == 2400) { done = true; server.halt(false); }
     }
@@ -93,8 +93,8 @@ public final class AutoTest {
     private static void waterTest(long gameTicks) {
         ServerLevel lv = server.overworld();
         if (gameTicks == 1200) {
-            for (Bot b : BotManager.bots()) {
-                BlockPos home = b.intel.home();
+            for (Agent b : BotManager.bots()) {
+                BlockPos home = b.home();
                 BlockPos water = null, shore = null;
                 outer:
                 for (int r = 6; r <= 120; r += 2)
@@ -112,7 +112,7 @@ public final class AutoTest {
                                 if (lv.getFluidState(top).isEmpty() && sy >= y && sy <= y + 1 && lv.getBlockState(top).isSolid()) { water = q; shore = new BlockPos(sx2, sy, sz2); break outer; }
                             }
                     }
-                if (water == null && !"moat".equals(System.getProperty("ronstrat.waterTest"))) { RonStrategist.LOG.info("WATERTEST {} no water near home", b.name); continue; }
+                if (water == null && !"moat".equals(System.getProperty("ronstrat.waterTest"))) { RonStrategist.LOG.info("WATERTEST {} no water near home", b.name()); continue; }
                 if ("moat".equals(System.getProperty("ronstrat.waterTest"))) {
                     // a flat test bed beside the base: 8 blocks of ground, a channel MOAT_W wide and MOAT_D
                     // deep, 8 blocks of ground, all 200 long (no way round within reach)
@@ -130,7 +130,7 @@ public final class AutoTest {
                         }
                     water = new BlockPos(cx0 - 3, base - 1, cz);
                     shore = new BlockPos(cx0 + MOAT_W + 4, base, cz);
-                    RonStrategist.LOG.info("WATERTEST {} test bed: channel x={}..{} y={}..{}", b.name, cx0, cx0 + MOAT_W - 1, base - MOAT_D, base - 1);
+                    RonStrategist.LOG.info("WATERTEST {} test bed: channel x={}..{} y={}..{}", b.name(), cx0, cx0 + MOAT_W - 1, base - MOAT_D, base - 1);
                 }
                 if ("cross".equals(System.getProperty("ronstrat.waterTest"))) {
                     // a crossing: dry land, then 4-25 blocks of water, then dry land, near home
@@ -157,11 +157,11 @@ public final class AutoTest {
                                 }
                             }
                         }
-                    if (farBank == null) { RonStrategist.LOG.info("WATERTEST {} no crossing near home", b.name); continue; }
+                    if (farBank == null) { RonStrategist.LOG.info("WATERTEST {} no crossing near home", b.name()); continue; }
                     shore = farBank;
                     water = from.below(); // villagers start standing on the near bank
                 }
-                java.util.List<net.minecraft.world.entity.Mob> ws = new java.util.ArrayList<>(b.intel.workers);
+                java.util.List<net.minecraft.world.entity.Mob> ws = new java.util.ArrayList<>(b.workers());
                 ws = ws.subList(0, Math.min(4, ws.size()));
                 String extra = System.getProperty("ronstrat.waterUnits");
                 if (extra != null) {
@@ -175,7 +175,7 @@ public final class AutoTest {
                             default -> null;
                         };
                         if (type == null) continue;
-                        var ent = com.solegendary.reignofnether.unit.UnitServerEvents.spawnMob(type, lv, water.above(), b.name);
+                        var ent = com.solegendary.reignofnether.unit.UnitServerEvents.spawnMob(type, lv, water.above(), b.name());
                         if (ent instanceof net.minecraft.world.entity.Mob mm) ws.add(mm);
                     }
                 }
@@ -185,9 +185,9 @@ public final class AutoTest {
                     dunked.put(w.getId(), shore);
                     Economy.TEST_HOLD.add(w.getId());
                 }
-                Orders.move(b.name, ws, shore);
-                dunkOwner.put(b.name, ws);
-                RonStrategist.LOG.info("WATERTEST {} dropped {} villagers into water at {} and ordered them to the bank at {} (d={})", b.name, ws.size(), water.toShortString(), shore.toShortString(), (int) Math.sqrt(water.distSqr(shore)));
+                Orders.move(b.name(), ws, shore);
+                dunkOwner.put(b.name(), ws);
+                RonStrategist.LOG.info("WATERTEST {} dropped {} villagers into water at {} and ordered them to the bank at {} (d={})", b.name(), ws.size(), water.toShortString(), shore.toShortString(), (int) Math.sqrt(water.distSqr(shore)));
             }
         }
         if (gameTicks > 1200 && gameTicks < 2400 && gameTicks % 100 == 0)
@@ -280,6 +280,26 @@ public final class AutoTest {
                 RonStrategist.LOG.info("TERRAIN z={} B {}", z, bb);
             }
         }
+        if (ticks == 55 && System.getProperty("ronstrat.scanLogs") != null) {
+            // -Dronstrat.scanLogs=x,z,r: every log block within r, grouped in 8x8 cells (map study)
+            String[] q = System.getProperty("ronstrat.scanLogs").split(",");
+            int cx = Integer.parseInt(q[0]), cz = Integer.parseInt(q[1]), r = Integer.parseInt(q[2]);
+            ServerLevel lv = server.overworld();
+            java.util.Map<String, int[]> cells = new java.util.TreeMap<>();
+            for (int x = cx - r; x <= cx + r; x++)
+                for (int z = cz - r; z <= cz + r; z++)
+                    for (int y = 40; y <= 110; y++) {
+                        var bs = lv.getBlockState(new BlockPos(x, y, z));
+                        if (!bs.is(net.minecraft.tags.BlockTags.LOGS)) continue;
+                        String k = Math.floorDiv(x, 8) * 8 + "," + Math.floorDiv(z, 8) * 8;
+                        int[] c = cells.computeIfAbsent(k, kk -> new int[] { 0, 999, -999, 0 });
+                        c[0]++; c[1] = Math.min(c[1], y); c[2] = Math.max(c[2], y);
+                        boolean leafy = false;
+                        for (int dy = 1; dy <= 3 && !leafy; dy++) if (lv.getBlockState(new BlockPos(x, y + dy, z)).is(net.minecraft.tags.BlockTags.LEAVES)) leafy = true;
+                        if (!leafy) c[3]++;
+                    }
+            for (var e : cells.entrySet()) RonStrategist.LOG.info("LOGS cell {} n={} y={}..{} noLeaves={}", e.getKey(), e.getValue()[0], e.getValue()[1], e.getValue()[2], e.getValue()[3]);
+        }
         if (ticks == 60) {
             long seed = Long.getLong("ronstrat.seed", 1L);
             match = new Match(MatchSpec.parse(System.getProperty("ronstrat.autotest")), seed);
@@ -296,29 +316,45 @@ public final class AutoTest {
         if (gameTicks - lastProgress >= 20 * 60) {
             lastProgress = gameTicks;
             StringBuilder sb = new StringBuilder();
-            for (Bot b : BotManager.bots()) {
+            for (Agent b : BotManager.bots()) {
                 sb.append("\n  ").append(b.status());
-                if (b.verbose && gameTicks < 20 * 60 * 8) sb.append(b.workerDump());
+                if (b.verbose() && gameTicks < 20 * 60 * 8) sb.append(b.workerDump());
             }
             RonStrategist.LOG.info("autotest t={}s real={}s{}", gameTicks / 20, (System.currentTimeMillis() - realStart) / 1000, sb);
         }
         if (System.getProperty("ronstrat.waterTest") != null) waterTest(gameTicks);
+        // -Dronstrat.stopAt=720: a short game for economy measurements, ended at that game second
+        long stopAt = Long.getLong("ronstrat.stopAt", 0L) * 20;
+        if (stopAt > 0 && gameTicks >= stopAt && !match.decided()) { stopped = true; finish(gameTicks, true, -1); return; }
         if (match.decided() || gameTicks >= timeout) { finish(gameTicks, gameTicks >= timeout && !match.decided(), -1); return; }
         // decisive stop: once a side has no army left and is out-scored 5:1 for two straight minutes,
         // razing the remaining houses only costs wall time
         if (gameTicks % 200 == 0) match.trackPeaks();
+        Telemetry.tick(gameTicks, BotManager.bots());
         if (gameTicks % 200 == 0 && gameTicks > 20 * 60 * 8 && !match.spec.ffa) {
             int lead = match.dominantTeam(5.0);
             if (lead >= 0 && lead == domTeam) {
-                if (gameTicks - domSince >= 20 * 120) finish(gameTicks, false, lead);
+                if (gameTicks - domSince >= 20 * 120) { finish(gameTicks, false, lead); return; }
             } else {
                 domTeam = lead;
                 domSince = gameTicks;
             }
+            // equal teams: twice the units and the bigger army for 90 s (-Dronstrat.adjudicate=off to play on)
+            if (!"off".equals(System.getProperty("ronstrat.adjudicate"))) {
+                int ahead = match.popLeader(Double.parseDouble(System.getProperty("ronstrat.adjudicateRatio", "2.0")));
+                if (ahead >= 0 && ahead == popTeam) {
+                    if (gameTicks - popSince >= 20 * 90) { adjudged = true; finish(gameTicks, false, ahead); }
+                } else {
+                    popTeam = ahead;
+                    popSince = gameTicks;
+                }
+            }
         }
     }
 
-    private static int domTeam = -1;
+    private static int domTeam = -1, popTeam = -1;
+    private static long popSince;
+    private static boolean adjudged, stopped;
     private static long domSince;
 
     private static void finish(long gameTicks, boolean timedOut, int decisiveWinner) {
@@ -328,7 +364,7 @@ public final class AutoTest {
         if (!timedOut && !match.spec.ffa && alive.size() == 1) winner = alive.get(0);
         if (!timedOut && match.spec.ffa) {
             for (int i = 0; i < match.teams.size(); i++)
-                for (Bot b : match.teams.get(i)) if (BotManager.isRtsName(b.name)) winner = i;
+                for (Agent b : match.teams.get(i)) if (BotManager.isRtsName(b.name())) winner = i;
         }
         if (timedOut) {
             double best = -1;
@@ -340,6 +376,8 @@ public final class AutoTest {
         o.addProperty("winnerTeam", winner);
         o.addProperty("timeout", timedOut);
         o.addProperty("decisive", decisiveWinner >= 0);
+        o.addProperty("adjudged", adjudged);
+        o.addProperty("stopped", stopped);
         o.addProperty("arena", System.getProperty("ronstrat.map") != null ? "map:" + System.getProperty("ronstrat.map") : Arena.summary(match.spec.players()));
         o.addProperty("gameSeconds", gameTicks / 20);
         o.addProperty("realSeconds", (System.currentTimeMillis() - realStart) / 1000);
@@ -347,16 +385,17 @@ public final class AutoTest {
         JsonArray teams = new JsonArray();
         for (int i = 0; i < match.teams.size(); i++) {
             JsonArray t = new JsonArray();
-            for (Bot b : match.teams.get(i)) {
+            for (Agent b : match.teams.get(i)) {
                 JsonObject bo = new JsonObject();
-                bo.addProperty("name", b.name);
-                bo.addProperty("difficulty", b.difficulty.key());
-                bo.addProperty("alive", BotManager.isRtsName(b.name));
-                bo.addProperty("peakWorkers", b.peakWorkers);
-                bo.addProperty("peakArmy", b.peakArmy);
-                bo.addProperty("attacks", b.army.attacksLaunched);
-                bo.addProperty("retreats", b.army.retreats);
-                bo.addProperty("buildings", b.intel.own.size());
+                bo.addProperty("name", b.name());
+                bo.addProperty("difficulty", b.difficulty().key());
+                bo.addProperty("brain", b.brain());
+                bo.addProperty("profile", b.profile());
+                bo.addProperty("alive", BotManager.isRtsName(b.name()));
+                for (String k : new String[] { "peakWorkers", "peakArmy", "attacks", "retreats", "buildings" })
+                    bo.addProperty(k, (int) b.stat(k));
+                JsonObject metrics = Telemetry.json(b.name());
+                if (metrics != null) bo.add("metrics", metrics);
                 t.add(bo);
             }
             teams.add(t);

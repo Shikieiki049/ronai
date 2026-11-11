@@ -35,6 +35,14 @@ dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.4.28'
     implementation fg.deobf('local:reignofnether:1.5.1c')
 }
+// Frozen copies of older brains (tools/freeze.py) for new-vs-old self-play. Never part of the jar.
+sourceSets {
+    baseline {
+        java.srcDir 'src/baseline/java'
+        compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+    }
+}
+tasks.named('compileJava') { finalizedBy 'compileBaselineJava' }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 jar.finalizedBy('reobfJar')
 

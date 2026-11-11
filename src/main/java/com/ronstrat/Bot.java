@@ -10,10 +10,12 @@ import net.minecraft.server.level.ServerLevel;
 import java.util.Random;
 
 /** One computer player: the managers plus the shared clock. */
-public final class Bot {
+public final class Bot implements Agent {
     public final String name;
     public final Difficulty difficulty;
     public final BotParams params;
+    /** parameter profile ("" = the difficulty's defaults) */
+    public final String profile;
     public final FactionPlan plan;
     public final BlockPos startPos;
     public final ServerLevel level;
@@ -32,10 +34,11 @@ public final class Bot {
     public boolean verbose = Boolean.getBoolean("ronstrat.verbose") || !AutoTest.enabled();
     public int peakWorkers, peakArmy, deaths, hazardDeaths;
 
-    Bot(String name, Difficulty d, Faction faction, BlockPos startPos, ServerLevel level, long seed) {
+    public Bot(String name, Difficulty d, Faction faction, BlockPos startPos, ServerLevel level, long seed, String profile) {
         this.name = name;
         this.difficulty = d;
-        this.params = BotParams.of(d);
+        this.profile = profile == null ? "" : profile;
+        this.params = BotParams.of(d, this.profile);
         this.plan = FactionPlan.forFaction(faction);
         this.startPos = startPos;
         this.level = level;
@@ -71,7 +74,77 @@ public final class Bot {
         return random.nextDouble() < params.get("attentionChance");
     }
 
-    void tick(long gameTick) {
+    // ------------------------------------------------------------------ Agent
+
+    /** package suffix of this brain: "" for the current one; tools/freeze.ps1 sets it in a frozen copy */
+    static final String BRAIN = "";
+
+    /** the players run by this same brain (a frozen older brain only teams up with its own kind) */
+    static List<Bot> peers() {
+        List<Bot> out = new ArrayList<>();
+        for (Agent a : BotManager.bots()) if (a instanceof Bot b) out.add(b);
+        return out;
+    }
+
+    @Override public String name() { return name; }
+    @Override public Difficulty difficulty() { return difficulty; }
+    @Override public BlockPos startPos() { return startPos; }
+    @Override public String brain() { return BRAIN; }
+    @Override public String profile() { return profile; }
+    @Override public boolean verbose() { return verbose; }
+    @Override public void setVerbose(boolean v) { verbose = v; }
+    @Override public BlockPos home() { return intel.home(); }
+    @Override public List<net.minecraft.world.entity.Mob> workers() { return intel.workers; }
+
+    @Override
+    public double stat(String key) {
+        switch (key) {
+            case "peakWorkers": return peakWorkers;
+            case "peakArmy": return peakArmy;
+            case "attacks": return army.attacksLaunched;
+            case "retreats": return army.retreats;
+            case "buildings": return intel.own.size();
+            case "pop": return intel.pop;
+            case "army": return intel.army.size();
+            case "workers": return intel.workers.size();
+            case "deaths": return deaths;
+            default: return 0;
+        }
+    }
+
+    @Override
+    public String info(String key) {
+        switch (key) {
+            case "mode": return String.valueOf(army.mode);
+            case "target": return String.valueOf(army.target);
+            default: return "";
+        }
+    }
+
+    /** a unit of ours died: remember what killed it and where (finds map hazards and lost fights) */
+    @Override
+    public void onUnitDied(net.minecraft.world.entity.LivingEntity dead, net.minecraft.world.damagesource.DamageSource src, net.minecraft.world.entity.Entity killer) {
+        boolean byUnit = killer instanceof com.solegendary.reignofnether.unit.interfaces.Unit;
+        String killerOwner = byUnit ? ((com.solegendary.reignofnether.unit.interfaces.Unit) killer).getOwnerName() : null;
+        String by = killer == null ? "-" : (byUnit ? killerOwner + ":" : "") + net.minecraft.world.entity.EntityType.getKey(killer.getType()).getPath();
+        deaths++;
+        if (UnitEval.isWorker(dead) && !byUnit) hazardDeaths++;
+        if (byUnit && (killerOwner == null || killerOwner.isEmpty())) {
+            hazardDeaths++;
+            intel.markDanger(dead.blockPosition());
+            if (UnitEval.isWorker(dead)) economy.evacuate(dead.blockPosition());
+            else army.lostToCamp(dead.blockPosition());
+        }
+        String msg = "death " + net.minecraft.world.entity.EntityType.getKey(dead.getType()).getPath() + " at " + dead.blockPosition().toShortString()
+                + " cause=" + src.getMsgId() + " by=" + by;
+        if (byUnit && killerOwner != null && !killerOwner.isEmpty() && !UnitEval.isWorker(dead)) army.lostInAttack(dead.blockPosition());
+        if (byUnit) log(msg); else RonStrategist.LOG.info("[{}] {}", name, msg);
+    }
+
+    @Override public void onKill() { army.killedInAttack(); }
+
+    @Override
+    public void tick(long gameTick) {
         now = gameTick;
         // real games: a status line every minute next to the decisions (the test harness prints its own)
         if (verbose && !AutoTest.enabled() && now % 1200 == 0)

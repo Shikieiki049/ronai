@@ -34,13 +34,13 @@ import java.util.Map;
 public final class BotManager {
     private BotManager() {}
 
-    private static final Map<String, Bot> BOTS = new LinkedHashMap<>();
+    private static final Map<String, Agent> BOTS = new LinkedHashMap<>();
     private static MinecraftServer server;
     private static long serverTicks;
 
-    public static Collection<Bot> bots() { return BOTS.values(); }
+    public static Collection<Agent> bots() { return BOTS.values(); }
 
-    public static Bot get(String name) { return BOTS.get(name); }
+    public static Agent get(String name) { return BOTS.get(name); }
 
     public static boolean isRtsName(String name) {
         synchronized (PlayerServerEvents.rtsPlayers) {
@@ -62,7 +62,26 @@ public final class BotManager {
      * when fog of war is on), the normal starting resources, and no buildings. The bot then has to
      * place and build its own capitol.
      */
-    public static Bot start(ServerLevel level, String name, Difficulty d, BlockPos pos) {
+    public static Agent start(ServerLevel level, String name, Difficulty d, BlockPos pos) {
+        return start(level, name, d, pos, "", "");
+    }
+
+    /**
+     * The brain behind a computer player: the current one, or (self-play only) a frozen copy of an older
+     * version in package com.ronstrat.&lt;brain&gt;, made by tools/freeze.ps1.
+     */
+    static Agent create(String brain, String profile, String name, Difficulty d, Faction faction, BlockPos pos, ServerLevel level) {
+        if (brain == null || brain.isEmpty()) return new Bot(name, d, faction, pos, level, level.getSeed(), profile);
+        try {
+            return (Agent) Class.forName("com.ronstrat." + brain + ".Bot")
+                    .getConstructor(String.class, Difficulty.class, Faction.class, BlockPos.class, ServerLevel.class, long.class, String.class)
+                    .newInstance(name, d, faction, pos, level, level.getSeed(), profile);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("brain '" + brain + "' is not on the classpath (run tools/freeze.ps1 and build the baseline classes)", e);
+        }
+    }
+
+    public static Agent start(ServerLevel level, String name, Difficulty d, BlockPos pos, String brain, String profile) {
         Faction faction = Factions.VILLAGERS;
         if (isRtsName(name)) throw new IllegalStateException(name + " is already playing");
         synchronized (PlayerServerEvents.rtsPlayers) {
@@ -83,7 +102,7 @@ public final class BotManager {
         }
         ResourcesServerEvents.resetResources(name, false);
         PlayerServerEvents.saveRTSPlayers();
-        Bot bot = new Bot(name, d, faction, pos, level, level.getSeed());
+        Agent bot = create(brain, profile, name, d, faction, pos, level);
         BOTS.put(name, bot);
         save(level.getServer());
         PlayerServerEvents.sendMessageToAllPlayers("ronstrat.joined", true, name, d.zh);
@@ -95,7 +114,11 @@ public final class BotManager {
      * position ("readied start"): capitol placed by the game, five workers next to it, the readied
      * starting resources, and the team colour that decides alliances.
      */
-    public static Bot startReadied(ServerLevel level, String name, Difficulty d, BlockPos pos, int colorId) {
+    public static Agent startReadied(ServerLevel level, String name, Difficulty d, BlockPos pos, int colorId) {
+        return startReadied(level, name, d, pos, colorId, "", "");
+    }
+
+    public static Agent startReadied(ServerLevel level, String name, Difficulty d, BlockPos pos, int colorId, String brain, String profile) {
         Faction faction = Factions.VILLAGERS;
         if (isRtsName(name)) throw new IllegalStateException(name + " is already playing");
         RTSPlayer rp = RTSPlayer.getNewBot(name, faction);
@@ -150,7 +173,7 @@ public final class BotManager {
                 if (!other.name.equals(name) && other.startPosColorId == colorId) ally(name, other.name);
         }
         PlayerServerEvents.saveRTSPlayers();
-        Bot bot = new Bot(name, d, faction, pos, level, level.getSeed());
+        Agent bot = create(brain, profile, name, d, faction, pos, level);
         BOTS.put(name, bot);
         save(level.getServer());
         return bot;
@@ -222,28 +245,16 @@ public final class BotManager {
         if (!(evt.getEntity() instanceof Unit u) || evt.getEntity().level().isClientSide) return;
         var src = evt.getSource();
         Entity killer = src.getEntity();
-        Bot b = BOTS.get(u.getOwnerName());
+        Agent b = BOTS.get(u.getOwnerName());
+        // a kill is credited to the bot that made it, also when the victim was a human's unit: otherwise
+        // the attack attrition check sees every even trade against a human as a one-sided bleed
+        Agent kb = killer instanceof Unit kh && kh.getOwnerName() != null && !kh.getOwnerName().isEmpty() ? BOTS.get(kh.getOwnerName()) : null;
         if (b == null) {
-            // a human's (or neutral) unit died: still credit the bot that killed it, or the attack
-            // attrition check thinks every even trade against a human is a one-sided bleed
-            if (killer instanceof Unit kh && kh.getOwnerName() != null && u.getOwnerName() != null && !u.getOwnerName().isEmpty()) {
-                Bot kb = BOTS.get(kh.getOwnerName());
-                if (kb != null) kb.army.killedInAttack();
-            }
+            if (kb != null && u.getOwnerName() != null && !u.getOwnerName().isEmpty()) kb.onKill();
             return;
         }
-        String by = killer == null ? "-" : (killer instanceof Unit ku ? ku.getOwnerName() + ":" : "") + EntityType.getKey(killer.getType()).getPath();
-        b.deaths++;
-        if (UnitEval.isWorker(evt.getEntity()) && !(killer instanceof Unit)) b.hazardDeaths++;
-        if (killer instanceof Unit ku2 && (ku2.getOwnerName() == null || ku2.getOwnerName().isEmpty())) { b.hazardDeaths++; b.intel.markDanger(evt.getEntity().blockPosition()); if (UnitEval.isWorker(evt.getEntity())) b.economy.evacuate(evt.getEntity().blockPosition()); if (!UnitEval.isWorker(evt.getEntity())) b.army.lostToCamp(evt.getEntity().blockPosition()); }
-        String msg = "death " + EntityType.getKey(evt.getEntity().getType()).getPath() + " at " + evt.getEntity().blockPosition().toShortString()
-                + " cause=" + src.getMsgId() + " by=" + by;
-        if (killer instanceof Unit ku3 && ku3.getOwnerName() != null && !ku3.getOwnerName().isEmpty()) {
-            if (!UnitEval.isWorker(evt.getEntity())) b.army.lostInAttack(evt.getEntity().blockPosition());
-            Bot kb = BOTS.get(ku3.getOwnerName());
-            if (kb != null) kb.army.killedInAttack();
-        }
-        if (killer instanceof Unit) b.log(msg); else RonStrategist.LOG.info("[{}] {}", b.name, msg);
+        b.onUnitDied(evt.getEntity(), src, killer);
+        if (kb != null) kb.onKill();
     }
 
     @SubscribeEvent
@@ -253,12 +264,12 @@ public final class BotManager {
         if (BOTS.isEmpty()) return;
         serverTicks++;
         List<String> gone = new ArrayList<>();
-        for (Bot b : BOTS.values()) {
-            if (!isRtsName(b.name)) { gone.add(b.name); continue; }
+        for (Agent b : BOTS.values()) {
+            if (!isRtsName(b.name())) { gone.add(b.name()); continue; }
             try {
                 b.tick(serverTicks);
             } catch (Exception ex) {
-                RonStrategist.LOG.error("RON Strategist: bot {} crashed this tick", b.name, ex);
+                RonStrategist.LOG.error("RON Strategist: bot {} crashed this tick", b.name(), ex);
             }
         }
         for (String g : gone) {
@@ -276,8 +287,11 @@ public final class BotManager {
         Data data = level.getDataStorage().computeIfAbsent(Data::load, Data::new, "ronstrat_bots");
         for (Data.Entry e : data.entries) {
             if (!isRtsName(e.name)) continue; // the game was reset meanwhile
-            Bot b = new Bot(e.name, e.difficulty, Factions.VILLAGERS, e.pos, level, level.getSeed());
-            BOTS.put(e.name, b);
+            try {
+                BOTS.put(e.name, create(e.brain, e.profile, e.name, e.difficulty, Factions.VILLAGERS, e.pos, level));
+            } catch (IllegalStateException ex) {
+                RonStrategist.LOG.warn("RON Strategist: {} not resumed: {}", e.name, ex.getMessage());
+            }
         }
         if (!BOTS.isEmpty()) RonStrategist.LOG.info("RON Strategist: resumed {} computer players", BOTS.size());
     }
@@ -293,12 +307,12 @@ public final class BotManager {
         if (s == null) return;
         Data data = s.overworld().getDataStorage().computeIfAbsent(Data::load, Data::new, "ronstrat_bots");
         data.entries.clear();
-        for (Bot b : BOTS.values()) data.entries.add(new Data.Entry(b.name, b.difficulty, b.startPos));
+        for (Agent b : BOTS.values()) data.entries.add(new Data.Entry(b.name(), b.difficulty(), b.startPos(), b.brain(), b.profile()));
         data.setDirty();
     }
 
     static final class Data extends SavedData {
-        record Entry(String name, Difficulty difficulty, BlockPos pos) {}
+        record Entry(String name, Difficulty difficulty, BlockPos pos, String brain, String profile) {}
         final List<Entry> entries = new ArrayList<>();
 
         static Data load(CompoundTag tag) {
@@ -308,7 +322,7 @@ public final class BotManager {
                 CompoundTag t = l.getCompound(i);
                 try {
                     d.entries.add(new Entry(t.getString("name"), Difficulty.valueOf(t.getString("difficulty")),
-                            new BlockPos(t.getInt("x"), t.getInt("y"), t.getInt("z"))));
+                            new BlockPos(t.getInt("x"), t.getInt("y"), t.getInt("z")), t.getString("brain"), t.getString("profile")));
                 } catch (IllegalArgumentException ignored) { }
             }
             return d;
@@ -324,6 +338,8 @@ public final class BotManager {
                 t.putInt("x", e.pos.getX());
                 t.putInt("y", e.pos.getY());
                 t.putInt("z", e.pos.getZ());
+                t.putString("brain", e.brain);
+                t.putString("profile", e.profile);
                 l.add(t);
             }
             tag.put("bots", l);

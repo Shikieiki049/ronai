@@ -287,7 +287,7 @@ final class Upgrades {
         int[] xs = { x0, cx, x1 }, zs = { z0, cz, z1 };
         for (int x : xs) for (int z : zs) if (x != cx || z != cz) cand.add(new BlockPos(x, 0, z));
         BlockPos best = null;
-        double bestD = Double.MAX_VALUE;
+        List<BlockPos> ok = new ArrayList<>();
         for (BlockPos c : cand) {
             int x = c.getX(), z = c.getZ();
             double dx = x - cx, dz = z - cz, len = Math.sqrt(dx * dx + dz * dz);
@@ -300,8 +300,17 @@ final class Upgrades {
                         || com.solegendary.reignofnether.building.BuildingUtils.isPosInsideFarm(false, p.below())) continue;
             } catch (Throwable ignored) { }
             if (!bot.level.getFluidState(p.below()).isEmpty()) continue;
-            double d = u.blockPosition().distSqr(p);
-            if (d < bestD) { bestD = d; best = p; }
+            ok.add(p);
+        }
+        // nearest first, but one the unit can actually walk to: a smith on a rise had its nearest side 3
+        // blocks up a bank, and soldiers stood below it for good (12 failed visits, 2 of 21 armoured)
+        ok.sort(java.util.Comparator.comparingDouble(q -> u.blockPosition().distSqr(q)));
+        int checks = 0;
+        for (BlockPos q : ok) {
+            if (best == null) best = q;
+            if (checks++ >= 4) break;
+            List<BlockPos> r = Terrain.route(bot.level, u.blockPosition(), q, bot.now);
+            if (Terrain.reaches(r, q)) return q;
         }
         return best != null ? best : centre;
     }

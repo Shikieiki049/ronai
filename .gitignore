@@ -1,6 +1,9 @@
 # only the mod's own source and scripts are versioned
 /*
 !/src/
+/src/baseline/
+!/tools/
+!/suite.ps1
 !/build.gradle
 !/settings.gradle
 !/gradle.properties

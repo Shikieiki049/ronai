@@ -1,0 +1,7 @@
+{
+  "workerTarget": 16,
+  "armyFromWorkers": 8,
+  "styleBarracksAtWorkers": 8,
+  "styleAttackAt": 420,
+  "styleAttackMinPop": 8
+}

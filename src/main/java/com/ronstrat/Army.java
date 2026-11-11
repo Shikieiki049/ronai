@@ -172,7 +172,7 @@ public final class Army {
     List<Bot> partners() {
         List<Bot> out = new ArrayList<>();
         if (bot.difficulty != Difficulty.EXPERT || target == null) return out;
-        for (Bot o : BotManager.bots()) {
+        for (Bot o : Bot.peers()) {
             if (o == bot || o.difficulty != Difficulty.EXPERT || o.army.mode != Mode.ATTACK || !target.equals(o.army.target)) continue;
             if (!allied(o)) continue; // free-for-all: everyone fights alone
             if (o.intel.army.isEmpty()) continue;
@@ -225,7 +225,7 @@ public final class Army {
                 }
             }
         }
-        for (Bot o : BotManager.bots()) {
+        for (Bot o : Bot.peers()) {
             if (o == bot || o.difficulty != Difficulty.EXPERT || o.army.mode != Mode.ATTACK || o.army.target == null) continue;
             if (!allied(o)) continue; // only allies attack together
             Intel.EnemyMemory em = in.enemies.get(o.army.target);
@@ -542,17 +542,28 @@ public final class Army {
         // even game, small but real edge: we have just seen their army and ours is clearly bigger -
         // hit now (raid their villagers) instead of waiting for the full attack size; a human with
         // fewer units punishes waiting by teching up
-        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && armyPop >= 36) {
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && armyPop >= 30) {
             String t0 = chooseTarget(in);
             Intel.EnemyMemory m0 = t0 == null ? null : in.enemies.get(t0);
             if (m0 != null && bot.now - m0.lastSeenArmy < 20 * 90) {
                 double own0 = UnitEval.strength(attackForce(in));
-                if (own0 >= 2.0 * Math.max(1, m0.knownStrength(bot.now) + homeDefenceBonus(m0))) {
+                if (own0 >= 1.8 * Math.max(1, m0.knownStrength(bot.now) + homeDefenceBonus(m0))) {
                     target = t0;
                     targetPos = m0.anyBuilding();
                     bot.log("edge attack: ours " + (int) own0 + " vs seen " + (int) m0.knownStrength(bot.now));
                     return true;
                 }
+            }
+        }
+        // a sparring style with a fixed attack time: go with what there is, like a human all-in
+        if (p.get("styleAttackAt") > 0 && secs >= p.get("styleAttackAt") && armyPop >= p.get("styleAttackMinPop")) {
+            String ts = chooseTarget(in);
+            Intel.EnemyMemory ms = ts == null ? null : in.enemies.get(ts);
+            if (ms != null && ms.anyBuilding() != null) {
+                target = ts;
+                targetPos = ms.anyBuilding();
+                bot.log("style attack at " + (int) secs + "s with army pop " + (int) armyPop);
+                return true;
             }
         }
         double minPop = p.get("attackMinArmyPop") * (bot.outnumbered() ? 1.8 : 1.0);
@@ -750,7 +761,16 @@ public final class Army {
         double rr = p.get("retreatRatio");
         if (rr > 0 && !localEnemies.isEmpty() && !localOwn.isEmpty()) {
             double ratio = UnitEval.strength(localFriends) / Math.max(1, UnitEval.strength(localEnemies));
-            if (ratio < rr) {
+            // the expert commits: a clearly bigger army overall (with partners) does not turn round over one
+            // bad skirmish (a player watched four attacks in a row break off at 0.4-0.5 and come to nothing)
+            boolean committed = false;
+            if (bot.difficulty == Difficulty.EXPERT) {
+                rr = Math.min(rr, 0.4);
+                double allOwn = UnitEval.strength(force);
+                for (Bot o : partners) allOwn += UnitEval.strength(o.intel.army);
+                committed = m != null && ratio >= 0.25 && allOwn >= 1.3 * Math.max(1, decayedStrength(m) + homeDefenceBonus(m));
+            }
+            if (ratio < rr && !committed) {
                 mode = Mode.RETREAT;
                 retreats++;
                 retreatUntil = bot.now + 500;
