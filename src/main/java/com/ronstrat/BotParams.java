@@ -179,6 +179,8 @@ public final class BotParams {
         p.put("v2RetreatLeft",              0,     0,      0,     0.25); // retreat when the forecast leaves less than this
         p.put("v2GrowthPerMinute",          0,     0,      0,     1.2);  // enemy units assumed per barracks per minute since we last saw their army
         p.put("v2UnseenPerMinute",          0,     0,      0,     2.0);  // enemy units assumed per minute after 6:30 when never seen
+        p.put("v2EnemyScale",               0,     0,      0,     1.3);  // enemy hit points x this in the forecast (it came out optimistic)
+        p.put("v2MilitiaShare",             0,     0,      0,     0.5);  // share of the defender's villagers counted as militia
         p.put("v2DefenceUnits",             0,     0,      0,     2);    // extra defenders assumed at an enemy base (militia, garrison)
         p.put("styleAttackAt",              0,     0,      0,     0);    // from this second on: attack with what there is, no strength check
         p.put("styleAttackMinPop",          8,     8,      8,     8);    // ...once the army is at least this big

@@ -1,9 +1,9 @@
 {
   "description": "two current experts against two baseline experts",
   "items": [
-    { "name": "new first", "spec": "expert,expert vs expert@base,expert@base readied nohandicap fog", "us": 0, "pair": "duel",
+    { "name": "new first", "spec": "expert,expert vs expert@base,expert@base readied nohandicap", "us": 0, "pair": "duel",
       "maps": ["4Mountains", "New_York_City", "4Rivers", "Hostile_Hostel"], "seeds": [401, 402] },
-    { "name": "baseline first", "spec": "expert@base,expert@base vs expert,expert readied nohandicap fog", "us": 1, "pair": "duel",
+    { "name": "baseline first", "spec": "expert@base,expert@base vs expert,expert readied nohandicap", "us": 1, "pair": "duel",
       "maps": ["4Mountains", "New_York_City", "4Rivers", "Hostile_Hostel"], "seeds": [401, 402] }
   ]
 }

@@ -96,7 +96,7 @@ public final class BotManager {
         BlockPos at = beside(level, pos);
         int[][] offs = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
         for (int[] o : offs) spawn(level, worker, name, at.offset(o[0], 0, o[1]));
-        if (FogOfWarServerEvents.isEnabled()) {
+        if (false) { // no scout: the computer players see the whole map
             EntityType<?> scout = ForgeRegistries.ENTITY_TYPES.getValue(faction.scoutEntityType);
             spawn(level, scout, name, at.offset(-1, 0, -1));
         }
@@ -166,7 +166,7 @@ public final class BotManager {
             }
         }
         // a human starting from a seat also gets a scout when fog of war is on
-        if (FogOfWarServerEvents.isEnabled()) spawn(level, ForgeRegistries.ENTITY_TYPES.getValue(faction.scoutEntityType), name, origin.offset(-1, 1, -1));
+        if (false) spawn(level, ForgeRegistries.ENTITY_TYPES.getValue(faction.scoutEntityType), name, origin.offset(-1, 1, -1));
         ResourcesServerEvents.resetResources(name, true);
         synchronized (PlayerServerEvents.rtsPlayers) {
             for (RTSPlayer other : PlayerServerEvents.rtsPlayers)

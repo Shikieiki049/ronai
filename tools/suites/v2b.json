@@ -1,10 +1,10 @@
 {
   "description": "the forecast-driven army (profile v2: armyV2 on) against the same build with it off, 1v1, no handicap, both seat orders",
   "items": [
-    { "name": "v2 first", "spec": "expert:v2b vs expert readied nohandicap fog", "us": 0, "pair": "v2b",
+    { "name": "v2 first", "spec": "expert:v2b vs expert readied nohandicap", "us": 0, "pair": "v2b",
       "maps": ["Mirs_Landing", "Berlingrad_Classic", "Cabana_Republic", "Infinity_Isle", "Snowplow", "Post-Youth"],
       "seeds": [101, 102, 103, 501, 502] },
-    { "name": "v2 second", "spec": "expert vs expert:v2b readied nohandicap fog", "us": 1, "pair": "v2b",
+    { "name": "v2 second", "spec": "expert vs expert:v2b readied nohandicap", "us": 1, "pair": "v2b",
       "maps": ["Mirs_Landing", "Berlingrad_Classic", "Cabana_Republic", "Infinity_Isle", "Snowplow", "Post-Youth"],
       "seeds": [101, 102, 103, 501, 502] }
   ]

@@ -38,6 +38,24 @@ final class ArmyV2 {
         }
         if (atHome) extra += bot.params.get("v2DefenceUnits");
         for (int i = 0; i < (int) Math.round(extra); i++) out.add(typical.copy());
+        double scale = bot.params.get("v2EnemyScale");
+        if (scale > 0) for (CombatSim.U u : out) { u.hp *= scale; u.hp0 *= scale; }
+        if (atHome) {
+            // the defender rings the bell: a share of the villagers fight as militia; towers shoot
+            int villagers = 0;
+            for (LivingEntity e : in.visibleEnemies)
+                if (UnitEval.isWorker(e) && e instanceof com.solegendary.reignofnether.unit.interfaces.Unit u && m.name.equals(u.getOwnerName())) villagers++;
+            int militia = (int) Math.round(villagers * bot.params.get("v2MilitiaShare"));
+            for (int i = 0; i < militia; i++) {
+                CombatSim.U v = new CombatSim.U();
+                v.hp = v.hp0 = 25; v.dps = 2.5; v.range = 2; v.speed = 4;
+                out.add(v);
+            }
+            int towers = 0;
+            for (BuildingPlacement b : BuildingServerEvents.getBuildings())
+                if (m.name.equals(b.ownerName) && b.isBuilt && b.getBuilding() == bot.plan.tower) towers++;
+            for (int i = 0; i < towers; i++) out.add(CombatSim.tower());
+        }
         return out;
     }
 

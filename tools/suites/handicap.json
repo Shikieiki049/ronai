@@ -1,7 +1,7 @@
 {
   "description": "the user's lobby: two experts at full handicap (+8 villagers, 2x resources) against a pair without; the baseline plays the user's side",
   "items": [
-    { "name": "h4 pair vs baseline pair", "spec": "expert@base,expert@base vs expert:h4,expert:h4 readied nohandicap fog", "us": 1,
+    { "name": "h4 pair vs baseline pair", "spec": "expert@base,expert@base vs expert:h4,expert:h4 readied nohandicap", "us": 1,
       "maps": ["New_York_City", "4Mountains", "4Rivers", "Corporate_Warfare", "Hostile_Hostel", "Jungle_Stalkers", "Burnt-Out_Paradise", "River_Madness"],
       "seeds": [301, 302] }
   ]

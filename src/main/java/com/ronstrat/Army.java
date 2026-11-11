@@ -36,6 +36,8 @@ public final class Army {
     private final Map<Integer, Long> lastOrder = new HashMap<>();
     private final List<BlockPos> scoutPoints = new ArrayList<>();
     private int scoutIdx;
+    /** likely enemy starts (mirror images of our own) */
+    final List<BlockPos> guessed = new ArrayList<>();
     private Mob explorer;
     public int attacksLaunched, retreats;
 
@@ -1635,7 +1637,22 @@ public final class Army {
     }
 
     private void buildScoutPoints(BlockPos h) {
-        for (int r = 30; r <= 150; r += 30) {
+        // where the others probably start: maps are laid out symmetrically, so the mirror images of
+        // our own start through the middle of the map (a player knows the map; with fog on, circling
+        // the home would never reach a base 200 blocks away)
+        var wb = bot.level.getWorldBorder();
+        double cx = wb.getCenterX(), cz = wb.getCenterZ();
+        int maxR = 150;
+        if (wb.getSize() < 2000) {
+            maxR = (int) Math.max(150, wb.getSize() * 0.7);
+            int[][] mir = { { (int) (2 * cx - h.getX()), (int) (2 * cz - h.getZ()) }, { (int) (2 * cx - h.getX()), h.getZ() }, { h.getX(), (int) (2 * cz - h.getZ()) } };
+            for (int[] q : mir) {
+                if (Math.abs(q[0] - h.getX()) + Math.abs(q[1] - h.getZ()) < 40) continue;
+                scoutPoints.add(new BlockPos(q[0], h.getY(), q[1]));
+            }
+            guessed.addAll(scoutPoints);
+        }
+        for (int r = 30; r <= maxR; r += 30) {
             int n = Math.max(6, r / 10);
             for (int i = 0; i < n; i++) {
                 double a = 2 * Math.PI * i / n + r * 0.01;

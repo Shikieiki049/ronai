@@ -145,7 +145,8 @@ public final class Intel {
         workers.clear(); army.clear(); scouts.clear(); garrisoned.clear(); militia.clear(); own.clear(); built.clear(); total.clear();
         visibleEnemies.clear(); visibleEnemyBuildings.clear(); allies.clear();
         capitol = null;
-        fog = FogOfWarServerEvents.isEnabled();
+        // the computer players see the whole map, fog of war or not (the user's choice: no scouting needed)
+        fog = false;
         String me = bot.name;
 
         Set<String> enemyNames = new HashSet<>();
