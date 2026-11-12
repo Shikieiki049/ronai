@@ -1,0 +1,14 @@
+{
+  "description": "short games (12 minutes) for economy changes: current expert against the baseline, both seat orders, compared on what each side gathered and built",
+  "report": "econ",
+  "items": [
+    { "name": "new first", "spec": "expert:e2 vs expert readied nohandicap", "us": 0, "pair": "e2",
+      "extra": "-Dronstrat.stopAt=720",
+      "maps": ["Mirs_Landing", "Berlingrad_Classic", "Snowplow", "Post-Youth", "Infinity_Isle", "Cabana_Republic"],
+      "seeds": [502, 503] },
+    { "name": "baseline first", "spec": "expert vs expert:e2 readied nohandicap", "us": 1, "pair": "e2",
+      "extra": "-Dronstrat.stopAt=720",
+      "maps": ["Mirs_Landing", "Berlingrad_Classic", "Snowplow", "Post-Youth", "Infinity_Isle", "Cabana_Republic"],
+      "seeds": [502, 503] }
+  ]
+}

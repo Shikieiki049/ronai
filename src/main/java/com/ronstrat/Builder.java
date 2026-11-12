@@ -260,6 +260,7 @@ public final class Builder {
             }
         }
 
+        BuildOrder.shape(bot, in, reqs, home);
         reqs.sort((a, b) -> Double.compare(b.priority, a.priority));
         reserved = null;
         for (Request r : reqs) {

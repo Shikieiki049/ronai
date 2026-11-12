@@ -365,6 +365,20 @@ public final class Economy {
                 want[0] = fields - extra;
             }
         }
+        // the rewritten economy's opening: workers by need, not by share. Food is what the fields and the
+        // hunt can take (one farmer per built field, hunters only while there is game near home), ore
+        // only once something needs it, everyone else on wood - the fields, houses and barracks all wait
+        // for wood. (The share rules above kept 55%+ on food while the stock was low: idle hands at empty
+        // fields and walks to far animals, while every field waited for 150 wood.)
+        if (BuildOrder.active(bot) && bot.army.sinceThreat() > 1200) {
+            int fields = in.built(bot.plan.farm);
+            int hunt = animalsNearHome > 0 ? Math.min(maxHunters(in), Math.max(2, 6 - fields)) : (fields == 0 ? 2 : 0);
+            int foodW = Math.min(gatherers, fields + hunt);
+            int oreW = in.ore < p.get("openingOreFloor") && gatherers >= 12 ? 1 : 0;
+            want[0] = foodW;
+            want[2] = oreW;
+            want[1] = Math.max(0, gatherers - foodW - oreW);
+        }
         int[] have = { byJob.get(Job.FOOD).size(), byJob.get(Job.WOOD).size(), byJob.get(Job.ORE).size() };
 
         // pull workers off surplus jobs when the split drifts too far
@@ -403,10 +417,13 @@ public final class Economy {
                 for (int i = 0; i < 3 && !ok; i++) if (i != best) ok = assign(in, w, gj[i]);
             }
             if (ok) have[jobIndex(job(w))]++;
+            else if (bot.verbose && bot.now - lastNoJobLog > 200) { lastNoJobLog = bot.now; bot.log("no job for worker #" + w.getId() + " at " + w.blockPosition().toShortString() + " want " + java.util.Arrays.toString(want) + " have " + java.util.Arrays.toString(have)); }
         }
+        if (bot.verbose && !idle.isEmpty() && bot.now - lastIdleLog > 400) { lastIdleLog = bot.now; bot.log("idle " + idle.size() + " of " + in.workers.size() + " want " + java.util.Arrays.toString(want) + " have " + java.util.Arrays.toString(have)); }
         farmsWanted = computeFarmsWanted(in, want[0]);
     }
 
+    private long lastNoJobLog = -1000, lastIdleLog = -1000;
     private final long[] farMissUntil = new long[3];
     /** a resource the economy would use but monsters guard (for the army), and when it was seen */
     public BlockPos blockedByDanger;
@@ -538,7 +555,7 @@ public final class Economy {
         // even opening: food comes from one farmer per field plus a few hunters - more hands on food than
         // that only stand around, while every field waits for 150 wood. Cap food at the fields there
         // are (and one for the next), the rest cut wood; banked ore with nothing to buy stops the miners.
-        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && p.b("foodCapToFarms")
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && (p.b("foodCapToFarms") || BuildOrder.active(bot))
                 && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks < p.get("foodCapMinutes") * 1200 && n >= 6) {
             int hunt = animalsNearHome > 0 ? maxHunters(in) : 0;
             double cap = (in.built(bot.plan.farm) + hunt + 1.0) / n;
