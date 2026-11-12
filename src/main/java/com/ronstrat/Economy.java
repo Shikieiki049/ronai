@@ -1,5 +1,7 @@
 package com.ronstrat;
 
+import com.solegendary.reignofnether.building.Building;
+
 import com.solegendary.reignofnether.building.BuildingPlacement;
 import com.solegendary.reignofnether.building.buildings.placements.FarmPlacement;
 import com.solegendary.reignofnether.resources.ResourceIndex;
@@ -327,6 +329,7 @@ public final class Economy {
         // the lower tiers simply overlook idle villagers some of the time, like a distracted player
         if (!bot.attentive()) idle.clear();
 
+        if (p.b("woodDrop")) checkWoodTrip(in, byJob.get(Job.WOOD));
         int gatherers = in.workers.size() - byJob.get(Job.BUILD).size() - byJob.get(Job.MILITARY).size();
         checkStagnation(in, byJob);
         double[] raw = desiredShares(in);
@@ -391,6 +394,19 @@ public final class Economy {
             want[0] = foodW;
             want[2] = Math.min(oreW, Math.max(0, gatherers - foodW));
             want[1] = Math.max(0, gatherers - foodW - want[2]);
+        }
+        // armour: the blacksmith from minute smithFrom - its ore is mined for it first (nothing else mines
+        // in an even game, so it came in 29 of 80 games, at 23:48 on average, and 1% of soldiers had armour)
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && BuildOrder.minutes() >= p.get("smithFrom") - 1.5
+                && bot.army.sinceThreat() > 600 && !popMaxed(in)) {
+            Building smith = com.solegendary.reignofnether.building.Buildings.BLACKSMITH;
+            int needOre = in.total(smith) == 0 ? smith.cost.ore + 50 : 300;
+            int minOre = in.ore < needOre ? (int) p.get("smithMiners") : 0;
+            if (want[2] < minOre && gatherers >= 16) {
+                int add = minOre - want[2];
+                int fromWood = Math.min(add, Math.max(0, want[1] - 4));
+                want[1] -= fromWood; want[2] += fromWood;
+            }
         }
         int[] have = { byJob.get(Job.FOOD).size(), byJob.get(Job.WOOD).size(), byJob.get(Job.ORE).size() };
 
@@ -772,6 +788,53 @@ public final class Economy {
         BlockPos b = ps.get(0);
         for (BlockPos p : ps) if (p.distSqr(to) < b.distSqr(to)) b = p;
         return b;
+    }
+
+    /** the woodcutters' mean walk from their tree to the nearest drop site, last measured */
+    public double woodTrip;
+    /** set while the woodcutters walk far: the builder puts a stockpile at stockpileWanted ahead of most things */
+    public boolean farWoodTrip;
+    private long lastTripCheck = -10000;
+
+    /**
+     * Woodcutters keep to their grove: RON's gather goal moves each one on to the next tree, so the walk to
+     * the drop site grows all game without a new assignment (16 blocks at minute 5, 28 at minute 10, 60 on
+     * Post-Youth; wood per woodcutter fell from 45 to 28 a minute). When the mean walk is long, the
+     * stockpile goes where most of them cut.
+     */
+    private void checkWoodTrip(Intel in, List<Mob> woodcutters) {
+        if (bot.now - lastTripCheck < 200) return;
+        lastTripCheck = bot.now;
+        // not in the opening: a 75-wood stockpile there is half a field and costs villagers by minute 5
+        if (BuildOrder.minutes() < bot.params.get("woodDropFrom")) { farWoodTrip = false; return; }
+        List<BlockPos> drops = dropSites(in);
+        List<BlockPos> targets = new ArrayList<>();
+        double sum = 0;
+        for (Mob w : woodcutters) {
+            GatherResourcesGoal g = ((WorkerUnit) w).getGatherResourceGoal();
+            BlockPos t = g != null && g.getGatherTarget() != null ? g.getGatherTarget() : null;
+            if (t == null || drops.isEmpty()) continue;
+            targets.add(t);
+            sum += Math.sqrt(nearest(drops, t).distSqr(t));
+        }
+        woodTrip = targets.isEmpty() ? 0 : sum / targets.size();
+        double limit = bot.params.get("dropDistance") + bot.params.get("woodDropSlack");
+        farWoodTrip = targets.size() >= 4 && woodTrip > limit;
+        if (!farWoodTrip) return;
+        // the spot: the tree with the most other woodcutters' trees within 12 blocks, among those far from a drop
+        BlockPos best = null;
+        int bestN = -1;
+        for (BlockPos t : targets) {
+            if (Math.sqrt(nearest(drops, t).distSqr(t)) <= limit) continue;
+            int n = 0;
+            for (BlockPos o : targets) if (o.distSqr(t) <= 12 * 12) n++;
+            if (n > bestN) { bestN = n; best = t; }
+        }
+        if (best != null && bestN >= 2 && (stockpileWanted == null || stockpileWanted.distSqr(best) > 10 * 10)) {
+            stockpileWanted = best;
+            stockpileFor = ResourceName.WOOD;
+            if (bot.verbose) bot.log("woodcutters walk " + (int) woodTrip + " blocks: stockpile wanted at " + best.toShortString() + " (" + bestN + " cutting there)");
+        }
     }
 
     public List<BlockPos> dropSites(Intel in) {

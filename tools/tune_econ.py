@@ -16,28 +16,23 @@ MAPS = ["Mirs_Landing", "Berlingrad_Classic", "Cabana_Republic", "Infinity_Isle"
 
 # knob: (low, high, integer?)
 SPACE = {
-    "farmWorkersShare": (0.30, 0.55, False),
-    "oreShare":         (0.03, 0.25, False),
+    "openingLead":      (0.0, 1.5, False),
+    "openingMinutes":   (8, 13, True),
     "hunters":          (2, 6, True),
     "houseBuffer":      (4, 14, True),
     "maxParallelHouses": (1, 4, True),
     "buildersPerBuilding": (1, 3, True),
-    "dropDistance":     (10, 26, True),
-    "armyFromWorkers":  (12, 30, True),
-    "boomWorkers":      (16, 34, True),
-    "armyPerWorker":    (0.4, 1.4, False),
     "workerQueue":      (1, 4, True),
-    "spendingEscrow":   (0.0, 0.9, False),
-    "openFood":         (0.25, 0.6, False),
-    "openFood2":        (0.25, 0.6, False),
+    "econPhase2":       (0, 1, True),
+    "econWorkers":      (28, 40, True),
+    "phase2Ore":        (0.05, 0.3, False),
     "barracksPerWorkers": (6, 16, True),
     "maxBarracks":      (2, 6, True),
-    "foodCapToFarms":   (0, 1, True),
+    "armyPerWorker":    (0.4, 1.4, False),
 }
-DEFAULT = {"farmWorkersShare": 0.40, "oreShare": 0.15, "hunters": 4, "houseBuffer": 9, "maxParallelHouses": 3,
-           "buildersPerBuilding": 2, "dropDistance": 16, "armyFromWorkers": 20, "boomWorkers": 24, "armyPerWorker": 0.8,
-           "workerQueue": 2, "spendingEscrow": 0.5, "openFood": 0.5, "openFood2": 0.45, "barracksPerWorkers": 10,
-           "maxBarracks": 4, "foodCapToFarms": 0}
+DEFAULT = {"openingLead": 0.5, "openingMinutes": 10, "hunters": 4, "houseBuffer": 9, "maxParallelHouses": 3,
+           "buildersPerBuilding": 2, "workerQueue": 2, "econPhase2": 0, "econWorkers": 34, "phase2Ore": 0.15,
+           "barracksPerWorkers": 10, "maxBarracks": 4, "armyPerWorker": 0.8}
 
 
 def mutate(p, sigma, rng):

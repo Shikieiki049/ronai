@@ -118,7 +118,9 @@ public final class Builder {
                 // (a player's game: 27 woodcutters brought in 350 wood in 8 minutes) - a stockpile there now
                 boolean farWood = bot.difficulty == Difficulty.EXPERT && bot.economy.stockpileFor == com.solegendary.reignofnether.resources.ResourceName.WOOD
                         && in.wood < 200 && !dropSiteNear(in, bot.economy.stockpileWanted, 30);
-                reqs.add(new Request(plan.stockpile, stuckLoads ? 110 : farWood ? 100 : 75, bot.economy.stockpileWanted, 2, 14));
+                // the woodcutters' walk has grown long (they move on tree by tree, away from the drop site)
+                boolean longWalk = p.b("woodDrop") && bot.economy.farWoodTrip && bot.economy.stockpileFor == com.solegendary.reignofnether.resources.ResourceName.WOOD;
+                reqs.add(new Request(plan.stockpile, stuckLoads ? 110 : farWood ? 100 : longWalk ? 98 : 75, bot.economy.stockpileWanted, 2, 14));
             }
             // boom: extra capitols double and triple villager production (the AoE2 multi-TC boom)
             int capitols = in.total(plan.capitol);
@@ -193,6 +195,11 @@ public final class Builder {
                     // not before minute 15 and only when safe: its 300 wood at minute 9 left Snowplow without the army for the first wave
                     && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks >= 18000 && bot.army.safeToBoom(in))
                 reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.LIBRARY, 76, home, 12, 28));
+            // armour from minute smithFrom (even expert): the blacksmith once a barracks stands and its ore is in
+            if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && BuildOrder.minutes() >= p.get("smithFrom")
+                    && in.total(com.solegendary.reignofnether.building.Buildings.BLACKSMITH) == 0 && in.built(plan.barracks) >= 1
+                    && in.ore >= com.solegendary.reignofnether.building.Buildings.BLACKSMITH.cost.ore && bot.army.sinceThreat() > 600)
+                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.BLACKSMITH, 89, home, 12, 30));
             if (techOwned < p.i("maxTechBuildings") && (!bot.outnumbered() || floating) && (!evenLean || floating)) {
                 for (FactionPlan.TechStep t : plan.tech) {
                     if (in.total(t.building) > 0) continue;

@@ -124,6 +124,11 @@ public final class BotParams {
         p.put("hunters",                    0,     2,      3,     4);
         p.put("useStockpiles",              0,     1,      1,     1);
         p.put("dropDistance",               30,    24,     20,    16);   // build a stockpile when gathering further than this
+        p.put("woodDrop",                   0,     0,      0,     1);   // a stockpile where the woodcutters cut once their walk is long
+        p.put("smithFrom",                  99,    99,     99,    11);   // even expert: blacksmith (and miners for it) from this minute
+        p.put("smithMiners",                3,     3,      3,     3);
+        p.put("woodDropFrom",               8,     8,      8,     8);   // ...from this minute on
+        p.put("woodDropSlack",              6,     6,      6,     6);   // ...longer than dropDistance plus this
         p.put("rebalanceSlack",             4,     3,      2,     1);    // how far worker split may drift before reassigning
         p.put("farmWorkersShare",           0.45,  0.45,   0.42,  0.40); // food share of workers in mid game
         p.put("econV2",                     0,     0,      0,     1);    // the rewritten economy: opening to the user's curve (BuildOrder), workers by need

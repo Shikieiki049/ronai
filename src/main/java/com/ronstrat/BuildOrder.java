@@ -59,7 +59,7 @@ final class BuildOrder {
             if (r.priority() >= 105 || b == plan.capitol || b == plan.house) return false;
             if (b == plan.farm) return true; // re-added below to the curve
             if (b == plan.barracks) return in.total(plan.barracks) >= barracksWanted;
-            if (b == plan.stockpile) return in.total(plan.stockpile) >= Math.max(1, stockWanted) && r.priority() < 100;
+            if (b == plan.stockpile) return in.total(plan.stockpile) >= Math.max(1, stockWanted) && r.priority() < (bot.economy.farWoodTrip ? 98 : 100);
             return true; // tech, market, towers, second town centre: after the opening
         });
         if (in.total(plan.farm) < fieldsWanted && in.workers.size() >= 4)
