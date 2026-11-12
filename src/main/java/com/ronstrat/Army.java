@@ -725,7 +725,14 @@ public final class Army {
         double gap = bot.params.get("openingBreak");
         if (gap <= 0) return false;
         double e = 0;
-        for (Intel.EnemyMemory m : in.enemies.values()) if (m.alive) e = Math.max(e, m.knownStrength(bot.now));
+        int soldiers = 0;
+        for (Intel.EnemyMemory m : in.enemies.values()) if (m.alive) {
+            e = Math.max(e, m.knownStrength(bot.now));
+            soldiers = Math.max(soldiers, m.seenUnits.size());
+        }
+        // a real rush, not a mirror's barracks coming up a little sooner: a small lead (2 soldiers) broke
+        // the opening in even games and cost about 9% there
+        if (soldiers < bot.params.get("openingBreakMin")) return false;
         return Math.sqrt(e) > Math.sqrt(UnitEval.strength(new ArrayList<>(in.army))) + gap * defaultUnitPower;
     }
 

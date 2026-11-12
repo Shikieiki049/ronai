@@ -183,9 +183,11 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
         $loading = 0
         foreach ($r in $running) {
             if (-not $r.Ready) {
-                $lg = Join-Path $r.Dir 'logs\latest.log'
-                if ((Test-Path $lg) -and (Select-String -Path $lg -Pattern 'Done \(' -Quiet -ErrorAction SilentlyContinue)) { $r.Ready = $true }
-                elseif (-not $r.Proc.HasExited) { $loading++ }
+                try {
+                    $lg = Join-Path $r.Dir 'logs\latest.log'
+                    if ((Test-Path $lg) -and (Select-String -Path $lg -Pattern 'Done \(' -Quiet -ErrorAction SilentlyContinue)) { $r.Ready = $true }
+                    elseif (-not $r.Proc.HasExited) { $loading++ }
+                } catch { $r.Ready = $true }
             }
         }
         if ($MaxStarting -gt 0 -and $loading -ge $MaxStarting) { break }

@@ -21,7 +21,11 @@ final class Strategy {
     static int route(Bot bot) {
         int s = (int) bot.params.get("strategy");
         if (s >= 0) return s;
-        if (bot.chosenRoute < 0) bot.chosenRoute = choose(bot);
+        if (bot.chosenRoute < 0) {
+            // decided once the town centre stands (before that: farms, not yet fixed)
+            if (bot.intel == null || bot.intel.capitol == null) return FARMS;
+            bot.chosenRoute = choose(bot);
+        }
         return bot.chosenRoute;
     }
 
@@ -39,8 +43,8 @@ final class Strategy {
     private static int choose(Bot bot) {
         Intel in = bot.intel;
         if (in == null || in.capitol == null) return FARMS;
-        String map = System.getProperty("ronstrat.map", "");
-        Integer t = table().get(map);
+        String map = mapName();
+        Integer t = table().get(norm(map));
         if (t != null) { bot.log("route " + t + " from the route table (" + map + ")"); return t; }
         BlockPos h = in.home();
         int ore = count(bot, h, ResourceName.ORE), wood = count(bot, h, ResourceName.WOOD);
@@ -56,6 +60,21 @@ final class Strategy {
         com.solegendary.reignofnether.resources.ResourceIndex.get(bot.level).findClosest(bot.level, h, 40, type, p -> { n[0]++; return false; });
         return n[0];
     }
+
+    /** the map's name: the test harness passes the folder, a real game has RON's map info ("Infinity Isle") */
+    static String mapName() {
+        String m = System.getProperty("ronstrat.map", "");
+        if (!m.isEmpty()) return m;
+        try {
+            Class<?> c = Class.forName("com.solegendary.reignofnether.rtsmap.RTSMapInfoServerEvents");
+            Object info = c.getField("rtsMapInfo").get(null);
+            if (info != null) return String.valueOf(info.getClass().getMethod("getName").invoke(info));
+        } catch (Throwable ignored) { }
+        return "";
+    }
+
+    /** "Infinity Isle", "Infinity_Isle" and "infinity-isle" are the same map */
+    static String norm(String s) { return s.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", ""); }
 
     private static java.util.Map<String, Integer> table;
 
@@ -74,7 +93,7 @@ final class Strategy {
             }
             if (text != null) {
                 com.google.gson.JsonObject o = com.google.gson.JsonParser.parseString(text).getAsJsonObject();
-                for (var e : o.entrySet()) table.put(e.getKey(), e.getValue().getAsInt());
+                for (var e : o.entrySet()) table.put(norm(e.getKey()), e.getValue().getAsInt());
             }
         } catch (Exception ignored) { }
         return table;

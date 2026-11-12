@@ -1,0 +1,51 @@
+{
+ "description": "current default against build209",
+ "items": [
+  {
+   "name": "current first",
+   "spec": "expert vs expert@base readied nohandicap",
+   "us": 0,
+   "pair": "cur",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    501,
+    502
+   ]
+  },
+  {
+   "name": "current second",
+   "spec": "expert@base vs expert readied nohandicap",
+   "us": 1,
+   "pair": "cur",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    501,
+    502
+   ]
+  }
+ ]
+}
