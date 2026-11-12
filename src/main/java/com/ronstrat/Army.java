@@ -94,7 +94,21 @@ public final class Army {
 
     // ------------------------------------------------------------------ macro
 
+    /**
+     * A wild or map monster: a vanilla hostile mob, a unit nobody owns, or a unit owned by a name that is
+     * not a player of this game (maps like Raveyard spawn their monsters under the map's own name).
+     */
+    boolean isMonster(LivingEntity e) {
+        if (e instanceof Unit u) {
+            String o = u.getOwnerName();
+            if (o == null || o.isEmpty()) return e instanceof net.minecraft.world.entity.monster.Enemy || !(e instanceof net.minecraft.world.entity.animal.Animal);
+            return !o.equals(bot.name) && !BotManager.isRtsName(o);
+        }
+        return e instanceof net.minecraft.world.entity.monster.Enemy;
+    }
+
     private CombatSim.Probe probe;
+    int monstersAtHome;
     private TeamPlan teamPlan;
     boolean inAttack() { return mode == Mode.ATTACK; }
     String targetName() { return target; }
@@ -296,6 +310,18 @@ public final class Army {
     private List<LivingEntity> threats(Intel in, double r) {
         List<LivingEntity> out = new ArrayList<>();
         double r2 = r * r;
+        // wild monsters (the night) walking into the base or chasing villagers there are a raid too:
+        // without this the villagers ran home with the monsters behind them and nobody fought
+        if (bot.params.b("monsterDefence") && in.capitol != null) {
+            Vec3 hc = Vec3.atCenterOf(in.capitol.centrePos);
+            for (LivingEntity e : bot.level.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(in.capitol.centrePos).inflate(r, 16, r),
+                    x -> x.isAlive() && isMonster(x))) {
+                boolean hunting = e instanceof Mob m && m.getTarget() != null && m.getTarget() instanceof Unit tu && bot.name.equals(tu.getOwnerName());
+                boolean inBase = false;
+                for (BuildingPlacement b : in.own) if (e.distanceToSqr(Vec3.atCenterOf(b.centrePos)) <= 14 * 14) { inBase = true; break; }
+                if (hunting && e.distanceToSqr(hc) <= r2 || inBase) { out.add(e); monstersAtHome++; }
+            }
+        }
         for (LivingEntity e : in.visibleEnemies) {
             for (BuildingPlacement b : in.own) {
                 double d = b.isCapitol ? r2 : r2 * 0.45;
@@ -469,7 +495,12 @@ public final class Army {
      * Only for a real raid near home that the army cannot hold on its own.
      */
     private boolean ringBell(Intel in, List<LivingEntity> threats, double defenders) {
-        if (!bot.params.b("pullWorkersToDefend") || in.capitol == null || !in.capitol.isBuilt) return false;
+        if (in.capitol == null || !in.capitol.isBuilt) return false;
+        boolean monsterRaid = false;
+        for (LivingEntity t : threats) if (isMonster(t)) { monsterRaid = true; break; }
+        // against monsters the bell is rung (BotManager.discardConverted removes the old units that RON leaves
+        // behind for a player without a game client - before that fix every bell doubled the villagers)
+        if (!bot.params.b("pullWorkersToDefend") && !(monsterRaid && bot.params.b("monsterBell"))) return false;
         int fighters = 0;
         double threatS = 0;
         List<LivingEntity> near = new ArrayList<>();
@@ -480,7 +511,10 @@ public final class Army {
             fighters++;
             near.add(t);
         }
-        if (fighters < 3) return false;
+        // a night attack by monsters: two are enough to call the villagers up
+        int monsters = 0;
+        for (LivingEntity t : near) if (isMonster(t)) monsters++;
+        if (fighters < (monsters >= 2 ? 2 : 3)) return false;
         threatS = UnitEval.strength(near);
         if (defenders > threatS * 1.3) return false;
         if (bot.now - bellRung < 1300) return !in.militia.isEmpty();

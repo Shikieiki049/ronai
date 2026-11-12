@@ -278,6 +278,25 @@ public final class BotManager {
             BOTS.remove(g);
         }
         if (!gone.isEmpty() && server != null) save(server);
+        if (serverTicks % 10 == 0) {
+            try { discardConverted(); } catch (Exception ex) { RonStrategist.LOG.error("RON Strategist: conversion cleanup failed", ex); }
+        }
+    }
+
+    /**
+     * RON fix for computer players: when a villager turns into militia (town bell) or back, RON spawns
+     * the new unit on the server, but the old one is only removed once the owner's game client answers
+     * with a DISCARD order. A computer player has no client, so its old units stayed - every bell
+     * doubled its villagers. The server side does that step for the bots here.
+     */
+    static void discardConverted() {
+        for (net.minecraft.world.entity.LivingEntity e : new ArrayList<>(com.solegendary.reignofnether.unit.UnitServerEvents.getAllUnits())) {
+            if (!(e instanceof com.solegendary.reignofnether.unit.interfaces.ConvertableUnit c) || !e.isAlive() || c.shouldDiscard()) continue;
+            if (!(e instanceof Unit u) || !BOTS.containsKey(u.getOwnerName())) continue;
+            boolean converted = e instanceof com.solegendary.reignofnether.unit.units.villagers.VillagerUnit v ? v.converted
+                    : e instanceof com.solegendary.reignofnether.unit.units.villagers.MilitiaUnit m && m.converted;
+            if (converted) c.setShouldDiscard(true);
+        }
     }
 
     @SubscribeEvent

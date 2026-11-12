@@ -30,6 +30,8 @@ public final class MatchSpec {
     public boolean readied;
     /** "fog": fog of war on, as in the user's lobby games (each player sees only what its units and buildings see) */
     public boolean fog;
+    /** "night": day and night and monster spawning on, as in the user's games (self-play normally keeps it day) */
+    public boolean night;
     public final String text;
 
     private MatchSpec(String text) { this.text = text; }
@@ -41,6 +43,7 @@ public final class MatchSpec {
             again = false;
             if (t.endsWith(" readied")) { m.readied = true; t = t.substring(0, t.length() - 8); again = true; }
             if (t.endsWith(" nohandicap")) { m.handicap = false; t = t.substring(0, t.length() - 11); again = true; }
+            if (t.endsWith(" night")) { m.night = true; t = t.substring(0, t.length() - 6); again = true; }
             if (t.endsWith(" fog")) { m.fog = true; t = t.substring(0, t.length() - 4); again = true; }
             if (t.endsWith(" ffa")) { m.ffa = true; t = t.substring(0, t.length() - 4); again = true; }
         }

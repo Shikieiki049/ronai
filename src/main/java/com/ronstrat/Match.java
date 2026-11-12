@@ -57,8 +57,8 @@ public final class Match {
     public void start(ServerLevel level, BlockPos centre) {
         this.centre = centre;
         int n = spec.players();
-        level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false, level.getServer());
-        level.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false, level.getServer());
+        level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(spec.night, level.getServer());
+        level.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(spec.night, level.getServer());
         level.setDayTime(1000);
         if (spec.fog) com.solegendary.reignofnether.fogofwar.FogOfWarServerEvents.setEnabled(true);
         List<BlockPos> seats = fixedSeats != null ? fixedSeats : Arena.build(level, centre, n, seed);

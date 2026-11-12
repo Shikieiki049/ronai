@@ -35,6 +35,12 @@ final class BuildOrder {
                 && minutes() < bot.params.get("openingMinutes");
     }
 
+    /** after the opening: the army phase (parameter econPhase2) - workers still by need, not by share */
+    static boolean phase2(Bot bot) {
+        return bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && bot.params.b("econV2") && bot.params.b("econPhase2")
+                && minutes() >= bot.params.get("openingMinutes");
+    }
+
     /**
      * Rewrites the builder's wish list for the opening: fields to the curve (a little ahead of it), no
      * barracks before the curve has one, no tech, market, towers or extra town centres. Emergencies

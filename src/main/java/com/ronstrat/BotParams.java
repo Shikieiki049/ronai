@@ -129,6 +129,9 @@ public final class BotParams {
         p.put("econV2",                     0,     0,      0,     1);    // the rewritten economy: opening to the user's curve (BuildOrder), workers by need
         p.put("openingMinutes",             0,     0,      0,     10);
         p.put("openingOreFloor",            0,     0,      0,     100);  // opening: one miner only while ore is under this
+        p.put("econPhase2",                 0,     0,      0,     0);    // after the opening: workers by need (fields, miners for armour, rest wood)
+        p.put("econWorkers",                0,     0,      0,     34);   // ...and the villager count the army phase stops at
+        p.put("phase2Ore",                  0,     0,      0,     0.15); // ...share of gatherers mining once a blacksmith stands
         p.put("openingLead",                0,     0,      0,     0.5);  // minutes the opening runs ahead of the user's curve
         p.put("foodCapToFarms",             0,     0,      0,     0);    // even opening: food workers capped at fields + hunters + 1, rest on wood
         p.put("foodCapMinutes",             0,     0,      0,     12);
@@ -171,7 +174,9 @@ public final class BotParams {
         p.put("retreatRatio",               0.0,   0.35,   0.55,  0.5);  // retreat below this local strength ratio (0 = never)
         p.put("regroupDistance",            0,     22,     16,    12);   // pull stragglers back before engaging (0 = never)
         p.put("defendRadius",               28,    34,     36,    38);
-        p.put("pullWorkersToDefend",        0,     0,      0,     0);    // town bell: OFF - RON 1.5.1b duplicates villagers on call-to-arms, the AI must not exploit it
+        p.put("monsterDefence",             0,     0,      1,     1);    // wild and map monsters in the base count as a raid: the army defends against them
+        p.put("monsterBell",                0,     0,      1,     1);    // ...and when the army is not enough the town bell calls the villagers up
+        p.put("pullWorkersToDefend",        0,     0,      0,     0);    // town bell: OFF - RON 1.5.1b and 1.5.1c duplicate villagers on call-to-arms, the AI must not exploit it
         p.put("focusFire",                  0,     0,      1,     1);
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);

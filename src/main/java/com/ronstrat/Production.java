@@ -62,6 +62,8 @@ public final class Production {
         int workerTarget = turtle ? Math.min(p.i("workerTarget"), p.i("turtleWorkers")) : p.i("workerTarget");
         // even game: a human stops at 35-40 villagers around minute 9 and pours everything into the army
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered()) workerTarget = Math.min(workerTarget, 38);
+        // the rewritten economy: the user stops at about 34 and puts the food into the army
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && p.b("econV2") && p.b("econPhase2")) workerTarget = Math.min(workerTarget, p.i("econWorkers"));
         int workersNow = in.workers.size() + in.militia.size(); // militia are villagers on the bell
         for (BuildingPlacement b : in.own) {
             if (!b.isBuilt || !b.isCapitol || !(b instanceof ProductionPlacement pp)) continue;

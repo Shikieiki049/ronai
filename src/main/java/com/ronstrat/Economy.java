@@ -379,6 +379,19 @@ public final class Economy {
             want[2] = oreW;
             want[1] = Math.max(0, gatherers - foodW - oreW);
         }
+        // ...and after it (army phase): every field worked, two extra on food while the stock is low,
+        // a share of miners once a blacksmith can turn ore into armour, the rest on wood
+        else if (BuildOrder.phase2(bot) && bot.army.sinceThreat() > 1200 && !popMaxed(in)) {
+            int fields = in.built(bot.plan.farm);
+            int foodW = Math.min(gatherers, fields + (in.food < 200 ? 2 : 0));
+            boolean smith = in.built(com.solegendary.reignofnether.building.Buildings.BLACKSMITH) > 0;
+            // the blacksmith itself costs 300 ore: mine for it first, then for the armour
+            int oreW = smith ? (int) Math.round(gatherers * p.get("phase2Ore")) : (in.ore < 350 ? Math.max(2, (int) Math.round(gatherers * 0.12)) : 0);
+            if (in.ore > 600) oreW = 0;
+            want[0] = foodW;
+            want[2] = Math.min(oreW, Math.max(0, gatherers - foodW));
+            want[1] = Math.max(0, gatherers - foodW - want[2]);
+        }
         int[] have = { byJob.get(Job.FOOD).size(), byJob.get(Job.WOOD).size(), byJob.get(Job.ORE).size() };
 
         // pull workers off surplus jobs when the split drifts too far
