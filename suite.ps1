@@ -28,6 +28,8 @@ param(
     [switch]$Verbose2,
     [switch]$Full,
     [switch]$AltRon,
+    [switch]$Prod,
+    [int]$MaxStarting = 3,
     [switch]$ReportOnly
 )
 $ErrorActionPreference = 'Stop'
@@ -49,6 +51,8 @@ if (-not $ReportOnly) {
     if ($Extra) { $spArgs.Extra = $Extra }
     if ($Verbose2) { $spArgs.Verbose2 = $true }
     if ($AltRon) { $spArgs.AltRon = $true }
+    if ($Prod) { $spArgs.Prod = $true }
+    $spArgs.MaxStarting = $MaxStarting
     & (Join-Path $root 'selfplay.ps1') @spArgs *>&1 | Out-File -Encoding utf8 (Join-Path $root "tmp\$Label.log")
 }
 & py $tool report $Suite $out

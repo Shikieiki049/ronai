@@ -1,0 +1,43 @@
+{
+ "description": "tuner candidate tune7b",
+ "items": [
+  {
+   "name": "cand first",
+   "spec": "expert:tune7b vs expert readied nohandicap",
+   "us": 0,
+   "pair": "tune7b",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth"
+   ],
+   "seeds": [
+    601,
+    602
+   ],
+   "extra": "-Dronstrat.stopAt=900"
+  },
+  {
+   "name": "cand second",
+   "spec": "expert vs expert:tune7b readied nohandicap",
+   "us": 1,
+   "pair": "tune7b",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth"
+   ],
+   "seeds": [
+    601,
+    602
+   ],
+   "extra": "-Dronstrat.stopAt=900"
+  }
+ ]
+}

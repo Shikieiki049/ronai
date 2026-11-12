@@ -200,14 +200,19 @@ public final class Economy {
         if (bot.difficulty == Difficulty.EXPERT)
             for (LivingEntity e : in.neutrals)
                 if (e instanceof Mob m && m.getTarget() != null && m.getTarget().isAlive() && in.workers.contains(m.getTarget())) chasers.add(e);
+        // enemy soldiers among the woodcutters run them off too (a game against RON's brutal bot: two
+        // pillagers shot 10+ villagers at one wood line, each replaced by the next one sent there)
+        if (bot.difficulty == Difficulty.EXPERT && bot.params.b("fleeRaiders"))
+            for (LivingEntity e : in.visibleEnemies)
+                if (!UnitEval.isWorker(e) && e.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(in.home())) > 18 * 18) chasers.add(e);
         for (Mob w : in.workers) {
             if (TEST_HOLD.contains(w.getId())) continue; // autotest water drop: hands off these villagers
             Job recorded = jobs.getOrDefault(w.getId(), Job.IDLE);
             if (!chasers.isEmpty() && recorded != Job.MILITARY && !(((WorkerUnit) w).getGatherResourceGoal() != null && ((WorkerUnit) w).getGatherResourceGoal().isFarming())) {
                 boolean hunted = false;
-                for (LivingEntity c : chasers) if (c.distanceToSqr(w) < 12 * 12) { hunted = true; break; }
+                for (LivingEntity c : chasers) if (c.distanceToSqr(w) < (in.neutrals.contains(c) ? 12 * 12 : 16 * 16)) { hunted = true; break; }
                 if (hunted) {
-                    if (bot.now - fleeLog > 200) { fleeLog = bot.now; bot.log("monsters closing in at " + w.blockPosition().toShortString() + ": villagers run home"); }
+                    if (bot.now - fleeLog > 200) { fleeLog = bot.now; bot.log("monsters or raiders closing in at " + w.blockPosition().toShortString() + ": villagers run home"); }
                     Orders.move(bot.name, List.of(w), in.home());
                     idle.add(w); jobs.put(w.getId(), Job.IDLE);
                     assignedAt.put(w.getId(), bot.now);
@@ -378,6 +383,8 @@ public final class Economy {
             int hunt = animalsNearHome > 0 ? Math.min(maxHunters(in), Math.max(2, 6 - fields)) : (fields == 0 ? 2 : 0);
             int foodW = Math.min(gatherers, fields + hunt);
             int oreW = in.ore < p.get("openingOreFloor") && gatherers >= 12 ? 1 : 0;
+            // golem route: a share of the villagers on ore from the start (golems cost no food)
+            if (Strategy.golems(bot) && gatherers >= 6) oreW = Math.max(oreW, (int) Math.round(gatherers * p.get("golemOre")));
             want[0] = foodW;
             want[2] = oreW;
             want[1] = Math.max(0, gatherers - foodW - oreW);
@@ -402,6 +409,9 @@ public final class Economy {
             Building smith = com.solegendary.reignofnether.building.Buildings.BLACKSMITH;
             int needOre = in.total(smith) == 0 ? smith.cost.ore + 50 : 300;
             int minOre = in.ore < needOre ? (int) p.get("smithMiners") : 0;
+            // witches cost 90 ore each: a few miners while the witch hut stands and ore is short
+            if (Strategy.witches(bot) && in.built(com.solegendary.reignofnether.building.Buildings.WITCH_HUT) > 0 && in.ore < 250)
+                minOre = Math.max(minOre, (int) p.get("smithMiners"));
             if (want[2] < minOre && gatherers >= 16) {
                 int add = minOre - want[2];
                 int fromWood = Math.min(add, Math.max(0, want[1] - 4));
@@ -631,6 +641,9 @@ public final class Economy {
     }
 
     /** hunt hard early (free food), then the farms carry the economy */
+    /** the villagers that hunt (parameter fixedHunters): a player's advice - two for good, not whoever is free */
+    private final java.util.Set<Integer> hunterIds = new java.util.HashSet<>();
+
     private int maxHunters(Intel in) {
         int h = Math.max(2, bot.params.i("hunters"));
         return in.workers.size() >= 20 && bot.difficulty == Difficulty.EXPERT ? Math.min(2, h) : h;
@@ -666,21 +679,30 @@ public final class Economy {
         // 2. hunt near home
         int hunting = 0;
         for (Mob o : in.workers) if (((Unit) o).getTargetGoal().getTarget() instanceof Animal) hunting++;
+        boolean fixed = bot.difficulty == Difficulty.EXPERT && bot.params.b("fixedHunters");
+        if (fixed) {
+            hunterIds.removeIf(id -> in.workers.stream().noneMatch(o -> o.getId() == id));
+            if (!hunterIds.contains(w.getId()) && hunterIds.size() >= maxHunters(in)) hunting = Integer.MAX_VALUE;
+        }
         if (hunting < Math.max(1, maxHunters(in))) {
             BlockPos h = in.home();
             AABB box = new AABB(h).inflate(36, 12, 36);
+            // a hunter is sent only to game near where it stands (a woodcutter across the map was sent
+            // after a cow 70 blocks off, again and again)
+            double reach = bot.params.get("huntReach"), reach2 = reach * reach;
             // one hunter per animal (a player watched several villagers chase the same sheep)
             java.util.Set<Integer> chased = new java.util.HashSet<>();
             for (Mob o : in.workers)
                 if (o != w && ((Unit) o).getTargetGoal().getTarget() instanceof Animal t) chased.add(t.getId());
             Optional<Animal> prey = bot.level.getEntitiesOfClass(Animal.class, box,
                             a -> a.isAlive() && !(a instanceof Unit) && worthHunting(a) && !badPrey(a) && !in.dangerous(a.blockPosition(), 26)
-                                    && !chased.contains(a.getId()))
+                                    && !chased.contains(a.getId()) && a.distanceToSqr(w) < reach2)
                     .stream().min(Comparator.comparingDouble(a -> a.distanceToSqr(w)));
             if (prey.isPresent()) {
                 bot.log("hunt " + prey.get().getType().toShortString() + " d=" + (int) Math.sqrt(prey.get().distanceToSqr(w)) + " by #" + w.getId());
                 Orders.attack(bot.name, List.of(w), prey.get());
                 setJob(w, Job.FOOD);
+                if (fixed) hunterIds.add(w.getId());
                 return true;
             }
         }
@@ -722,7 +744,7 @@ public final class Economy {
             for (int range : new int[] { 14, 24, 40 }) {
                 Optional<BlockPos> bp = ResourceIndex.get(bot.level).findClosest(bot.level, d, range, type,
                         pos -> Math.abs(pos.getY() - d.getY()) <= 8 && RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos)
-                                && (type != ResourceName.WOOD || crowd(pos, w) < 2));
+                                && (type != ResourceName.WOOD || crowd(pos, w) < 2) && !in.dangerousPath(d, pos, 14));
                 if (bp.isPresent()) {
                     double dist = Math.sqrt(bp.get().distSqr(d));
                     double score = dist + 0.15 * Math.sqrt(bp.get().distSqr(w.blockPosition()));
@@ -759,11 +781,11 @@ public final class Economy {
         if (best == null) {
             // nothing near any drop site: look further out from the worker itself and ask for a stockpile
             Optional<BlockPos> far = ResourceIndex.get(bot.level).findClosest(bot.level, in.home(), 120, type,
-                    pos -> RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos));
+                    pos -> RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos) && !in.dangerousPath(in.home(), pos, 14));
             // nothing within reach of home: the expert looks across the map, on its own side only
             if (far.isEmpty() && bot.difficulty == Difficulty.EXPERT && bot.now >= farMissUntil[jobIndex(j)]) {
                 far = ResourceIndex.get(bot.level).findClosest(bot.level, in.home(), 280, type,
-                        pos -> safeFar(in, pos) && RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos));
+                        pos -> safeFar(in, pos) && RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos) && !in.dangerousPath(in.home(), pos, 14));
                 if (far.isEmpty()) farMissUntil[jobIndex(j)] = bot.now + 1200;
                 else if (bot.now - lastFarLog > 600) { lastFarLog = bot.now; bot.log("far " + type + " at " + far.get().toShortString() + " (d=" + (int) Math.sqrt(far.get().distSqr(in.home())) + ")"); }
             }
@@ -788,6 +810,11 @@ public final class Economy {
         BlockPos b = ps.get(0);
         for (BlockPos p : ps) if (p.distSqr(to) < b.distSqr(to)) b = p;
         return b;
+    }
+
+    /** no wood within reach, and the nearest wood has monsters on it: soldiers have to clear the way first */
+    public boolean woodBlocked() {
+        return bot.now < exhaustedUntil[1] && blockedByDanger != null && bot.now - blockedAt < 2400;
     }
 
     /** the woodcutters' mean walk from their tree to the nearest drop site, last measured */

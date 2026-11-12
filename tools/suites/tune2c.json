@@ -1,0 +1,43 @@
+{
+ "description": "tuner candidate tune2c",
+ "items": [
+  {
+   "name": "cand first",
+   "spec": "expert:tune2c vs expert readied nohandicap",
+   "us": 0,
+   "pair": "tune2c",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth"
+   ],
+   "seeds": [
+    601,
+    602
+   ],
+   "extra": "-Dronstrat.stopAt=900"
+  },
+  {
+   "name": "cand second",
+   "spec": "expert vs expert:tune2c readied nohandicap",
+   "us": 1,
+   "pair": "tune2c",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth"
+   ],
+   "seeds": [
+    601,
+    602
+   ],
+   "extra": "-Dronstrat.stopAt=900"
+  }
+ ]
+}

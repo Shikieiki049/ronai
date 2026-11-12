@@ -27,6 +27,11 @@ public final class Orders {
         UnitServerEvents.addActionItem(owner, a, targetId, ids, pos, building == null ? BlockPos.ZERO : building);
     }
 
+    /** a unit ability (potions, hero skills, autocast switches): the same command a player's click sends */
+    public static void ability(String owner, UnitAction a, int targetId, Collection<? extends Entity> units, BlockPos pos) {
+        act(owner, a, targetId, ids(units), pos, null);
+    }
+
     public static void move(String owner, Collection<? extends Entity> units, BlockPos pos) {
         act(owner, UnitAction.MOVE, -1, ids(units), pos, null);
     }

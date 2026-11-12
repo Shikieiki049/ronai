@@ -1,0 +1,51 @@
+{
+ "description": "rb against the current expert",
+ "items": [
+  {
+   "name": "rb first",
+   "spec": "expert:rb vs expert readied nohandicap",
+   "us": 0,
+   "pair": "rb",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    501,
+    502
+   ]
+  },
+  {
+   "name": "rb second",
+   "spec": "expert vs expert:rb readied nohandicap",
+   "us": 1,
+   "pair": "rb",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    501,
+    502
+   ]
+  }
+ ]
+}

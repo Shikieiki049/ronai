@@ -1,0 +1,51 @@
+{
+ "description": "new economy (profile sh: econV2 on) against the same build without it, 1v1, 8 maps, both seats",
+ "items": [
+  {
+   "name": "sh first",
+   "spec": "expert:sh vs expert readied nohandicap",
+   "us": 0,
+   "pair": "sh",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    501,
+    502
+   ]
+  },
+  {
+   "name": "sh second",
+   "spec": "expert vs expert:sh readied nohandicap",
+   "us": 1,
+   "pair": "sh",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    501,
+    502
+   ]
+  }
+ ]
+}

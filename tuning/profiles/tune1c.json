@@ -1,0 +1,15 @@
+{
+  "openingLead": 0.5,
+  "openingMinutes": 10,
+  "hunters": 4,
+  "houseBuffer": 10,
+  "maxParallelHouses": 3,
+  "buildersPerBuilding": 2,
+  "workerQueue": 2,
+  "econPhase2": 0,
+  "econWorkers": 37,
+  "phase2Ore": 0.15,
+  "barracksPerWorkers": 10,
+  "maxBarracks": 3,
+  "armyPerWorker": 0.541
+}

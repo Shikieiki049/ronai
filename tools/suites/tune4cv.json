@@ -1,0 +1,49 @@
+{
+ "description": "tuner candidate tune4cv",
+ "items": [
+  {
+   "name": "cand first",
+   "spec": "expert:tune4cv vs expert readied nohandicap",
+   "us": 0,
+   "pair": "tune4cv",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth"
+   ],
+   "seeds": [
+    603,
+    604,
+    605,
+    606,
+    607
+   ],
+   "extra": "-Dronstrat.stopAt=900"
+  },
+  {
+   "name": "cand second",
+   "spec": "expert vs expert:tune4cv readied nohandicap",
+   "us": 1,
+   "pair": "tune4cv",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth"
+   ],
+   "seeds": [
+    603,
+    604,
+    605,
+    606,
+    607
+   ],
+   "extra": "-Dronstrat.stopAt=900"
+  }
+ ]
+}

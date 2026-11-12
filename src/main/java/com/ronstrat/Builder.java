@@ -109,6 +109,7 @@ public final class Builder {
                 reqs.add(new Request(plan.stockpile, 110, home, 2, 20));
             }
             // drop site
+            if (bot.economy.stockpileWanted != null && p.b("stockpileCooldown") && recentlyCancelled(bot.economy.stockpileWanted)) bot.economy.stockpileWanted = null;
             if (bot.economy.stockpileWanted != null && in.total(plan.stockpile) - in.built(plan.stockpile) == 0
                     && workers >= 4 && !dropSiteNear(in, bot.economy.stockpileWanted, 12)) {
                 // villagers walking around with full packs they cannot drop anywhere: nothing else matters
@@ -166,6 +167,10 @@ public final class Builder {
             int styleAt = p.i("styleBarracksAtWorkers");
             boolean styleNow = styleAt > 0 && workers >= styleAt && barracks < (workers >= styleAt + 6 ? 2 : 1);
             if (styleNow) wantBarracks = Math.max(wantBarracks, barracks + 1);
+            // food banking up with every barracks at work (parameter floatBarracks): one more barracks turns it
+            // into army - mid-game armies stayed at a third to a half of a human's while food sat unspent
+            if (evenExpert && p.b("floatBarracks") && in.food >= 600 && in.wood >= 150 && barracks >= 1 && bot.production.allBarracksBusy(in))
+                wantBarracks = Math.max(wantBarracks, Math.min(p.i("maxBarracks") + 2, barracks + 1));
             // being pushed with two barracks up: new ones would go up in the enemy army's face - spend on units
             boolean pushed = evenExpert && bot.army.sinceThreat() < 1200;
             if (pushed && barracks >= 2) wantBarracks = barracks;
@@ -247,6 +252,26 @@ public final class Builder {
                 else if (bot.difficulty == Difficulty.EXPERT && workers >= 26 && in.wood >= 200 && in.ore >= 150)
                     reqs.add(new Request(bot.plan.market, 60, home, 12, 34));
             }
+            // golem route: the blacksmith as soon as its ore is in, then golems built by villagers
+            if (Strategy.golems(bot) && in.built(plan.capitol) > 0) {
+                if (in.total(com.solegendary.reignofnether.building.Buildings.BLACKSMITH) == 0 && in.ore >= com.solegendary.reignofnether.building.Buildings.BLACKSMITH.cost.ore && workers >= 8)
+                    reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.BLACKSMITH, 99, home, 12, 30));
+                boolean smithing = com.solegendary.reignofnether.research.ResearchServerEvents.playerHasResearch(bot.name, com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_GOLEM_SMITHING);
+                int building = in.total(com.solegendary.reignofnether.building.Buildings.IRON_GOLEM_BUILDING) - in.built(com.solegendary.reignofnether.building.Buildings.IRON_GOLEM_BUILDING);
+                if (smithing && building < p.i("golemSites") && in.ore >= com.solegendary.reignofnether.building.Buildings.IRON_GOLEM_BUILDING.cost.ore && in.popCap - in.pop >= 4)
+                    reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.IRON_GOLEM_BUILDING, 95, bot.army.forwardHome(in), 4, 16));
+            }
+            // witch hut early (a player's advice): witches are the villagers' only healing, and their
+            // harming potions hit hard - right after the first barracks, ahead of the blacksmith
+            if (Strategy.witches(bot) && !bot.outnumbered()
+                    && in.total(com.solegendary.reignofnether.building.Buildings.WITCH_HUT) == 0 && in.built(plan.barracks) >= 1
+                    && workers >= 18 && BuildOrder.minutes() >= p.get("witchFrom"))
+                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.WITCH_HUT, 91, home, 12, 30));
+            // early shrine (a player's advice): right after the first house - heroes cost nothing but time,
+            // so the sooner the shrine stands the more of the game they fight in
+            if (p.b("heroes") && p.b("shrineEarly") && in.total(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY) == 0
+                    && in.total(plan.house) >= 1 && workers >= 6)
+                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY, 99, home, 10, 30));
             // shrine of prosperity: cheap, and its heroes cost no resources at all
             if (p.b("heroes") && in.total(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY) == 0
                     && in.built(plan.barracks) > 0 && workers >= 16 && !evenLean) {
@@ -299,6 +324,14 @@ public final class Builder {
     }
 
     private long lastStockpileCancel = -100000;
+    /** stockpiles given up (stalled, monsters): the same spot is not tried again for three minutes
+     *  (one game: ten stockpiles placed, four cancelled, much of it at the same few spots) */
+    private final Map<BlockPos, Long> cancelledStockpiles = new HashMap<>();
+    private boolean recentlyCancelled(BlockPos p) {
+        cancelledStockpiles.values().removeIf(t -> bot.now - t > 3600);
+        for (BlockPos c : cancelledStockpiles.keySet()) if (c.distSqr(p) < 10 * 10) return true;
+        return false;
+    }
 
     private static boolean sharesInput(Building a, Building b) {
         return (a.cost.wood > 0 && b.cost.wood > 0) || (a.cost.ore > 0 && b.cost.ore > 0) || (a.cost.food > 0 && b.cost.food > 0);
@@ -346,7 +379,7 @@ public final class Builder {
                 siteProgress.remove(b.originPos);
                 badSpots.add(b.originPos);
                 bot.log("cancel " + name(b.getBuilding()) + " at " + b.originPos.toShortString() + ": monsters there");
-                if (b.getBuilding() == bot.plan.stockpile) lastStockpileCancel = bot.now;
+                if (b.getBuilding() == bot.plan.stockpile) { lastStockpileCancel = bot.now; cancelledStockpiles.put(b.originPos, bot.now); }
                 BuildingServerEvents.cancelBuilding(b, bot.name);
                 continue;
             }
@@ -360,7 +393,7 @@ public final class Builder {
             siteProgress.remove(b.originPos);
             badSpots.add(b.originPos);
             bot.log("cancel stalled " + name(b.getBuilding()) + " at " + b.originPos.toShortString());
-            if (b.getBuilding() == bot.plan.stockpile) lastStockpileCancel = bot.now;
+            if (b.getBuilding() == bot.plan.stockpile) { lastStockpileCancel = bot.now; cancelledStockpiles.put(b.originPos, bot.now); }
             BuildingServerEvents.cancelBuilding(b, bot.name);
         }
     }

@@ -81,6 +81,8 @@ public final class Army {
         return new BlockPos((int) (x / n), in.home().getY(), (int) (z / n));
     }
 
+    BlockPos forwardHome(Intel in) { return rally(in); }
+
     private BlockPos rally(Intel in) {
         BlockPos h = in.home();
         BlockPos toward = targetPos != null ? targetPos : enemyDirectionPoint(in);
@@ -129,6 +131,10 @@ public final class Army {
         if (!armyAheadLatch && bot.difficulty == Difficulty.EXPERT && BuildOrder.minutes() < p.get("openingMinutes") && enemyArmyAhead(in)) {
             armyAheadLatch = true;
             bot.log("enemy army ahead of ours: the opening is over, barracks now");
+        }
+        if (!armyAheadLatch && bot.difficulty == Difficulty.EXPERT && p.b("clearForWood") && BuildOrder.minutes() < p.get("openingMinutes") && bot.economy.woodBlocked()) {
+            armyAheadLatch = true;
+            bot.log("the next woods are behind monsters: the opening is over, soldiers to clear them");
         }
         if (probe != null && probe.finished(bot.now, null)) probe = null;
         if (mode != Mode.ATTACK && mode != Mode.DEFEND) teamPlan = null;
@@ -1115,7 +1121,12 @@ public final class Army {
             for (Mob u : razers) if (((Unit) u).isIdle() || bot.now - lastReissue > 200) idle.add(u);
             if (!idle.isEmpty()) {
                 // raze several buildings at once: split the idle units over the nearest few
-                List<BuildingPlacement> near = nearestEnemyBuildings(m, c, Math.max(1, Math.min(4, idle.size() / 3)));
+                // the enemy's army is gone (parameter siegeSpread): every building has to fall for the win
+                // (RON: defeat when no completed building is left), so many small groups at once - the
+                // scattered fields and houses were what ran games into the time limit
+                boolean siege = bot.difficulty == Difficulty.EXPERT && bot.params.b("siegeSpread") && localMil.isEmpty()
+                        && m.knownStrength(bot.now) < 1e-6;
+                List<BuildingPlacement> near = nearestEnemyBuildings(m, c, Math.max(1, Math.min(siege ? 8 : 4, idle.size() / (siege ? 2 : 3))));
                 for (int i = 0; i < near.size(); i++) {
                     List<Mob> group = new ArrayList<>();
                     for (int k = i; k < idle.size(); k += near.size()) group.add(idle.get(k));
@@ -1592,12 +1603,15 @@ public final class Army {
             // monsters sitting on the next woods / ore the economy needs (further out than the base)
             BlockPos rb = bot.economy.blockedByDanger;
             if (d == null && rb != null && bot.now - bot.economy.blockedAt < 2400) d = in.nearestDanger(rb, 30);
-            if (d == null || in.army.size() < (bot.outnumbered() ? 8 : bot.hazardDeaths >= 4 && d.distSqr(in.home()) < 50 * 50 ? 3 : 5) || waveTime || strongCamp(d)) return false;
+            if (d == null || waveTime || strongCamp(d)) return false;
+            if (in.army.size() < (bot.outnumbered() ? 8 : bot.hazardDeaths >= 4 && d.distSqr(in.home()) < 50 * 50 ? 3 : 5)
+                    && !(bot.params.b("clearForWood") && bot.economy.woodBlocked() && in.army.size() >= 3 && campOutmatched(in, d, 2.5))) return false;
             // even game: a far camp is not worth the army being away when the enemy's first attack comes
             // (minute 10-11 on Mir's: the army chased camps 70 blocks out, lost units to them, and the
             // hard AI's eight vindicators walked into an empty base)
+            boolean forWood = bot.params.b("clearForWood") && bot.economy.woodBlocked() && safeToBoom(in) && campOutmatched(in, d, 2.5);
             if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && d.distSqr(in.home()) > 40 * 40
-                    && (!safeToBoom(in) || in.army.size() < 8)) return false;
+                    && (!safeToBoom(in) || in.army.size() < 8) && !forWood) return false;
             Vec3 c = centroid(in.army);
             if (c.distanceToSqr(Vec3.atCenterOf(d)) < 8 * 8) { // nothing there any more
                 in.forgetDanger(d, 18);
@@ -1640,13 +1654,102 @@ public final class Army {
         return true;
     }
 
+    /** our army is this many times the monsters seen within 20 blocks of a spot */
+    private boolean campOutmatched(Intel in, BlockPos d, double k) {
+        List<LivingEntity> camp = new ArrayList<>();
+        Vec3 c = Vec3.atCenterOf(d);
+        for (LivingEntity n : in.neutrals) if (n.position().distanceToSqr(c) < 20 * 20) camp.add(n);
+        return UnitEval.strength(new ArrayList<>(in.army)) >= k * UnitEval.strength(camp);
+    }
+
+    /**
+     * Where an idle army waits (parameter rallyGuard): by the villagers working out in the field, on the
+     * enemy's side of them, rather than in the middle of the base. The woodcutters were raided and the
+     * resources out there taken while the army stood at home.
+     */
+    private BlockPos guardPoint(Intel in) {
+        BlockPos h = in.home();
+        double x = 0, z = 0;
+        int n = 0;
+        for (Mob w : in.workers) {
+            Economy.Job j = bot.economy.job(w);
+            if (j != Economy.Job.WOOD && j != Economy.Job.ORE) continue;
+            if (w.blockPosition().distSqr(h) < 20 * 20) continue;
+            x += w.getX(); z += w.getZ(); n++;
+        }
+        BlockPos toward = targetPos != null ? targetPos : enemyDirectionPoint(in);
+        double gx = h.getX(), gz = h.getZ();
+        if (n >= 3) { gx = x / n; gz = z / n; }
+        if (toward != null) {
+            double dx = toward.getX() - gx, dz = toward.getZ() - gz, len = Math.sqrt(dx * dx + dz * dz);
+            double step = n >= 3 ? 6 : 22;
+            if (len > step) { gx += dx / len * step; gz += dz / len * step; }
+        }
+        int ix = (int) Math.floor(gx), iz = (int) Math.floor(gz);
+        int y = bot.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, ix, iz);
+        BlockPos g = new BlockPos(ix, y, iz);
+        // not into water, not up a cliff: then the old spot by the town centre
+        if (!bot.level.getFluidState(g.below()).isEmpty() || Math.abs(y - h.getY()) > 12) return rally(in);
+        return g;
+    }
+
+    /** heroes (and their escort) off levelling on monster camps this think */
+    private final java.util.Set<Integer> creeping = new java.util.HashSet<>();
+    private long lastCreepOrder = -1000;
+
+    /**
+     * A player's advice: an idle hero goes out alone or with one soldier and levels up on the monsters
+     * around (parameter heroCreep). Only camps it clearly outmatches, within 80 blocks of home; a hurt
+     * hero comes home. The army's attack or a defence takes the hero back (gather() is not called then).
+     */
+    private void heroCreep(Intel in) {
+        creeping.clear();
+        if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("heroCreep")) return;
+        Vec3 h = Vec3.atCenterOf(in.home());
+        for (Mob m : in.army) {
+            if (!(m instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit hu)) continue;
+            // monsters give a hero experience only up to level 5 (RON's HeroExperienceOrb)
+            if (hu.getHeroLevel() >= 5) continue;
+            if (m.getHealth() < 0.45 * m.getMaxHealth()) {
+                if (m.position().distanceToSqr(h) > 20 * 20 && bot.now - lastCreepOrder > 60) Orders.move(bot.name, List.of(m), in.home());
+                creeping.add(m.getId());
+                continue;
+            }
+            Mob escort = null;
+            for (Mob o : in.army) {
+                if (o == m || o instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit || creeping.contains(o.getId())) continue;
+                if (escort == null || o.distanceToSqr(m) < escort.distanceToSqr(m)) escort = o;
+            }
+            List<Mob> party = new ArrayList<>();
+            party.add(m);
+            if (escort != null && escort.distanceToSqr(m) < 40 * 40) party.add(escort);
+            double mine = UnitEval.strength(party);
+            LivingEntity target = null;
+            for (LivingEntity n : in.neutrals) {
+                if (n.position().distanceToSqr(h) > 80 * 80 || strongCamp(n.blockPosition()) || hopelessCamps.contains(campKey(n))) continue;
+                List<LivingEntity> camp = new ArrayList<>();
+                for (LivingEntity o : in.neutrals) if (o.distanceToSqr(n) < 14 * 14) camp.add(o);
+                if (UnitEval.strength(camp) > 0.6 * mine) continue;
+                if (target == null || n.distanceToSqr(m) < target.distanceToSqr(m)) target = n;
+            }
+            if (target == null) continue;
+            for (Mob q : party) creeping.add(q.getId());
+            if (bot.now - lastCreepOrder > 60) {
+                lastCreepOrder = bot.now;
+                for (Mob q : party) Orders.attack(bot.name, List.of(q), target);
+                if (bot.verbose) bot.log("hero (level " + ((com.solegendary.reignofnether.unit.interfaces.HeroUnit) m).getHeroLevel() + ") levelling on " + target.getType().toShortString() + " at " + target.blockPosition().toShortString() + (party.size() > 1 ? " with an escort" : ""));
+            }
+        }
+    }
+
     private void gather(Intel in) {
         if (clearNeutrals(in)) return;
-        BlockPos r = rally(in);
+        heroCreep(in);
+        BlockPos r = bot.difficulty == Difficulty.EXPERT && bot.params.b("rallyGuard") ? guardPoint(in) : rally(in);
         java.util.Set<Integer> visiting = upgradeVisits;
         List<Mob> stray = new ArrayList<>();
         for (Mob u : in.army) {
-            if (visiting.contains(u.getId())) continue;
+            if (visiting.contains(u.getId()) || creeping.contains(u.getId())) continue;
             if (u.blockPosition().distSqr(r) > 10 * 10 && ((Unit) u).isIdle()) stray.add(u);
         }
         if (!stray.isEmpty()) Orders.move(bot.name, stray, r);

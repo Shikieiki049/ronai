@@ -20,6 +20,8 @@ public final class Bot implements Agent {
     public final BlockPos startPos;
     public final ServerLevel level;
     public final Intel intel = new Intel(this);
+    /** the opening route Strategy chose (-1: not yet) */
+    int chosenRoute = -1;
     public final Economy economy = new Economy(this);
     public final Builder builder = new Builder(this);
     public final Production production = new Production(this);
@@ -27,6 +29,7 @@ public final class Bot implements Agent {
     public final Trader trader = new Trader(this);
     public final Bridger bridger = new Bridger(this);
     final Upgrades upgrades = new Upgrades(this);
+    final Casters casters = new Casters(this);
     final Random random;
     public long now;
     private long nextThink, nextMicro;
@@ -139,6 +142,10 @@ public final class Bot implements Agent {
             if (UnitEval.isWorker(dead)) economy.evacuate(dead.blockPosition());
             else army.lostToCamp(dead.blockPosition());
         }
+        // a villager shot at its work spot by an enemy raid: that spot is avoided for a while (not at the
+        // town centre itself - that would stop every job at home)
+        else if (byUnit && UnitEval.isWorker(dead) && params.b("fleeRaiders") && dead.blockPosition().distSqr(intel.home()) > 25 * 25)
+            intel.markDanger(dead.blockPosition());
         String msg = "death " + net.minecraft.world.entity.EntityType.getKey(dead.getType()).getPath() + " at " + dead.blockPosition().toShortString()
                 + " cause=" + src.getMsgId() + " by=" + by;
         if (byUnit && killerOwner != null && !killerOwner.isEmpty() && !UnitEval.isWorker(dead)) army.lostInAttack(dead.blockPosition());
@@ -164,6 +171,7 @@ public final class Bot implements Agent {
             army.think(intel);
             trader.think(intel);
             upgrades.think(intel);
+            casters.think(intel);
             peakWorkers = Math.max(peakWorkers, intel.workers.size());
             peakArmy = Math.max(peakArmy, intel.army.size());
         }

@@ -80,3 +80,14 @@ tasks.register('srgToMcp') {
 }
 tasks.named('dumpServerCmd') { dependsOn 'srgToMcp' }
 tasks.matching { it.name in ['runServer', 'runClient'] }.configureEach { dependsOn 'srgToMcp' }
+
+// Self-play on a production Forge server (selfplay.ps1 -Prod): the mod plus the frozen older brains in one
+// jar, reobfuscated like the release jar. Not for players.
+tasks.register('testJar', Jar) {
+    archiveClassifier = 'selfplay'
+    from sourceSets.main.output
+    from sourceSets.baseline.output
+    manifest.from(jar.manifest)
+}
+reobf { testJar {} }
+tasks.named('testJar') { finalizedBy 'reobfTestJar' }

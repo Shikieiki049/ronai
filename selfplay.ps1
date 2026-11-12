@@ -1,4 +1,4 @@
-<#
+﻿<#
   Runs bot-vs-bot matches on headless dev servers, several in parallel, and appends one JSON line
   per match to the results file.
 
@@ -26,7 +26,12 @@ param(
     [int]$IdleMinutes = 10,
     # a command run after every finished game; exit code 10 = the result is decided, start no more games
     [string]$StopCheck = "",
-    [switch]$Verbose2
+    [switch]$Verbose2,
+    # -Prod: a production Forge server (prodserver/, tools/prodargs.py) with the reobfuscated self-play jar
+    # (build.ps1 testJar): starts in about a minute instead of two to six
+    [switch]$Prod,
+    # at most this many servers loading at once (they slow each other and the running games down)
+    [int]$MaxStarting = 3
 )
 Add-Type -Namespace RonStrat -Name Idle -MemberDefinition @'
 [StructLayout(LayoutKind.Sequential)] public struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }
@@ -71,6 +76,13 @@ Copy-Item -Recurse $srcClasses (Join-Path $snap 'classes')
 $baseClasses = Join-Path $root 'build\classes\java\baseline'
 if (-not $ClassesDir -and (Test-Path $baseClasses)) { Copy-Item -Recurse -Force (Join-Path $baseClasses '*') (Join-Path $snap 'classes') }
 Copy-Item -Recurse (Join-Path $root 'build\resources\main') (Join-Path $snap 'resources')
+if ($Prod) {
+    $prodJar = Join-Path $root 'build\libs\ron-strategist-1.0.0-selfplay.jar'
+    if (-not (Test-Path $prodJar)) { throw "self-play jar missing: run build.ps1 testJar" }
+    Copy-Item $prodJar (Join-Path $snap 'ronstrat-selfplay.jar')
+    $ronJar = if ($AltRon) { Join-Path $root 'libs\ronalt-1.5.0b2.jar' } else { Join-Path $root 'libs\reignofnether-1.5.1c.jar' }
+    $prodArgs = Get-Content (Join-Path $root 'prodserver\win_args_abs.txt') | Where-Object { $_.Trim() }
+}
 $modClasses = "ronstrat%%$snap\resources;ronstrat%%$snap\classes"
 $cmd.env.MOD_CLASSES = $modClasses
 $cmd.classpath = @($cmd.classpath | ForEach-Object {
@@ -93,9 +105,16 @@ function Start-Match([string]$spec, [int]$seed, [string]$Map, [string]$GameExtra
         Remove-Item -Force (Join-Path $dir 'world\session.lock') -ErrorAction SilentlyContinue
     }
     $lines = New-Object System.Collections.Generic.List[string]
-    foreach ($a in $cmd.jvmArgs) {
-        if ($a -like '-Dfile.encoding*') { continue }
-        $lines.Add('"' + ($a -replace '\\', '\\') + '"')
+    if ($Prod) {
+        $mods = Join-Path $dir 'mods'
+        New-Item -ItemType Directory -Force $mods | Out-Null
+        Copy-Item (Join-Path $snap 'ronstrat-selfplay.jar') $mods
+        Copy-Item $ronJar $mods
+    } else {
+        foreach ($a in $cmd.jvmArgs) {
+            if ($a -like '-Dfile.encoding*') { continue }
+            $lines.Add('"' + ($a -replace '\\', '\\') + '"')
+        }
     }
     $lines.Add('"-Dfile.encoding=UTF-8"')
     $lines.Add('-Xmx1800m')
@@ -118,10 +137,15 @@ function Start-Match([string]$spec, [int]$seed, [string]$Map, [string]$GameExtra
     if ($Extra) { foreach ($x in ($Extra -split " ")) { $lines.Add($x) } }
     if ($GameExtra) { foreach ($x in ($GameExtra -split " ")) { $lines.Add($x) } }
     if ($Map) { $lines.Add('"-Dronstrat.map=' + ((Split-Path $Map -Leaf) -replace '"', '') + '"') }
-    $lines.Add('-cp')
-    $lines.Add('"' + (($cmd.classpath -join ';') -replace '\\', '\\') + '"')
-    $lines.Add($cmd.main)
-    foreach ($a in $cmd.args) { $lines.Add('"' + $a + '"') }
+    if ($Prod) {
+        foreach ($a in $prodArgs) { $lines.Add($a) }
+        $lines.Add('nogui')
+    } else {
+        $lines.Add('-cp')
+        $lines.Add('"' + (($cmd.classpath -join ';') -replace '\\', '\\') + '"')
+        $lines.Add($cmd.main)
+        foreach ($a in $cmd.args) { $lines.Add('"' + $a + '"') }
+    }
     $argFile = Join-Path $dir 'java.args'
     [IO.File]::WriteAllLines($argFile, $lines)
     $psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -134,7 +158,7 @@ function Start-Match([string]$spec, [int]$seed, [string]$Map, [string]$GameExtra
     $psi.UseShellExecute = $false
     foreach ($p in $cmd.env.PSObject.Properties) { $psi.EnvironmentVariables[$p.Name] = [string]$p.Value }
     $proc = [System.Diagnostics.Process]::Start($psi)
-    return [pscustomobject]@{ Proc = $proc; Dir = $dir; Seed = $seed; Spec = $spec; Map = $Map; Extra = $GameExtra; Started = Get-Date }
+    return [pscustomobject]@{ Proc = $proc; Dir = $dir; Seed = $seed; Spec = $spec; Map = $Map; Extra = $GameExtra; Started = Get-Date; Ready = $false }
 }
 
 $queue = New-Object System.Collections.Queue
@@ -155,6 +179,16 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
         # other programs share this machine: only start a server when there is memory for it
         $freeCommitGB = (Get-CimInstance Win32_OperatingSystem).FreeVirtualMemory / 1MB
         if ($freeCommitGB -lt 3.0 -and $running.Count -gt 0) { break }
+        # staggered starts: servers still loading count against MaxStarting
+        $loading = 0
+        foreach ($r in $running) {
+            if (-not $r.Ready) {
+                $lg = Join-Path $r.Dir 'logs\latest.log'
+                if ((Test-Path $lg) -and (Select-String -Path $lg -Pattern 'Done \(' -Quiet -ErrorAction SilentlyContinue)) { $r.Ready = $true }
+                elseif (-not $r.Proc.HasExited) { $loading++ }
+            }
+        }
+        if ($MaxStarting -gt 0 -and $loading -ge $MaxStarting) { break }
         $q = $queue.Dequeue()
         $running += Start-Match $q.Spec $q.Seed $q.Map $q.Extra
         Write-Host "[$(Get-Date -Format HH:mm:ss)] started $($q.Spec) seed $($q.Seed) $(if ($q.Map) { Split-Path $q.Map -Leaf })"

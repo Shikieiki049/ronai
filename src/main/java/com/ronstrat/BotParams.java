@@ -125,6 +125,30 @@ public final class BotParams {
         p.put("useStockpiles",              0,     1,      1,     1);
         p.put("dropDistance",               30,    24,     20,    16);   // build a stockpile when gathering further than this
         p.put("woodDrop",                   0,     0,      0,     1);   // a stockpile where the woodcutters cut once their walk is long
+        p.put("witchEarly",                 0,     0,      0,     0);   // witch hut after the first barracks, witches witchShare of the army
+        p.put("witchFrom",                  7,     7,      7,     7);   // ...not before this minute
+        p.put("witchMin",                   2,     2,      2,     2);   // witches paid from the bank until this many
+        p.put("witchShare",                 0.18,  0.18,   0.18,  0.18);
+        p.put("witchMicro",                 0,     0,      0,     0);   // witches autocast harming potions, heal the worst-hurt soldier
+        p.put("heroSkills",                 0,     0,      0,     0);   // heroes learn their skills and use them in fights
+        p.put("floatBarracks",              0,     0,      0,     0);   // food 600+ with every barracks busy: one more (up to maxBarracks + 2)
+        p.put("siegeSpread",                0,     0,      0,     0);   // enemy army gone: up to 8 groups of 2+ raze at once
+        p.put("strategy",                   0,     0,      0,     0);   // 0 farms (A), 1 golems (B), 2 witches and tech (C), -1 chosen by Strategy
+        p.put("golemOre",                   0.45,  0.45,   0.45,  0.45); // golem route: share of the gatherers on ore
+        p.put("golemSites",                 2,     2,      2,     2);   // golem route: golems being built at once
+        p.put("golemOreBlocks",             60,    60,     60,    60);  // auto route: this much ore near home...
+        p.put("golemWoodBelow",             150,   150,    150,   150); // ...and little game or wood: golems
+        p.put("golemUntil",                 14,    14,     14,    14);  // golem route: minute it hands over to vindicators
+        p.put("fixedHunters",               0,     0,      0,     0);   // the same villagers hunt all game (at most "hunters")
+        p.put("stockpileCooldown",          0,     0,      0,     1);   // no new stockpile within 10 blocks of one cancelled in the last 3 min
+        p.put("heroCreep",                  0,     0,      0,     0);   // an idle hero (and one soldier) hunts weak monster camps for experience
+        p.put("shrineEarly",                0,     0,      0,     0);   // the hero shrine right after the first house
+        p.put("huntReach",                  999,   999,    999,   999); // a villager hunts only game this close to it
+        p.put("safePath",                   0,     0,      0,     1);   // no resource whose walk passes monsters or a death spot
+        p.put("fleeRaiders",                0,     0,      0,     1);   // villagers run from enemy soldiers too, and a raided work spot is avoided
+        p.put("clearForWood",               0,     0,      0,     1);   // woods behind monsters: soldiers clear them (the opening ends for it)
+        p.put("rallyGuard",                 0,     0,      0,     1);   // an idle army waits by the villagers out in the field, not at home
+        p.put("vilCap",                     99,    99,     99,    38);  // even expert: villagers stop here
         p.put("openingBreak",               0,     0,      0,     2);   // end the opening once a seen enemy army is this many soldiers ahead (0 = never)
         p.put("smithFrom",                  99,    99,     99,    11);   // even expert: blacksmith (and miners for it) from this minute
         p.put("smithMiners",                3,     3,      3,     3);

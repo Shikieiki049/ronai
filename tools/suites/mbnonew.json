@@ -1,0 +1,51 @@
+{
+ "description": "nonew against expert@base, 8 maps, both seats",
+ "items": [
+  {
+   "name": "nonew first",
+   "spec": "expert:nonew vs expert@base readied nohandicap",
+   "us": 0,
+   "pair": "nonew",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    501,
+    502
+   ]
+  },
+  {
+   "name": "nonew second",
+   "spec": "expert@base vs expert:nonew readied nohandicap",
+   "us": 1,
+   "pair": "nonew",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    501,
+    502
+   ]
+  }
+ ]
+}

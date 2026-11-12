@@ -61,7 +61,7 @@ public final class Production {
         boolean turtle = bot.outnumbered();
         int workerTarget = turtle ? Math.min(p.i("workerTarget"), p.i("turtleWorkers")) : p.i("workerTarget");
         // even game: a human stops at 35-40 villagers around minute 9 and pours everything into the army
-        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered()) workerTarget = Math.min(workerTarget, 38);
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered()) workerTarget = Math.min(workerTarget, p.i("vilCap"));
         // the rewritten economy: the user stops at about 34 and puts the food into the army
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && p.b("econV2") && p.b("econPhase2")) workerTarget = Math.min(workerTarget, p.i("econWorkers"));
         int workersNow = in.workers.size() + in.militia.size(); // militia are villagers on the bell
@@ -105,6 +105,20 @@ public final class Production {
             }
         }
 
+        // ---- golem route: golem smithing at the blacksmith, before anything else there
+        if (Strategy.golems(bot) && !ResearchServerEvents.playerHasResearch(bot.name, com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_GOLEM_SMITHING)
+                && !com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_GOLEM_SMITHING.itemIsBeingProduced(false, bot.name)) {
+            ResourceCost gc = cost(com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_GOLEM_SMITHING);
+            if (in.wood >= gc.wood && in.ore >= gc.ore)
+                for (BuildingPlacement b : in.own) {
+                    if (!b.isBuilt || b.getBuilding() != com.solegendary.reignofnether.building.Buildings.BLACKSMITH || !(b instanceof ProductionPlacement pp) || !pp.productionQueue.isEmpty()) continue;
+                    if (pp.startProductionItem(com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_GOLEM_SMITHING)) {
+                        w -= gc.wood; o -= gc.ore; in.wood -= gc.wood; in.ore -= gc.ore;
+                        bot.log("research Golem Smithing (golem route)");
+                    }
+                    break;
+                }
+        }
         // ---- research
         int level = p.i("researchLevel");
         for (FactionPlan.ResearchStep r : plan.research) {
@@ -127,6 +141,10 @@ public final class Production {
             // (the market upgrade too: buying with emeralds is the way out of a wood famine)
             boolean bags = (r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_RESOURCE_CAPACITY || r.item == plan.marketUpgrade)
                     && bot.difficulty == Difficulty.EXPERT && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore;
+            // healing potions: the reason to have witches at all (parameter witchEarly) - from the bank
+            boolean potions = r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HEALING_POTIONS
+                    && Strategy.witches(bot) && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore;
+            if (potions) bags = true;
             if (!bags && (f < c.food + margin || w < c.wood + margin || o < c.ore + margin / 2)) continue;
             for (BuildingPlacement b : in.own) {
                 if (!b.isBuilt || b.getBuilding() != r.at || !(b instanceof ProductionPlacement pp)) continue;
@@ -201,12 +219,18 @@ public final class Production {
             // unit they can afford right now instead of idling the building
             boolean flexible = bot.difficulty.ordinal() >= Difficulty.HARD.ordinal();
             for (FactionPlan.UnitOption u : plan.units) {
+                // the first witches are paid from the bank, ahead of buildings waiting for their wood
+                boolean firstWitches = u.role == FactionPlan.Role.SUPPORT && Strategy.witches(bot)
+                        && have.getOrDefault(FactionPlan.Role.SUPPORT, 0.0) < 3 * p.get("witchMin");
                 if (flexible) {
                     ResourceCost cu = cost(u.item);
-                    if (!pays(cu, f, wFor(u, in, w, o), o) || !room(in, u.item)) continue;
+                    boolean ok = firstWitches ? in.food >= cu.food && in.wood >= cu.wood && in.ore >= cu.ore : pays(cu, f, wFor(u, in, w, o), o);
+                    if (!ok || !room(in, u.item)) continue;
                 }
                 if (u.producer != b.getBuilding()) continue;
-                if (in.workers.size() < u.minWorkers) continue;
+                // witches early (parameter witchEarly): the only healing the villagers have
+                boolean earlyWitch = u.role == FactionPlan.Role.SUPPORT && Strategy.witches(bot);
+                if (in.workers.size() < (earlyWitch ? 16 : u.minWorkers)) continue;
                 boolean unlocked = true;
                 for (var req : u.requires) if (in.built(req) == 0) { unlocked = false; break; }
                 if (!unlocked) continue;
@@ -224,7 +248,9 @@ public final class Production {
             }
             if (best == null) { idleReason = "nothing affordable f=" + f + " w=" + w + " o=" + o + " pop=" + in.pop + "/" + in.popCap; continue; }
             ResourceCost c = cost(best.item);
-            if (!pays(c, f, wFor(best, in, w, o), o) || !room(in, best.item)) { idleReason = "cannot afford " + best.item.getItemName(); continue; }
+            boolean bankWitch = best.role == FactionPlan.Role.SUPPORT && Strategy.witches(bot)
+                    && have.getOrDefault(FactionPlan.Role.SUPPORT, 0.0) < 3 * p.get("witchMin") && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore;
+            if ((!bankWitch && !pays(c, f, wFor(best, in, w, o), o)) || !room(in, best.item)) { idleReason = "cannot afford " + best.item.getItemName(); continue; }
             if (pp.startProductionItem(best.item)) {
                 bot.log("train " + best.item.getItemName());
                 idleReason = "";
@@ -236,6 +262,17 @@ public final class Production {
                 if (c.food > 0) queuedFoodUnits++;
             }
         }
+    }
+
+    /** every finished barracks has something in its queue */
+    boolean allBarracksBusy(Intel in) {
+        int n = 0;
+        for (BuildingPlacement b : in.own) {
+            if (!b.isBuilt || b.getBuilding() != bot.plan.barracks || !(b instanceof ProductionPlacement pp)) continue;
+            n++;
+            if (pp.productionQueue.isEmpty()) return false;
+        }
+        return n > 0;
     }
 
     /** desired share of army population per role */
@@ -271,7 +308,14 @@ public final class Production {
         if (bot.difficulty == Difficulty.EXPERT && caster > 0 && in.built(com.solegendary.reignofnether.building.Buildings.ARCANE_TOWER) > 0)
             caster = Math.max(caster, 0.22);
         m.put(FactionPlan.Role.CASTER, caster);
-        m.put(FactionPlan.Role.SUPPORT, p.get("casterShare") > 0 ? 0.08 : 0);
+        // lingering harming potions do most against packed melee armies: more witches when the enemy fields them
+        double witchShare = p.get("witchShare");
+        if (Strategy.witches(bot) && k > 0) {
+            int em = 0, all = 0;
+            for (LivingEntity e : in.visibleEnemies) { if (UnitEval.isWorker(e)) continue; all++; if (!UnitEval.isRanged(e)) em++; }
+            if (all >= 6 && em >= 0.65 * all) witchShare *= 1.4;
+        }
+        m.put(FactionPlan.Role.SUPPORT, Strategy.witches(bot) ? witchShare : p.get("casterShare") > 0 ? 0.08 : 0);
         m.put(FactionPlan.Role.SIEGE, p.get("golemShare") > 0.15 ? 0.08 : 0);
         return m;
     }

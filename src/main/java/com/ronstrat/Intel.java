@@ -112,6 +112,27 @@ public final class Intel {
     }
 
     /** a remembered neutral monster within r of p: workers keep away from there */
+    /**
+     * The straight walk from a drop site to a resource passes a monster camp or a spot where villagers
+     * died (a game against RON's brutal bot: the woods near home ran out, the next ones lay behind a
+     * llama camp, and the villagers were sent one by one through it - each one died on the way).
+     */
+    public boolean dangerousPath(BlockPos from, BlockPos to, double r) {
+        if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("safePath")) return false;
+        double dx = to.getX() - from.getX(), dz = to.getZ() - from.getZ();
+        double len = Math.sqrt(dx * dx + dz * dz);
+        if (len < 16) return false;
+        int steps = (int) (len / 5);
+        for (int i = 1; i < steps; i++) {
+            double t = i / (double) steps;
+            BlockPos p = BlockPos.containing(from.getX() + dx * t, from.getY() + (to.getY() - from.getY()) * t, from.getZ() + dz * t);
+            double r2 = r * r;
+            for (BlockPos n : neutralPos.values()) if (n.distSqr(p) <= r2) return true;
+            for (BlockPos n : deathSpots.keySet()) if (n.distSqr(p) <= r2) return true;
+        }
+        return false;
+    }
+
     public boolean dangerous(BlockPos p, double r) {
         if (bot.difficulty != Difficulty.EXPERT) return false; // the lower tiers stay as naive as they were
         double r2 = r * r;
