@@ -262,6 +262,15 @@ public final class AutoTest {
         if (nextTickTime != null) {
             try { nextTickTime.setLong(server, Util.getMillis()); } catch (Exception ignored) { }
         }
+        if (ticks == 60 && System.getProperty("ronstrat.dumpCosts") != null) {
+            StringBuilder sb = new StringBuilder("COSTS");
+            for (var e : com.solegendary.reignofnether.resources.ResourceCost.ENTRIES.entrySet()) {
+                var c = e.getValue();
+                sb.append(System.lineSeparator()).append("COST ").append(e.getKey()).append(' ').append(c.food).append(' ').append(c.wood).append(' ').append(c.ore)
+                        .append(' ').append(c.ticks).append(' ').append(c.population);
+            }
+            RonStrategist.LOG.info(sb.toString());
+        }
         if (ticks == 50 && System.getProperty("ronstrat.dumpTerrain") != null) {
             // -Dronstrat.dumpTerrain=x1,z1,x2,z2: surface height and block per column (map study)
             String[] q = System.getProperty("ronstrat.dumpTerrain").split(",");

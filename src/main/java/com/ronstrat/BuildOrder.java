@@ -32,7 +32,7 @@ final class BuildOrder {
 
     static boolean active(Bot bot) {
         return bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && bot.params.b("econV2")
-                && minutes() < bot.params.get("openingMinutes");
+                && minutes() < bot.params.get("openingMinutes") && !bot.army.armyAheadLatch;
     }
 
     /** after the opening: the army phase (parameter econPhase2) - workers still by need, not by share */

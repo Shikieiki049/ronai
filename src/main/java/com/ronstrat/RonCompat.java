@@ -19,7 +19,7 @@ import java.lang.reflect.Method;
  * 1.5.0b-2, the build with RON's own computer players that self-play uses as a sparring partner).
  * Each looks the method up once and falls back to an equivalent when it is missing.
  */
-final class RonCompat {
+public final class RonCompat {
     private RonCompat() {}
 
     private static Method canGather, isAutoCasting, toggleAutoCast, hasSameEnchant, syncAll;
@@ -109,5 +109,18 @@ final class RonCompat {
         look();
         if (syncAll == null) return;
         try { syncAll.invoke(null); } catch (ReflectiveOperationException ignored) {}
+    }
+
+    private static java.lang.reflect.Field hiddenField;
+    private static boolean hiddenLooked;
+
+    /** StartPos.hidden exists from RON 1.5.1 on; on 1.5.0 no start position is hidden */
+    public static boolean hidden(com.solegendary.reignofnether.startpos.StartPos sp) {
+        if (!hiddenLooked) {
+            hiddenLooked = true;
+            try { hiddenField = sp.getClass().getField("hidden"); } catch (Throwable t) { hiddenField = null; }
+        }
+        if (hiddenField == null) return false;
+        try { return hiddenField.getBoolean(sp); } catch (Throwable t) { return false; }
     }
 }

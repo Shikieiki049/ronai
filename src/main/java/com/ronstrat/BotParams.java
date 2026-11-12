@@ -125,6 +125,7 @@ public final class BotParams {
         p.put("useStockpiles",              0,     1,      1,     1);
         p.put("dropDistance",               30,    24,     20,    16);   // build a stockpile when gathering further than this
         p.put("woodDrop",                   0,     0,      0,     1);   // a stockpile where the woodcutters cut once their walk is long
+        p.put("openingBreak",               0,     0,      0,     0);   // end the opening once a seen enemy army is this many soldiers ahead (0 = never)
         p.put("smithFrom",                  99,    99,     99,    11);   // even expert: blacksmith (and miners for it) from this minute
         p.put("smithMiners",                3,     3,      3,     3);
         p.put("woodDropFrom",               8,     8,      8,     8);   // ...from this minute on

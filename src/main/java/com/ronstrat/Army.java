@@ -121,8 +121,15 @@ public final class Army {
         return true;
     }
 
+    /** the opening ended early: an enemy army was seen well ahead of ours */
+    boolean armyAheadLatch;
+
     void think(Intel in) {
         BotParams p = bot.params;
+        if (!armyAheadLatch && bot.difficulty == Difficulty.EXPERT && BuildOrder.minutes() < p.get("openingMinutes") && enemyArmyAhead(in)) {
+            armyAheadLatch = true;
+            bot.log("enemy army ahead of ours: the opening is over, barracks now");
+        }
         if (probe != null && probe.finished(bot.now, null)) probe = null;
         if (mode != Mode.ATTACK && mode != Mode.DEFEND) teamPlan = null;
         double defendR = p.get("defendRadius");
@@ -701,6 +708,19 @@ public final class Army {
         double s = 0;
         for (Mob a : in.army) s += UnitEval.power(a);
         return s;
+    }
+
+    /**
+     * The opening is for an even game: once an enemy army stands bigger than ours by more than
+     * openingBreak soldiers (seen - the expert sees the map), the opening is over and the barracks
+     * come now (RON's brutal bot rushed at 9-11 minutes into 0-2 soldiers and won).
+     */
+    boolean enemyArmyAhead(Intel in) {
+        double gap = bot.params.get("openingBreak");
+        if (gap <= 0) return false;
+        double e = 0;
+        for (Intel.EnemyMemory m : in.enemies.values()) if (m.alive) e = Math.max(e, m.knownStrength(bot.now));
+        return Math.sqrt(e) > Math.sqrt(UnitEval.strength(new ArrayList<>(in.army))) + gap * defaultUnitPower;
     }
 
     /** even game: the army we have would hold what can come - safe to keep booming */

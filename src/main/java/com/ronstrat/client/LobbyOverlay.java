@@ -66,7 +66,7 @@ public final class LobbyOverlay {
                     int readyX = x + width - 22 - 2;
                     int factionStartX = readyX - 20 - 70;
                     int cx = factionStartX - 6 - 4 - CHIP_W, cy = tileY + 3;
-                    boolean free = sp.playerName.isBlank() && !sp.hidden;
+                    boolean free = sp.playerName.isBlank() && !com.ronstrat.RonCompat.hidden(sp);
                     if ((free || aiAt(sp) != null) && cy >= contentTop && cy + CHIP_H <= viewBottom)
                         out.add(new Chip(sp, cx, cy));
                     y += 26;

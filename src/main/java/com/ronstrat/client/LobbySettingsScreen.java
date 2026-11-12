@@ -90,7 +90,7 @@ public final class LobbySettingsScreen extends Screen {
     private static String seatName(StartPos sp) {
         Difficulty d = LobbyAi.clientSeats.get(sp.pos);
         if (d != null) return "电脑（" + d.zh + "）";
-        if (sp.hidden) return "?";
+        if (com.ronstrat.RonCompat.hidden(sp)) return "?";
         if (sp.playerName == null || sp.playerName.isBlank()) return "（空位）";
         return sp.playerName;
     }
