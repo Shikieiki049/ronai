@@ -410,7 +410,10 @@ public final class Economy {
             int needOre = in.total(smith) == 0 ? smith.cost.ore + 50 : 300;
             int minOre = in.ore < needOre ? (int) p.get("smithMiners") : 0;
             // witches cost 90 ore each: a few miners while the witch hut stands and ore is short
-            if (Strategy.witches(bot) && in.built(com.solegendary.reignofnether.building.Buildings.WITCH_HUT) > 0 && in.ore < 250)
+            // ...and healing potions cost 350 ore of their own: mine on to 400 until they are researched
+            boolean potionsDone = com.solegendary.reignofnether.research.ResearchServerEvents.playerHasResearch(bot.name,
+                    com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HEALING_POTIONS);
+            if (Strategy.witches(bot) && in.built(com.solegendary.reignofnether.building.Buildings.WITCH_HUT) > 0 && in.ore < (potionsDone ? 250 : 400))
                 minOre = Math.max(minOre, (int) p.get("smithMiners"));
             if (want[2] < minOre && gatherers >= 16) {
                 int add = minOre - want[2];

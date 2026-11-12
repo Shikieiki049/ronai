@@ -732,6 +732,9 @@ public final class Army {
         }
         // a real rush, not a mirror's barracks coming up a little sooner: a small lead (2 soldiers) broke
         // the opening in even games and cost about 9% there
+        // a rush shows early: soldiers before minute 8 (an even opening has none yet - the first barracks
+        // comes at 7) - against RON's brutal bot: 4 at 6:00, 9 at 10:00, and the town fell at 12
+        if (BuildOrder.minutes() < bot.params.get("rushMinute") && soldiers >= bot.params.get("rushSoldiers") && soldiers > in.army.size()) return true;
         if (soldiers < bot.params.get("openingBreakMin")) return false;
         return Math.sqrt(e) > Math.sqrt(UnitEval.strength(new ArrayList<>(in.army))) + gap * defaultUnitPower;
     }

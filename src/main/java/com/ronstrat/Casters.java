@@ -67,10 +67,15 @@ final class Casters {
         // harming potions by themselves on whatever comes in range
         if (autocastSet.add(w.getId())) {
             Ability harm = ability(u, UnitAction.THROW_LINGERING_HARMING_POTION);
-            if (harm != null && !harm.isAutocasting(u)) Orders.ability(bot.name, UnitAction.THROW_LINGERING_HARMING_POTION_AUTOCAST_ENABLE, -1, List.of(w), w.blockPosition());
+            if (harm != null && !harm.isAutocasting(u)) {
+                Orders.ability(bot.name, UnitAction.THROW_LINGERING_HARMING_POTION_AUTOCAST_ENABLE, -1, List.of(w), w.blockPosition());
+                if (bot.verbose) bot.log("witch #" + w.getId() + ": harming potions on autocast");
+            }
         }
         // a healing potion for the worst-hurt soldier within throwing range
         Ability heal = ability(u, UnitAction.THROW_HEALING_POTION);
+        if (!com.solegendary.reignofnether.research.ResearchServerEvents.playerHasResearch(bot.name,
+                com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HEALING_POTIONS)) return;
         if (heal == null || !heal.isOffCooldown(u) || bot.now - lastCast.getOrDefault(w.getId(), -1000L) < 60) return;
         LivingEntity worst = null;
         double r = Math.max(6, heal.range);
@@ -82,6 +87,7 @@ final class Casters {
         if (worst != null) {
             Orders.ability(bot.name, UnitAction.THROW_HEALING_POTION, worst.getId(), List.of(w), worst.blockPosition());
             lastCast.put(w.getId(), bot.now);
+            if (bot.verbose) bot.log("witch heals " + worst.getType().toShortString() + " at " + (int) (100 * worst.getHealth() / worst.getMaxHealth()) + "% health");
         }
     }
 

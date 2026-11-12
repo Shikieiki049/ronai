@@ -149,8 +149,12 @@ public final class Production {
             for (BuildingPlacement b : in.own) {
                 if (!b.isBuilt || b.getBuilding() != r.at || !(b instanceof ProductionPlacement pp)) continue;
                 if (perBuilding && b.getUpgradeLevel() > 0) continue;
-                if (!pp.productionQueue.isEmpty()) continue;
-                if (pp.startProductionItem(r.item)) {
+                // healing potions queue behind the witch in training (the hut never stood empty, so the
+                // research never came and the healing throws did nothing)
+                if (!pp.productionQueue.isEmpty() && !(potions && pp.productionQueue.size() < 2)) continue;
+                boolean started = pp.startProductionItem(r.item);
+                if (!started && potions && bot.verbose) bot.log("potions research refused at the witch hut (queue " + pp.productionQueue.size() + ")");
+                if (started) {
                     f -= c.food; w -= c.wood; o -= c.ore;
                     in.food -= c.food; in.wood -= c.wood; in.ore -= c.ore;
                     bot.log("research " + r.item.getItemName());
@@ -218,7 +222,9 @@ public final class Production {
             // the lower tiers stubbornly wait for their preferred unit; the upper tiers build the best
             // unit they can afford right now instead of idling the building
             boolean flexible = bot.difficulty.ordinal() >= Difficulty.HARD.ordinal();
+            boolean saving = savingForPotions(in);
             for (FactionPlan.UnitOption u : plan.units) {
+                if (saving && cost(u.item).wood > 0) continue;
                 // the first witches are paid from the bank, ahead of buildings waiting for their wood
                 boolean firstWitches = u.role == FactionPlan.Role.SUPPORT && Strategy.witches(bot)
                         && have.getOrDefault(FactionPlan.Role.SUPPORT, 0.0) < 3 * p.get("witchMin");
@@ -262,6 +268,31 @@ public final class Production {
                 if (c.food > 0) queuedFoodUnits++;
             }
         }
+    }
+
+    private long savingSince = -1;
+
+    /**
+     * Healing potions (350 wood + 350 ore) never came: the wood was always spent first. With witches out,
+     * the ore in and the research not yet done, wood is saved for it for up to 90 seconds.
+     */
+    boolean savingForPotions(Intel in) {
+        check:
+        {
+            if (bot.difficulty != Difficulty.EXPERT || !Strategy.witches(bot) || bot.army.sinceThreat() < 600) break check;
+            var item = com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HEALING_POTIONS;
+            if (ResearchServerEvents.playerHasResearch(bot.name, item) || item.itemIsBeingProduced(false, bot.name)) break check;
+            if (in.built(com.solegendary.reignofnether.building.Buildings.WITCH_HUT) == 0 || in.ore < 350) break check;
+            int witches = 0;
+            for (var a : in.army) if (a.getClass().getSimpleName().equals("WitchUnit")) witches++;
+            if (witches < 1) break check;
+            if (savingSince < 0) savingSince = bot.now;
+            if (bot.now - savingSince < 1800) return true;
+            if (bot.now - savingSince > 4800) savingSince = -1; // a new try a while later
+            return false;
+        }
+        savingSince = -1;
+        return false;
     }
 
     /** every finished barracks has something in its queue */

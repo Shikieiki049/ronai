@@ -133,6 +133,7 @@ public final class BotParams {
         p.put("heroSkills",                 0,     0,      0,     1);   // heroes learn their skills and use them in fights
         p.put("floatBarracks",              0,     0,      0,     0);   // food 600+ with every barracks busy: one more (up to maxBarracks + 2)
         p.put("siegeSpread",                0,     0,      0,     1);   // enemy army gone: up to 8 groups of 2+ raze at once
+        p.put("adaptWitches",               0,     0,      0,     0);   // from minute 12: an enemy army 65%+ melee brings the witches in
         p.put("strategy",                   0,     0,      0,     -1);   // 0 farms (A), 1 golems (B), 2 witches and tech (C), -1 chosen by Strategy
         p.put("golemOre",                   0.45,  0.45,   0.45,  0.45); // golem route: share of the gatherers on ore
         p.put("golemSites",                 2,     2,      2,     2);   // golem route: golems being built at once
@@ -149,6 +150,8 @@ public final class BotParams {
         p.put("clearForWood",               0,     0,      0,     1);   // woods behind monsters: soldiers clear them (the opening ends for it)
         p.put("rallyGuard",                 0,     0,      0,     1);   // an idle army waits by the villagers out in the field, not at home
         p.put("vilCap",                     99,    99,     99,    38);  // even expert: villagers stop here
+        p.put("rushMinute",                 0,     0,      0,     8);   // before this minute...
+        p.put("rushSoldiers",               99,    99,     99,    99);   // ...this many enemy soldiers (more than ours) end the opening
         p.put("openingBreakMin",            5,     5,      5,     5);   // ...and the enemy has at least this many soldiers
         p.put("openingBreak",               0,     0,      0,     4);   // end the opening once a seen enemy army is this many soldiers ahead (0 = never)
         p.put("smithFrom",                  99,    99,     99,    11);   // even expert: blacksmith (and miners for it) from this minute

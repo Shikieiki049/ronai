@@ -308,6 +308,8 @@ public final class Builder {
                 continue;
             }
             if (reserved != null && sharesInput(reserved.building, b)) continue;
+            // saving 350 wood for healing potions: only urgent buildings meanwhile
+            if (r.priority < 100 && b.cost.wood > 0 && bot.production.savingForPotions(in)) continue;
             if (bot.now - lastPlaced < 10) break;
             if (place(in, r)) {
                 lastPlaced = bot.now;

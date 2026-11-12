@@ -22,6 +22,9 @@ public final class Bot implements Agent {
     public final Intel intel = new Intel(this);
     /** the opening route Strategy chose (-1: not yet) */
     int chosenRoute = -1;
+    /** the enemy fields mostly melee: witches were brought in (Strategy, parameter adaptWitches) */
+    boolean adaptedWitches;
+    long meleeCheckedAt = -1000;
     public final Economy economy = new Economy(this);
     public final Builder builder = new Builder(this);
     public final Production production = new Production(this);

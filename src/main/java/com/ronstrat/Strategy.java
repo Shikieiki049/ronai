@@ -36,7 +36,29 @@ final class Strategy {
     }
 
     static boolean witches(Bot bot) {
-        return bot.difficulty == Difficulty.EXPERT && (bot.params.b("witchEarly") || (even(bot) && route(bot) == WITCHES));
+        return bot.difficulty == Difficulty.EXPERT && (bot.params.b("witchEarly") || (even(bot) && route(bot) == WITCHES) || meleeHeavyFoe(bot));
+    }
+
+    /**
+     * In-game switch (parameter adaptWitches): from minute 12, an enemy army of 8+ soldiers that is mostly
+     * melee brings the witches in - lingering harming potions hit packed melee hardest. Once seen, it stays.
+     */
+    private static boolean meleeHeavyFoe(Bot bot) {
+        if (!bot.params.b("adaptWitches") || BuildOrder.minutes() < 12) return false;
+        if (bot.adaptedWitches) return true;
+        if (bot.now - bot.meleeCheckedAt < 200) return false;
+        bot.meleeCheckedAt = bot.now;
+        int melee = 0, all = 0;
+        for (net.minecraft.world.entity.LivingEntity e : bot.intel.visibleEnemies) {
+            if (UnitEval.isWorker(e)) continue;
+            all++;
+            if (!UnitEval.isRanged(e)) melee++;
+        }
+        if (all >= 8 && melee >= 0.65 * all) {
+            bot.adaptedWitches = true;
+            bot.log("enemy army " + melee + "/" + all + " melee: witches join the army");
+        }
+        return bot.adaptedWitches;
     }
 
     /** once, when the town centre stands: the route table first, then what lies around home */
