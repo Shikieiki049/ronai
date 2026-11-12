@@ -282,6 +282,7 @@ public final class Builder {
                 if (bot.economy.stockpileWanted != null && b == plan.stockpile) bot.economy.stockpileWanted = null;
             } else {
                 lastFail.put(b, bot.now);
+                bot.placeFails++;
                 bot.log("no spot for " + name(b) + " near " + r.anchor.toShortString() + " r" + r.rMin + "-" + r.rMax);
             }
             break;

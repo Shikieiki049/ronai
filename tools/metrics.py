@@ -13,6 +13,15 @@ import argparse, json, pathlib, statistics, sys
 # the user's own 1v1 timings, for the rows that have one
 HUMAN = {'farms 3:00': '3', 'farms 4:30': '6', 'farms 6:30': '10', 'farms 9:00': '14',
          'first Barracks': '4:00-9:00', 'army 15:00': '17-32', 'army 20:00': '30-60'}
+# the median of the user's own games (tools/human_curve.py) for the minute-by-minute rows
+try:
+    _hc = json.loads((pathlib.Path(__file__).parent / 'human_curve.json').read_text(encoding='utf-8'))['median']
+    for _m in (3, 5, 7, 9, 12):
+        if str(_m) in _hc:
+            HUMAN[f'fields at {_m}:00'] = str(_hc[str(_m)]['farms'])
+            HUMAN[f'barracks at {_m}:00'] = str(_hc[str(_m)]['barracks'])
+except (OSError, ValueError, KeyError):
+    pass
 
 
 def label(bot):
@@ -86,11 +95,30 @@ def collect(files, only, mapname):
                     for k in ('lowFood', 'lowWood', 'lowOre', 'highFood', 'highWood', 'highOre'):
                         c.add(row(k.replace('low', 'under 50 ').replace('high', 'over 800 '), 'pct'), m[k])
                     c.add(row('town centre idle', 'pct'), m['tcIdle'])
+                    if 'tcIdleFood' in m:
+                        c.add(row('  idle: no food', 'pct'), m['tcIdleFood'])
+                        c.add(row('  idle: housed out', 'pct'), m['tcIdlePop'])
+                        c.add(row('  idle: could train', 'pct'), m['tcIdleFree'])
+                        c.add(row('placement failures', 'num'), m.get('placeFails', 0))
+                    cols_ = m.get('seriesColumns', '').split(',')
+                    if 'woodWorkers' in cols_:
+                        iw, ig = cols_.index('woodWorkers'), cols_.index('gotWood')
+                        for lo, hi in ((60, 300), (300, 600)):
+                            seg = [x for x in s if lo <= x[0] <= hi]
+                            if len(seg) >= 2:
+                                ww = sum(x[iw] for x in seg) / len(seg)
+                                if ww > 0:
+                                    c.add(row(f'wood/woodcutter/min {lo // 60}-{hi // 60}', 'num'),
+                                          (seg[-1][ig] - seg[0][ig]) / ww / ((seg[-1][0] - seg[0][0]) / 60))
                     c.add(row('idle villagers', 'pct'), m['idleWorkers'])
                     for n in (20, 30, 38):
                         c.add(row(f'{n} villagers', 'time'), m['reached'].get(f'workers{n}'))
                     for sec in (180, 270, 390, 540):
                         c.add(row(f'farms {mmss(sec)}', 'num'), at(s, sec, 6))
+                    for _m in (3, 5, 7, 9, 12):
+                        c.add(row(f'fields at {_m}:00', 'num'), at(s, _m * 60, 6))
+                    for _m in (7, 9, 12):
+                        c.add(row(f'barracks at {_m}:00', 'num'), at(s, _m * 60, 7))
                     for sec in (300, 600, 900):
                         c.add(row(f'villagers {mmss(sec)}', 'num'), at(s, sec, 1))
                     c.add(row('first Barracks', 'time'), m['firstBuilt'].get('Barracks'))

@@ -488,8 +488,8 @@ public final class Economy {
         int n = in.workers.size();
         double food, ore;
         // early game is all about food: every villager costs food and the start gives almost none
-        if (n < 8) { food = 0.5; ore = 0.0; }
-        else if (n < 14) { food = 0.45; ore = 0.05; }
+        if (n < 8) { food = p.get("openFood"); ore = 0.0; }
+        else if (n < 14) { food = p.get("openFood2"); ore = 0.05; }
         else { food = p.get("farmWorkersShare"); ore = p.get("oreShare"); }
         // even game: the army is vindicators (160 food) and pillagers (food + wood) - no ore at all. A human
         // mines none and puts the workers on fields; ore is only for the odd upgrade
@@ -535,6 +535,16 @@ public final class Economy {
         food /= sum; wood /= sum; ore /= sum;
         food = Math.max(0.2, Math.min(0.7, food));
         ore = ore <= 0 ? 0 : Math.max(0.02, Math.min(0.4, ore));
+        // even opening: food comes from one farmer per field plus a few hunters - more hands on food than
+        // that only stand around, while every field waits for 150 wood. Cap food at the fields there
+        // are (and one for the next), the rest cut wood; banked ore with nothing to buy stops the miners.
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && p.b("foodCapToFarms")
+                && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks < p.get("foodCapMinutes") * 1200 && n >= 6) {
+            int hunt = animalsNearHome > 0 ? maxHunters(in) : 0;
+            double cap = (in.built(bot.plan.farm) + hunt + 1.0) / n;
+            if (food > cap) food = Math.max(0.15, cap);
+            if (in.ore >= 250) ore = 0;
+        }
         return new double[] { food, Math.max(0.1, 1 - food - ore), ore };
     }
 

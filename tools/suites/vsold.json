@@ -1,0 +1,47 @@
+{
+ "description": "current expert against build204 frozen WITH full map vision (b204s), fog on: strategy only, no information edge",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert vs expert@b204s readied nohandicap fog",
+   "us": 0,
+   "pair": "old",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "b204 first",
+   "spec": "expert@b204s vs expert readied nohandicap fog",
+   "us": 1,
+   "pair": "old",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}

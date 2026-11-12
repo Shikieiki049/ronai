@@ -86,6 +86,9 @@ public final class Bot implements Agent {
         return out;
     }
 
+    /** a building that found no place to stand (Builder) - a map analysis measure */
+    int placeFails;
+
     @Override public String name() { return name; }
     @Override public Difficulty difficulty() { return difficulty; }
     @Override public BlockPos startPos() { return startPos; }
@@ -108,6 +111,7 @@ public final class Bot implements Agent {
             case "army": return intel.army.size();
             case "workers": return intel.workers.size();
             case "deaths": return deaths;
+            case "placeFails": return placeFails;
             default: return 0;
         }
     }

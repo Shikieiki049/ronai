@@ -126,6 +126,10 @@ public final class BotParams {
         p.put("dropDistance",               30,    24,     20,    16);   // build a stockpile when gathering further than this
         p.put("rebalanceSlack",             4,     3,      2,     1);    // how far worker split may drift before reassigning
         p.put("farmWorkersShare",           0.45,  0.45,   0.42,  0.40); // food share of workers in mid game
+        p.put("foodCapToFarms",             0,     0,      0,     0);    // even opening: food workers capped at fields + hunters + 1, rest on wood
+        p.put("foodCapMinutes",             0,     0,      0,     12);
+        p.put("openFood",                   0.5,   0.5,    0.5,   0.5);  // food share of the first 8 villagers (the rest on wood)
+        p.put("openFood2",                  0.45,  0.45,   0.45,  0.45); // ...of villagers 8-13
         p.put("oreFromMinute",              5,     5,      5,     5);    // even game: no early miners before this minute (golem / upgrade ore after it)
         p.put("earlyOreFloor",              9999,  9999,   9999,  9999); // ...while ore is at least this (9999 = rule off)
         p.put("oreShare",                   0.15,  0.15,   0.15,  0.15);

@@ -1,0 +1,3081 @@
+{
+ "player": "_Shikieiki_",
+ "games": 13,
+ "median": {
+  "1": {
+   "farms": 0,
+   "houses": 1,
+   "barracks": 0,
+   "stockpiles": 0,
+   "games": 13
+  },
+  "2": {
+   "farms": 0,
+   "houses": 1,
+   "barracks": 0,
+   "stockpiles": 0,
+   "games": 13
+  },
+  "3": {
+   "farms": 2,
+   "houses": 2,
+   "barracks": 0,
+   "stockpiles": 0,
+   "games": 13
+  },
+  "4": {
+   "farms": 4,
+   "houses": 2,
+   "barracks": 0,
+   "stockpiles": 0,
+   "games": 13
+  },
+  "5": {
+   "farms": 7,
+   "houses": 3,
+   "barracks": 0,
+   "stockpiles": 1,
+   "games": 13
+  },
+  "6": {
+   "farms": 9,
+   "houses": 3,
+   "barracks": 0,
+   "stockpiles": 1,
+   "games": 13
+  },
+  "7": {
+   "farms": 10,
+   "houses": 4,
+   "barracks": 1,
+   "stockpiles": 1,
+   "games": 13
+  },
+  "8": {
+   "farms": 11,
+   "houses": 6,
+   "barracks": 1,
+   "stockpiles": 1,
+   "games": 13
+  },
+  "9": {
+   "farms": 12,
+   "houses": 7,
+   "barracks": 1,
+   "stockpiles": 2,
+   "games": 13
+  },
+  "10": {
+   "farms": 13,
+   "houses": 7,
+   "barracks": 2,
+   "stockpiles": 2,
+   "games": 13
+  },
+  "11": {
+   "farms": 14,
+   "houses": 8,
+   "barracks": 2,
+   "stockpiles": 2,
+   "games": 13
+  },
+  "12": {
+   "farms": 15,
+   "houses": 9,
+   "barracks": 3,
+   "stockpiles": 2,
+   "games": 13
+  },
+  "13": {
+   "farms": 16,
+   "houses": 11,
+   "barracks": 4,
+   "stockpiles": 2,
+   "games": 13
+  },
+  "14": {
+   "farms": 16,
+   "houses": 12,
+   "barracks": 4,
+   "stockpiles": 2,
+   "games": 13
+  },
+  "15": {
+   "farms": 16,
+   "houses": 14,
+   "barracks": 4,
+   "stockpiles": 3,
+   "games": 13
+  },
+  "16": {
+   "farms": 16,
+   "houses": 14,
+   "barracks": 4,
+   "stockpiles": 3,
+   "games": 13
+  },
+  "17": {
+   "farms": 17,
+   "houses": 14,
+   "barracks": 4,
+   "stockpiles": 3,
+   "games": 13
+  },
+  "18": {
+   "farms": 17,
+   "houses": 14,
+   "barracks": 5,
+   "stockpiles": 3,
+   "games": 13
+  },
+  "19": {
+   "farms": 17.0,
+   "houses": 14.0,
+   "barracks": 4.5,
+   "stockpiles": 4.0,
+   "games": 12
+  },
+  "20": {
+   "farms": 17.0,
+   "houses": 14.0,
+   "barracks": 4.5,
+   "stockpiles": 4.0,
+   "games": 12
+  }
+ },
+ "each": [
+  {
+   "start": 798450,
+   "length": 1546,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      425,
+      240,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      375,
+      277,
+      50
+     ]
+    },
+    "3": {
+     "farms": 3,
+     "houses": 3,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      125,
+      420,
+      50
+     ]
+    },
+    "4": {
+     "farms": 4,
+     "houses": 4,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      256,
+      661,
+      50
+     ]
+    },
+    "5": {
+     "farms": 6,
+     "houses": 5,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      286,
+      539,
+      50
+     ]
+    },
+    "6": {
+     "farms": 7,
+     "houses": 6,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      341,
+      390,
+      50
+     ]
+    },
+    "7": {
+     "farms": 9,
+     "houses": 6,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      1070,
+      276,
+      50
+     ]
+    },
+    "8": {
+     "farms": 10,
+     "houses": 6,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      1601,
+      746,
+      50
+     ]
+    },
+    "9": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 0,
+     "stockpiles": 2,
+     "stock": [
+      2001,
+      635,
+      50
+     ]
+    },
+    "10": {
+     "farms": 13,
+     "houses": 10,
+     "barracks": 1,
+     "stockpiles": 2,
+     "stock": [
+      2139,
+      731,
+      420
+     ]
+    },
+    "11": {
+     "farms": 16,
+     "houses": 12,
+     "barracks": 2,
+     "stockpiles": 2,
+     "stock": [
+      2713,
+      552,
+      710
+     ]
+    },
+    "12": {
+     "farms": 16,
+     "houses": 13,
+     "barracks": 3,
+     "stockpiles": 2,
+     "stock": [
+      3183,
+      606,
+      1050
+     ]
+    },
+    "13": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 3,
+     "stockpiles": 2,
+     "stock": [
+      3957,
+      1168,
+      1220
+     ]
+    },
+    "14": {
+     "farms": 16,
+     "houses": 15,
+     "barracks": 3,
+     "stockpiles": 2,
+     "stock": [
+      4056,
+      1688,
+      1610
+     ]
+    },
+    "15": {
+     "farms": 16,
+     "houses": 15,
+     "barracks": 3,
+     "stockpiles": 3,
+     "stock": [
+      4351,
+      1857,
+      1960
+     ]
+    },
+    "16": {
+     "farms": 16,
+     "houses": 15,
+     "barracks": 3,
+     "stockpiles": 3,
+     "stock": [
+      4986,
+      2460,
+      2170
+     ]
+    },
+    "17": {
+     "farms": 16,
+     "houses": 15,
+     "barracks": 3,
+     "stockpiles": 3,
+     "stock": [
+      5289,
+      2884,
+      2320
+     ]
+    },
+    "18": {
+     "farms": 16,
+     "houses": 15,
+     "barracks": 3,
+     "stockpiles": 3,
+     "stock": [
+      6642,
+      3581,
+      2520
+     ]
+    },
+    "19": {
+     "farms": 16,
+     "houses": 15,
+     "barracks": 3,
+     "stockpiles": 4,
+     "stock": [
+      7256,
+      4241,
+      2875
+     ]
+    },
+    "20": {
+     "farms": 16,
+     "houses": 15,
+     "barracks": 3,
+     "stockpiles": 4,
+     "stock": [
+      7458,
+      3649,
+      1440
+     ]
+    }
+   }
+  },
+  {
+   "start": 803819,
+   "length": 2541,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      450,
+      315,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      400,
+      393,
+      50
+     ]
+    },
+    "3": {
+     "farms": 3,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      610,
+      396,
+      50
+     ]
+    },
+    "4": {
+     "farms": 5,
+     "houses": 3,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      264,
+      402,
+      50
+     ]
+    },
+    "5": {
+     "farms": 7,
+     "houses": 4,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      502,
+      806,
+      50
+     ]
+    },
+    "6": {
+     "farms": 10,
+     "houses": 4,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      640,
+      831,
+      50
+     ]
+    },
+    "7": {
+     "farms": 12,
+     "houses": 4,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      552,
+      606,
+      540
+     ]
+    },
+    "8": {
+     "farms": 12,
+     "houses": 5,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      811,
+      555,
+      1150
+     ]
+    },
+    "9": {
+     "farms": 15,
+     "houses": 6,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      1234,
+      675,
+      1410
+     ]
+    },
+    "10": {
+     "farms": 18,
+     "houses": 7,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      1451,
+      861,
+      1410
+     ]
+    },
+    "11": {
+     "farms": 18,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 1,
+     "stock": [
+      1710,
+      846,
+      1570
+     ]
+    },
+    "12": {
+     "farms": 19,
+     "houses": 8,
+     "barracks": 3,
+     "stockpiles": 2,
+     "stock": [
+      2007,
+      1224,
+      1650
+     ]
+    },
+    "13": {
+     "farms": 19,
+     "houses": 9,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      2771,
+      2092,
+      1910
+     ]
+    },
+    "14": {
+     "farms": 19,
+     "houses": 11,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      3200,
+      1930,
+      1820
+     ]
+    },
+    "15": {
+     "farms": 19,
+     "houses": 11,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      3738,
+      2169,
+      1810
+     ]
+    },
+    "16": {
+     "farms": 19,
+     "houses": 11,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      4077,
+      2911,
+      1940
+     ]
+    },
+    "17": {
+     "farms": 19,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      4366,
+      3690,
+      1940
+     ]
+    },
+    "18": {
+     "farms": 19,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      4897,
+      3791,
+      1500
+     ]
+    },
+    "19": {
+     "farms": 19,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 4,
+     "stock": [
+      5542,
+      4220,
+      1580
+     ]
+    },
+    "20": {
+     "farms": 19,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 5,
+     "stock": [
+      6212,
+      4694,
+      1910
+     ]
+    }
+   }
+  },
+  {
+   "start": 806369,
+   "length": 3360,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      775,
+      426,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      500,
+      407,
+      50
+     ]
+    },
+    "3": {
+     "farms": 1,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 2,
+     "stock": [
+      200,
+      446,
+      50
+     ]
+    },
+    "4": {
+     "farms": 5,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 2,
+     "stock": [
+      150,
+      589,
+      100
+     ]
+    },
+    "5": {
+     "farms": 8,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 2,
+     "stock": [
+      206,
+      737,
+      150
+     ]
+    },
+    "6": {
+     "farms": 11,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 2,
+     "stock": [
+      190,
+      658,
+      250
+     ]
+    },
+    "7": {
+     "farms": 13,
+     "houses": 4,
+     "barracks": 0,
+     "stockpiles": 3,
+     "stock": [
+      496,
+      456,
+      300
+     ]
+    },
+    "8": {
+     "farms": 14,
+     "houses": 6,
+     "barracks": 1,
+     "stockpiles": 3,
+     "stock": [
+      1406,
+      678,
+      400
+     ]
+    },
+    "9": {
+     "farms": 15,
+     "houses": 9,
+     "barracks": 2,
+     "stockpiles": 3,
+     "stock": [
+      1842,
+      664,
+      500
+     ]
+    },
+    "10": {
+     "farms": 16,
+     "houses": 10,
+     "barracks": 3,
+     "stockpiles": 4,
+     "stock": [
+      1358,
+      678,
+      550
+     ]
+    },
+    "11": {
+     "farms": 17,
+     "houses": 11,
+     "barracks": 3,
+     "stockpiles": 4,
+     "stock": [
+      2119,
+      661,
+      1190
+     ]
+    },
+    "12": {
+     "farms": 18,
+     "houses": 13,
+     "barracks": 3,
+     "stockpiles": 5,
+     "stock": [
+      2061,
+      1147,
+      2000
+     ]
+    },
+    "13": {
+     "farms": 18,
+     "houses": 14,
+     "barracks": 3,
+     "stockpiles": 5,
+     "stock": [
+      2349,
+      1541,
+      2685
+     ]
+    },
+    "14": {
+     "farms": 18,
+     "houses": 15,
+     "barracks": 4,
+     "stockpiles": 5,
+     "stock": [
+      2170,
+      1657,
+      3095
+     ]
+    },
+    "15": {
+     "farms": 18,
+     "houses": 16,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      2232,
+      2368,
+      3505
+     ]
+    },
+    "16": {
+     "farms": 18,
+     "houses": 16,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      2749,
+      2185,
+      3540
+     ]
+    },
+    "17": {
+     "farms": 18,
+     "houses": 16,
+     "barracks": 6,
+     "stockpiles": 7,
+     "stock": [
+      3947,
+      2856,
+      3350
+     ]
+    },
+    "18": {
+     "farms": 18,
+     "houses": 16,
+     "barracks": 6,
+     "stockpiles": 7,
+     "stock": [
+      5333,
+      4211,
+      3410
+     ]
+    },
+    "19": {
+     "farms": 18,
+     "houses": 16,
+     "barracks": 6,
+     "stockpiles": 7,
+     "stock": [
+      4661,
+      3897,
+      3450
+     ]
+    },
+    "20": {
+     "farms": 18,
+     "houses": 16,
+     "barracks": 6,
+     "stockpiles": 7,
+     "stock": [
+      4661,
+      3897,
+      3450
+     ]
+    }
+   }
+  },
+  {
+   "start": 810359,
+   "length": 1128,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      625,
+      320,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      275,
+      360,
+      50
+     ]
+    },
+    "3": {
+     "farms": 1,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 2,
+     "stock": [
+      79,
+      539,
+      50
+     ]
+    },
+    "4": {
+     "farms": 3,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 2,
+     "stock": [
+      329,
+      569,
+      50
+     ]
+    },
+    "5": {
+     "farms": 7,
+     "houses": 2,
+     "barracks": 1,
+     "stockpiles": 2,
+     "stock": [
+      650,
+      670,
+      50
+     ]
+    },
+    "6": {
+     "farms": 9,
+     "houses": 3,
+     "barracks": 1,
+     "stockpiles": 2,
+     "stock": [
+      991,
+      749,
+      50
+     ]
+    },
+    "7": {
+     "farms": 10,
+     "houses": 5,
+     "barracks": 1,
+     "stockpiles": 2,
+     "stock": [
+      1219,
+      891,
+      50
+     ]
+    },
+    "8": {
+     "farms": 11,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 2,
+     "stock": [
+      1190,
+      886,
+      50
+     ]
+    },
+    "9": {
+     "farms": 12,
+     "houses": 10,
+     "barracks": 3,
+     "stockpiles": 3,
+     "stock": [
+      1585,
+      1096,
+      50
+     ]
+    },
+    "10": {
+     "farms": 12,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      1591,
+      1523,
+      50
+     ]
+    },
+    "11": {
+     "farms": 14,
+     "houses": 14,
+     "barracks": 5,
+     "stockpiles": 4,
+     "stock": [
+      1893,
+      1855,
+      50
+     ]
+    },
+    "12": {
+     "farms": 14,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      2033,
+      1836,
+      50
+     ]
+    },
+    "13": {
+     "farms": 17,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      1987,
+      1972,
+      50
+     ]
+    },
+    "14": {
+     "farms": 17,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      2245,
+      2401,
+      50
+     ]
+    },
+    "15": {
+     "farms": 17,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      2177,
+      2548,
+      50
+     ]
+    },
+    "16": {
+     "farms": 17,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      3288,
+      2751,
+      50
+     ]
+    },
+    "17": {
+     "farms": 17,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      4866,
+      2869,
+      100
+     ]
+    },
+    "18": {
+     "farms": 17,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      5008,
+      2312,
+      50
+     ]
+    },
+    "19": {
+     "farms": 17,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      5008,
+      2312,
+      50
+     ]
+    },
+    "20": {
+     "farms": 17,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 5
+    }
+   }
+  },
+  {
+   "start": 815549,
+   "length": 1482,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      600,
+      455,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      375,
+      105,
+      50
+     ]
+    },
+    "3": {
+     "farms": 3,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      175,
+      390,
+      50
+     ]
+    },
+    "4": {
+     "farms": 4,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      177,
+      484,
+      50
+     ]
+    },
+    "5": {
+     "farms": 7,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      390,
+      633,
+      50
+     ]
+    },
+    "6": {
+     "farms": 9,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      377,
+      377,
+      50
+     ]
+    },
+    "7": {
+     "farms": 12,
+     "houses": 3,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      791,
+      427,
+      50
+     ]
+    },
+    "8": {
+     "farms": 13,
+     "houses": 6,
+     "barracks": 0,
+     "stockpiles": 2,
+     "stock": [
+      1589,
+      601,
+      50
+     ]
+    },
+    "9": {
+     "farms": 13,
+     "houses": 8,
+     "barracks": 2,
+     "stockpiles": 2,
+     "stock": [
+      1915,
+      606,
+      50
+     ]
+    },
+    "10": {
+     "farms": 16,
+     "houses": 8,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      2061,
+      685,
+      50
+     ]
+    },
+    "11": {
+     "farms": 21,
+     "houses": 8,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      1219,
+      657,
+      50
+     ]
+    },
+    "12": {
+     "farms": 22,
+     "houses": 9,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      2360,
+      893,
+      50
+     ]
+    },
+    "13": {
+     "farms": 24,
+     "houses": 11,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      2133,
+      1381,
+      50
+     ]
+    },
+    "14": {
+     "farms": 24,
+     "houses": 12,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      2225,
+      572,
+      50
+     ]
+    },
+    "15": {
+     "farms": 26,
+     "houses": 15,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      3299,
+      1329,
+      125
+     ]
+    },
+    "16": {
+     "farms": 26,
+     "houses": 15,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      2934,
+      1890,
+      50
+     ]
+    },
+    "17": {
+     "farms": 26,
+     "houses": 15,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      4140,
+      2190,
+      300
+     ]
+    },
+    "18": {
+     "farms": 26,
+     "houses": 15,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      5165,
+      2108,
+      550
+     ]
+    },
+    "19": {
+     "farms": 26,
+     "houses": 15,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      6203,
+      2525,
+      50
+     ]
+    },
+    "20": {
+     "farms": 26,
+     "houses": 15,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      7895,
+      3192,
+      50
+     ]
+    }
+   }
+  },
+  {
+   "start": 878847,
+   "length": 1238,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      554,
+      500,
+      50
+     ]
+    },
+    "2": {
+     "farms": 1,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      204,
+      294,
+      50
+     ]
+    },
+    "3": {
+     "farms": 5,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      290,
+      316,
+      50
+     ]
+    },
+    "4": {
+     "farms": 7,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      406,
+      556,
+      50
+     ]
+    },
+    "5": {
+     "farms": 8,
+     "houses": 3,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      688,
+      356,
+      50
+     ]
+    },
+    "6": {
+     "farms": 10,
+     "houses": 4,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      703,
+      212,
+      50
+     ]
+    },
+    "7": {
+     "farms": 11,
+     "houses": 4,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      1125,
+      539,
+      50
+     ]
+    },
+    "8": {
+     "farms": 12,
+     "houses": 4,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      1652,
+      359,
+      50
+     ]
+    },
+    "9": {
+     "farms": 13,
+     "houses": 6,
+     "barracks": 2,
+     "stockpiles": 2,
+     "stock": [
+      1932,
+      657,
+      50
+     ]
+    },
+    "10": {
+     "farms": 13,
+     "houses": 9,
+     "barracks": 3,
+     "stockpiles": 2,
+     "stock": [
+      1593,
+      958,
+      50
+     ]
+    },
+    "11": {
+     "farms": 15,
+     "houses": 11,
+     "barracks": 3,
+     "stockpiles": 2,
+     "stock": [
+      2057,
+      1287,
+      550
+     ]
+    },
+    "12": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 3,
+     "stockpiles": 2,
+     "stock": [
+      3223,
+      1636,
+      50
+     ]
+    },
+    "13": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 3,
+     "stockpiles": 2,
+     "stock": [
+      2637,
+      2103,
+      50
+     ]
+    },
+    "14": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 3,
+     "stockpiles": 2,
+     "stock": [
+      3087,
+      2338,
+      50
+     ]
+    },
+    "15": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      3438,
+      2883,
+      50
+     ]
+    },
+    "16": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      3226,
+      3814,
+      50
+     ]
+    },
+    "17": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      2909,
+      4443,
+      50
+     ]
+    },
+    "18": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      3643,
+      4908,
+      160
+     ]
+    },
+    "19": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      5272,
+      5224,
+      220
+     ]
+    },
+    "20": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      4428,
+      4546,
+      170
+     ]
+    }
+   }
+  },
+  {
+   "start": 895784,
+   "length": 2272,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      870,
+      470,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      660,
+      420,
+      50
+     ]
+    },
+    "3": {
+     "farms": 1,
+     "houses": 2,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      575,
+      475,
+      50
+     ]
+    },
+    "4": {
+     "farms": 4,
+     "houses": 2,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      658,
+      758,
+      50
+     ]
+    },
+    "5": {
+     "farms": 5,
+     "houses": 2,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      482,
+      1546,
+      50
+     ]
+    },
+    "6": {
+     "farms": 8,
+     "houses": 2,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      624,
+      1421,
+      50
+     ]
+    },
+    "7": {
+     "farms": 8,
+     "houses": 3,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      836,
+      914,
+      50
+     ]
+    },
+    "8": {
+     "farms": 10,
+     "houses": 7,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      1024,
+      751,
+      50
+     ]
+    },
+    "9": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 1,
+     "stock": [
+      1893,
+      1242,
+      50
+     ]
+    },
+    "10": {
+     "farms": 13,
+     "houses": 8,
+     "barracks": 3,
+     "stockpiles": 1,
+     "stock": [
+      1766,
+      1447,
+      50
+     ]
+    },
+    "11": {
+     "farms": 13,
+     "houses": 10,
+     "barracks": 4,
+     "stockpiles": 1,
+     "stock": [
+      1469,
+      1187,
+      50
+     ]
+    },
+    "12": {
+     "farms": 13,
+     "houses": 10,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      1651,
+      1183,
+      50
+     ]
+    },
+    "13": {
+     "farms": 13,
+     "houses": 10,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      1177,
+      1189,
+      300
+     ]
+    },
+    "14": {
+     "farms": 13,
+     "houses": 10,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      1184,
+      955,
+      300
+     ]
+    },
+    "15": {
+     "farms": 14,
+     "houses": 10,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      1857,
+      883,
+      290
+     ]
+    },
+    "16": {
+     "farms": 16,
+     "houses": 10,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      1811,
+      1018,
+      50
+     ]
+    },
+    "17": {
+     "farms": 18,
+     "houses": 10,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      1984,
+      1201,
+      300
+     ]
+    },
+    "18": {
+     "farms": 20,
+     "houses": 10,
+     "barracks": 5,
+     "stockpiles": 2,
+     "stock": [
+      1062,
+      1265,
+      50
+     ]
+    },
+    "19": {
+     "farms": 22,
+     "houses": 10,
+     "barracks": 5,
+     "stockpiles": 2,
+     "stock": [
+      1702,
+      1456,
+      310
+     ]
+    },
+    "20": {
+     "farms": 22,
+     "houses": 10,
+     "barracks": 5,
+     "stockpiles": 2,
+     "stock": [
+      1095,
+      1316,
+      520
+     ]
+    }
+   }
+  },
+  {
+   "start": 899882,
+   "length": 1520,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      475,
+      195,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      595,
+      360,
+      50
+     ]
+    },
+    "3": {
+     "farms": 2,
+     "houses": 3,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      425,
+      432,
+      50
+     ]
+    },
+    "4": {
+     "farms": 6,
+     "houses": 3,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      543,
+      539,
+      50
+     ]
+    },
+    "5": {
+     "farms": 8,
+     "houses": 3,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      493,
+      475,
+      50
+     ]
+    },
+    "6": {
+     "farms": 10,
+     "houses": 5,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      305,
+      665,
+      50
+     ]
+    },
+    "7": {
+     "farms": 11,
+     "houses": 5,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      590,
+      643,
+      50
+     ]
+    },
+    "8": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      1158,
+      510,
+      50
+     ]
+    },
+    "9": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      1317,
+      663,
+      50
+     ]
+    },
+    "10": {
+     "farms": 13,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 2,
+     "stock": [
+      1328,
+      1276,
+      50
+     ]
+    },
+    "11": {
+     "farms": 14,
+     "houses": 7,
+     "barracks": 3,
+     "stockpiles": 3,
+     "stock": [
+      1282,
+      1752,
+      50
+     ]
+    },
+    "12": {
+     "farms": 17,
+     "houses": 9,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      1593,
+      1395,
+      50
+     ]
+    },
+    "13": {
+     "farms": 18,
+     "houses": 11,
+     "barracks": 5,
+     "stockpiles": 3,
+     "stock": [
+      1491,
+      1248,
+      50
+     ]
+    },
+    "14": {
+     "farms": 18,
+     "houses": 13,
+     "barracks": 6,
+     "stockpiles": 3,
+     "stock": [
+      2371,
+      2318,
+      50
+     ]
+    },
+    "15": {
+     "farms": 18,
+     "houses": 15,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      2571,
+      2629,
+      50
+     ]
+    },
+    "16": {
+     "farms": 18,
+     "houses": 15,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      2275,
+      2284,
+      50
+     ]
+    },
+    "17": {
+     "farms": 18,
+     "houses": 15,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      2495,
+      3440,
+      50
+     ]
+    },
+    "18": {
+     "farms": 18,
+     "houses": 15,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      3250,
+      4016,
+      50
+     ]
+    },
+    "19": {
+     "farms": 18,
+     "houses": 15,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      4395,
+      4456,
+      50
+     ]
+    },
+    "20": {
+     "farms": 18,
+     "houses": 15,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      5263,
+      5171,
+      50
+     ]
+    }
+   }
+  },
+  {
+   "start": 908679,
+   "length": 3471,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      1020,
+      670,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      1265,
+      270,
+      50
+     ]
+    },
+    "3": {
+     "farms": 0,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      1235,
+      430,
+      50
+     ]
+    },
+    "4": {
+     "farms": 0,
+     "houses": 4,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      1555,
+      596,
+      50
+     ]
+    },
+    "5": {
+     "farms": 3,
+     "houses": 4,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      990,
+      733,
+      50
+     ]
+    },
+    "6": {
+     "farms": 6,
+     "houses": 5,
+     "barracks": 0,
+     "stockpiles": 2,
+     "stock": [
+      1448,
+      595,
+      50
+     ]
+    },
+    "7": {
+     "farms": 9,
+     "houses": 5,
+     "barracks": 1,
+     "stockpiles": 3,
+     "stock": [
+      1137,
+      707,
+      50
+     ]
+    },
+    "8": {
+     "farms": 12,
+     "houses": 5,
+     "barracks": 1,
+     "stockpiles": 3,
+     "stock": [
+      1660,
+      1142,
+      50
+     ]
+    },
+    "9": {
+     "farms": 12,
+     "houses": 5,
+     "barracks": 1,
+     "stockpiles": 4,
+     "stock": [
+      2170,
+      1072,
+      700
+     ]
+    },
+    "10": {
+     "farms": 14,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 4,
+     "stock": [
+      1937,
+      1572,
+      1025
+     ]
+    },
+    "11": {
+     "farms": 15,
+     "houses": 8,
+     "barracks": 2,
+     "stockpiles": 5,
+     "stock": [
+      2779,
+      1779,
+      1675
+     ]
+    },
+    "12": {
+     "farms": 15,
+     "houses": 8,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      2506,
+      1926,
+      2130
+     ]
+    },
+    "13": {
+     "farms": 15,
+     "houses": 11,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      3291,
+      2500,
+      3085
+     ]
+    },
+    "14": {
+     "farms": 15,
+     "houses": 11,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      2434,
+      2666,
+      3595
+     ]
+    },
+    "15": {
+     "farms": 17,
+     "houses": 11,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      2473,
+      2228,
+      3170
+     ]
+    },
+    "16": {
+     "farms": 20,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 5,
+     "stock": [
+      2814,
+      2340,
+      3875
+     ]
+    },
+    "17": {
+     "farms": 21,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 6,
+     "stock": [
+      2540,
+      1661,
+      3625
+     ]
+    },
+    "18": {
+     "farms": 21,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 6,
+     "stock": [
+      4488,
+      1479,
+      3625
+     ]
+    },
+    "19": {
+     "farms": 21,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 7,
+     "stock": [
+      4565,
+      1739,
+      3700
+     ]
+    },
+    "20": {
+     "farms": 21,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 7,
+     "stock": [
+      5163,
+      2231,
+      3950
+     ]
+    }
+   }
+  },
+  {
+   "start": 917686,
+   "length": 1518,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      980,
+      565,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      600,
+      510,
+      50
+     ]
+    },
+    "3": {
+     "farms": 2,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      340,
+      485,
+      50
+     ]
+    },
+    "4": {
+     "farms": 3,
+     "houses": 2,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      579,
+      400,
+      50
+     ]
+    },
+    "5": {
+     "farms": 4,
+     "houses": 2,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      762,
+      665,
+      50
+     ]
+    },
+    "6": {
+     "farms": 5,
+     "houses": 3,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      666,
+      868,
+      50
+     ]
+    },
+    "7": {
+     "farms": 6,
+     "houses": 3,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      604,
+      426,
+      600
+     ]
+    },
+    "8": {
+     "farms": 6,
+     "houses": 4,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      1204,
+      47,
+      900
+     ]
+    },
+    "9": {
+     "farms": 8,
+     "houses": 4,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      1698,
+      542,
+      900
+     ]
+    },
+    "10": {
+     "farms": 8,
+     "houses": 4,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      1405,
+      1091,
+      900
+     ]
+    },
+    "11": {
+     "farms": 10,
+     "houses": 4,
+     "barracks": 1,
+     "stockpiles": 1,
+     "stock": [
+      1776,
+      1713,
+      900
+     ]
+    },
+    "12": {
+     "farms": 10,
+     "houses": 6,
+     "barracks": 2,
+     "stockpiles": 1,
+     "stock": [
+      1828,
+      2217,
+      900
+     ]
+    },
+    "13": {
+     "farms": 10,
+     "houses": 7,
+     "barracks": 3,
+     "stockpiles": 1,
+     "stock": [
+      2582,
+      1974,
+      900
+     ]
+    },
+    "14": {
+     "farms": 12,
+     "houses": 8,
+     "barracks": 4,
+     "stockpiles": 1,
+     "stock": [
+      2668,
+      2036,
+      900
+     ]
+    },
+    "15": {
+     "farms": 14,
+     "houses": 10,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      2508,
+      1725,
+      900
+     ]
+    },
+    "16": {
+     "farms": 14,
+     "houses": 10,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      3005,
+      1717,
+      900
+     ]
+    },
+    "17": {
+     "farms": 14,
+     "houses": 12,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      2231,
+      2258,
+      900
+     ]
+    },
+    "18": {
+     "farms": 14,
+     "houses": 12,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      2441,
+      2756,
+      900
+     ]
+    },
+    "19": {
+     "farms": 14,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      3023,
+      2973,
+      900
+     ]
+    },
+    "20": {
+     "farms": 15,
+     "houses": 14,
+     "barracks": 4,
+     "stockpiles": 3,
+     "stock": [
+      3045,
+      2420,
+      900
+     ]
+    }
+   }
+  },
+  {
+   "start": 970749,
+   "length": 2359,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      1275,
+      586,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      1200,
+      203,
+      50
+     ]
+    },
+    "3": {
+     "farms": 2,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      1100,
+      402,
+      50
+     ]
+    },
+    "4": {
+     "farms": 2,
+     "houses": 2,
+     "barracks": 1,
+     "stockpiles": 0,
+     "stock": [
+      916,
+      506,
+      50
+     ]
+    },
+    "5": {
+     "farms": 2,
+     "houses": 3,
+     "barracks": 1,
+     "stockpiles": 2,
+     "stock": [
+      816,
+      758,
+      50
+     ]
+    },
+    "6": {
+     "farms": 3,
+     "houses": 3,
+     "barracks": 1,
+     "stockpiles": 2,
+     "stock": [
+      910,
+      1244,
+      50
+     ]
+    },
+    "7": {
+     "farms": 4,
+     "houses": 3,
+     "barracks": 1,
+     "stockpiles": 2,
+     "stock": [
+      1569,
+      1662,
+      50
+     ]
+    },
+    "8": {
+     "farms": 6,
+     "houses": 3,
+     "barracks": 1,
+     "stockpiles": 2,
+     "stock": [
+      842,
+      2059,
+      50
+     ]
+    },
+    "9": {
+     "farms": 7,
+     "houses": 3,
+     "barracks": 1,
+     "stockpiles": 2,
+     "stock": [
+      1503,
+      2217,
+      550
+     ]
+    },
+    "10": {
+     "farms": 8,
+     "houses": 4,
+     "barracks": 1,
+     "stockpiles": 2,
+     "stock": [
+      1733,
+      2306,
+      50
+     ]
+    },
+    "11": {
+     "farms": 9,
+     "houses": 6,
+     "barracks": 1,
+     "stockpiles": 2,
+     "stock": [
+      1559,
+      2044,
+      50
+     ]
+    },
+    "12": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 2,
+     "stock": [
+      1445,
+      2624,
+      300
+     ]
+    },
+    "13": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 2,
+     "stock": [
+      1688,
+      2455,
+      300
+     ]
+    },
+    "14": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 3,
+     "stock": [
+      887,
+      2309,
+      300
+     ]
+    },
+    "15": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 3,
+     "stock": [
+      1244,
+      2247,
+      550
+     ]
+    },
+    "16": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 3,
+     "stock": [
+      1358,
+      2042,
+      300
+     ]
+    },
+    "17": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 4,
+     "stock": [
+      1318,
+      1892,
+      50
+     ]
+    },
+    "18": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 4,
+     "stock": [
+      1108,
+      1892,
+      50
+     ]
+    },
+    "19": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 4,
+     "stock": [
+      1008,
+      1972,
+      50
+     ]
+    },
+    "20": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 4,
+     "stock": [
+      1008,
+      1972,
+      50
+     ]
+    }
+   }
+  },
+  {
+   "start": 977911,
+   "length": 2829,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      975,
+      790,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      525,
+      447,
+      50
+     ]
+    },
+    "3": {
+     "farms": 2,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      325,
+      371,
+      50
+     ]
+    },
+    "4": {
+     "farms": 6,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      323,
+      518,
+      50
+     ]
+    },
+    "5": {
+     "farms": 8,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      651,
+      396,
+      50
+     ]
+    },
+    "6": {
+     "farms": 9,
+     "houses": 3,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      987,
+      492,
+      50
+     ]
+    },
+    "7": {
+     "farms": 11,
+     "houses": 3,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      1139,
+      496,
+      125
+     ]
+    },
+    "8": {
+     "farms": 11,
+     "houses": 5,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      1867,
+      601,
+      125
+     ]
+    },
+    "9": {
+     "farms": 11,
+     "houses": 5,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      1527,
+      657,
+      125
+     ]
+    },
+    "10": {
+     "farms": 11,
+     "houses": 5,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      967,
+      628,
+      375
+     ]
+    },
+    "11": {
+     "farms": 11,
+     "houses": 5,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      1750,
+      310,
+      125
+     ]
+    },
+    "12": {
+     "farms": 12,
+     "houses": 5,
+     "barracks": 2,
+     "stockpiles": 2,
+     "stock": [
+      2782,
+      1187,
+      125
+     ]
+    },
+    "13": {
+     "farms": 13,
+     "houses": 5,
+     "barracks": 2,
+     "stockpiles": 2,
+     "stock": [
+      2505,
+      1743,
+      375
+     ]
+    },
+    "14": {
+     "farms": 15,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 2,
+     "stock": [
+      2513,
+      2297,
+      625
+     ]
+    },
+    "15": {
+     "farms": 15,
+     "houses": 8,
+     "barracks": 3,
+     "stockpiles": 2,
+     "stock": [
+      3789,
+      2508,
+      125
+     ]
+    },
+    "16": {
+     "farms": 15,
+     "houses": 11,
+     "barracks": 4,
+     "stockpiles": 2,
+     "stock": [
+      4343,
+      2296,
+      50
+     ]
+    },
+    "17": {
+     "farms": 15,
+     "houses": 14,
+     "barracks": 5,
+     "stockpiles": 3,
+     "stock": [
+      4729,
+      2358,
+      50
+     ]
+    },
+    "18": {
+     "farms": 15,
+     "houses": 14,
+     "barracks": 7,
+     "stockpiles": 3,
+     "stock": [
+      4800,
+      2667,
+      50
+     ]
+    },
+    "19": {
+     "farms": 15,
+     "houses": 14,
+     "barracks": 8,
+     "stockpiles": 3,
+     "stock": [
+      4098,
+      2519,
+      115
+     ]
+    },
+    "20": {
+     "farms": 15,
+     "houses": 14,
+     "barracks": 9,
+     "stockpiles": 3,
+     "stock": [
+      3657,
+      3097,
+      50
+     ]
+    }
+   }
+  },
+  {
+   "start": 999864,
+   "length": 1607,
+   "curve": {
+    "1": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      1035,
+      730,
+      50
+     ]
+    },
+    "2": {
+     "farms": 0,
+     "houses": 1,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      325,
+      525,
+      50
+     ]
+    },
+    "3": {
+     "farms": 1,
+     "houses": 2,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      765,
+      685,
+      50
+     ]
+    },
+    "4": {
+     "farms": 2,
+     "houses": 4,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      1495,
+      469,
+      50
+     ]
+    },
+    "5": {
+     "farms": 5,
+     "houses": 6,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      1100,
+      377,
+      50
+     ]
+    },
+    "6": {
+     "farms": 7,
+     "houses": 6,
+     "barracks": 0,
+     "stockpiles": 0,
+     "stock": [
+      1218,
+      577,
+      50
+     ]
+    },
+    "7": {
+     "farms": 8,
+     "houses": 6,
+     "barracks": 0,
+     "stockpiles": 1,
+     "stock": [
+      1522,
+      595,
+      125
+     ]
+    },
+    "8": {
+     "farms": 10,
+     "houses": 6,
+     "barracks": 0,
+     "stockpiles": 3,
+     "stock": [
+      1978,
+      969,
+      200
+     ]
+    },
+    "9": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 0,
+     "stockpiles": 3,
+     "stock": [
+      2580,
+      1647,
+      200
+     ]
+    },
+    "10": {
+     "farms": 12,
+     "houses": 7,
+     "barracks": 2,
+     "stockpiles": 3,
+     "stock": [
+      2915,
+      2132,
+      215
+     ]
+    },
+    "11": {
+     "farms": 12,
+     "houses": 12,
+     "barracks": 2,
+     "stockpiles": 3,
+     "stock": [
+      3257,
+      2372,
+      50
+     ]
+    },
+    "12": {
+     "farms": 12,
+     "houses": 14,
+     "barracks": 5,
+     "stockpiles": 3,
+     "stock": [
+      3335,
+      2244,
+      50
+     ]
+    },
+    "13": {
+     "farms": 12,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 3,
+     "stock": [
+      2773,
+      1768,
+      50
+     ]
+    },
+    "14": {
+     "farms": 12,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      2996,
+      1023,
+      1180
+     ]
+    },
+    "15": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      2073,
+      449,
+      2060
+     ]
+    },
+    "16": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      2352,
+      364,
+      2550
+     ]
+    },
+    "17": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      3594,
+      131,
+      2130
+     ]
+    },
+    "18": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      3294,
+      80,
+      2130
+     ]
+    },
+    "19": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      2663,
+      15,
+      2130
+     ]
+    },
+    "20": {
+     "farms": 16,
+     "houses": 14,
+     "barracks": 6,
+     "stockpiles": 4,
+     "stock": [
+      2853,
+      445,
+      2540
+     ]
+    }
+   }
+  }
+ ]
+}

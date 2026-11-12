@@ -30,6 +30,7 @@ def main():
     ap.add_argument('tag', nargs='?')
     ap.add_argument('--name', default='base')
     ap.add_argument('--worktree', action='store_true')
+    ap.add_argument('--seeall', action='store_true', help='the frozen brain ignores fog of war like the current one (a fair strategy comparison)')
     a = ap.parse_args()
     if not a.worktree and not a.tag:
         ap.error('give a tag (or --worktree)')
@@ -67,6 +68,10 @@ def main():
             # the tuner's overrides (-Dronstrat.params.<tier>) are for the code under test, not for the baseline
             s = s.replace('"ronstrat.params."', f'"ronstrat.{a.name}params."')
             s = s.replace('".defaults.json"', f'".{a.name}.defaults.json"')
+        if a.seeall and cls == 'Intel':
+            s, k = re.subn(r'fog = FogOfWarServerEvents\.isEnabled\(\);', 'fog = false; // frozen with --seeall', s)
+            if k != 1:
+                sys.exit('Intel.java: fog line not found')
         (out / fname).write_text(s, encoding='utf-8', newline='')
         n += 1
     (out / 'FROZEN.txt').write_text(f'{origin}\n', encoding='utf-8')

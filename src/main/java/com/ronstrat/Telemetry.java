@@ -34,7 +34,8 @@ public final class Telemetry {
     private static final Map<String, Telemetry> ALL = new HashMap<>();
 
     private int samples, lowFood, lowWood, lowOre, highFood, highWood, highOre;
-    private int tcSamples, tcIdle;                 // while the villager count is under 40
+    private int tcSamples, tcIdle, tcIdleFood, tcIdlePop, tcIdleFree; // while the villager count is under 38 (the expert's cap)
+    private int placeFails;
     private long idleWorkerSum, workerSum;
     private int peakWorkers, peakArmy, retreatsSeen;
     private final Map<String, Integer> firstBuilt = new LinkedHashMap<>(); // building class -> second its first one was placed
@@ -77,6 +78,18 @@ public final class Telemetry {
                 if (e.getMainHandItem().isEnchanted()) enchanted++;
             }
         }
+        List<net.minecraft.core.BlockPos> drops = new ArrayList<>();
+        for (BuildingPlacement b : buildings)
+            if (me.equals(b.ownerName) && b.isBuilt && (b.isCapitol || b.getBuilding().getClass().getSimpleName().contains("Stockpile"))) drops.add(b.centrePos);
+        int woodN = 0; double woodD = 0;
+        for (LivingEntity e : units) {
+            if (!(e instanceof WorkerUnit w) || !e.isAlive() || !me.equals(((Unit) e).getOwnerName())) continue;
+            var g = w.getGatherResourceGoal();
+            if (g == null || g.getTargetResourceName() != com.solegendary.reignofnether.resources.ResourceName.WOOD || g.getGatherTarget() == null) continue;
+            double best = 999;
+            for (var d : drops) best = Math.min(best, Math.sqrt(d.distSqr(g.getGatherTarget())));
+            woodN++; woodD += best;
+        }
         int farms = 0, barracks = 0, mine = 0;
         boolean tcBuilt = false, tcBusy = false;
         List<BuildingPlacement> hostile = new ArrayList<>();
@@ -106,7 +119,17 @@ public final class Telemetry {
         if (food > 800) highFood++;
         if (wood > 800) highWood++;
         if (ore > 800) highOre++;
-        if (tcBuilt && workers < 40) { tcSamples++; if (!tcBusy) tcIdle++; }
+        if (tcBuilt && workers < 38) {
+            tcSamples++;
+            if (!tcBusy) {
+                tcIdle++;
+                int pop = com.solegendary.reignofnether.unit.UnitServerEvents.getCurrentPopulation(me);
+                int cap = com.solegendary.reignofnether.building.BuildingServerEvents.getTotalPopulationSupply(me);
+                if (pop + 1 > cap) tcIdlePop++;          // housed out
+                else if (food < 50) tcIdleFood++;        // a villager costs 50 food
+                else tcIdleFree++;                        // could have trained one and did not
+            }
+        }
         idleWorkerSum += idle;
         workerSum += workers;
         peakWorkers = Math.max(peakWorkers, workers);
@@ -135,10 +158,11 @@ public final class Telemetry {
             leftEnemyAt = sec * 20L;
         }
         retreatsSeen = (int) a.stat("retreats");
+        placeFails = (int) a.stat("placeFails");
 
         if (samples % SERIES_EVERY == 0)
             series.add(new int[] { sec, workers, army, food, wood, ore, farms, barracks, armoured, enchanted, idle, mine,
-                    got(me, RTSPlayerScoresEnum.FOOD_HARVESTED), got(me, RTSPlayerScoresEnum.WOOD_HARVESTED), got(me, RTSPlayerScoresEnum.ORES_HARVESTED) });
+                    got(me, RTSPlayerScoresEnum.FOOD_HARVESTED), got(me, RTSPlayerScoresEnum.WOOD_HARVESTED), got(me, RTSPlayerScoresEnum.ORES_HARVESTED), woodN, woodN == 0 ? 0 : (int) Math.round(woodD / woodN) });
     }
 
     /** what the player has gathered so far (RON's own score sheet) */
@@ -161,6 +185,10 @@ public final class Telemetry {
         o.addProperty("highWood", round(t.highWood / n));
         o.addProperty("highOre", round(t.highOre / n));
         o.addProperty("tcIdle", t.tcSamples == 0 ? 0 : round(t.tcIdle / (double) t.tcSamples));
+        o.addProperty("tcIdleFood", t.tcSamples == 0 ? 0 : round(t.tcIdleFood / (double) t.tcSamples));
+        o.addProperty("tcIdlePop", t.tcSamples == 0 ? 0 : round(t.tcIdlePop / (double) t.tcSamples));
+        o.addProperty("tcIdleFree", t.tcSamples == 0 ? 0 : round(t.tcIdleFree / (double) t.tcSamples));
+        o.addProperty("placeFails", t.placeFails);
         o.addProperty("idleWorkers", t.workerSum == 0 ? 0 : round(t.idleWorkerSum / (double) t.workerSum));
         o.addProperty("peakWorkers", t.peakWorkers);
         o.addProperty("peakArmy", t.peakArmy);
@@ -172,7 +200,7 @@ public final class Telemetry {
         t.reached.forEach(re::addProperty);
         o.add("reached", re);
         o.add("arrivals", rows(t.arrivals));
-        o.addProperty("seriesColumns", "t,workers,army,food,wood,ore,farms,barracks,armoured,enchanted,idle,buildings,gotFood,gotWood,gotOre");
+        o.addProperty("seriesColumns", "t,workers,army,food,wood,ore,farms,barracks,armoured,enchanted,idle,buildings,gotFood,gotWood,gotOre,woodWorkers,woodTrip");
         o.add("series", rows(t.series));
         return o;
     }
