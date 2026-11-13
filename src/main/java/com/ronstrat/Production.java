@@ -50,6 +50,8 @@ public final class Production {
         int[] escrow = bot.builder.reservedCost();
         // always keep a little wood: farms need it to replant, and without farms the whole economy dies
         int f = in.food - escrow[0], w = in.wood - escrow[1] - WOOD_RESERVE, o = in.ore - escrow[2];
+        Ledger L = bot.ledger;
+        if (L.on()) { f -= (int) L.fundFood; w -= (int) L.fundWood; o -= (int) L.fundOre; }
         queuedFoodUnits = 0;
 
         // ---- workers
@@ -83,6 +85,10 @@ public final class Production {
             // ...but a gutted economy cannot pay for an army either: below 26 villagers they still come
             // from any food past one soldier's price (16 villagers for 10 minutes starved the army too)
             int foodFloor = armyFirst ? (bot.difficulty == Difficulty.EXPERT && !turtle && workersNow < 26 ? 120 : 220) : 0;
+            // monsters camped at home: the soldiers to clear them first (parameter campRush)
+            if (bot.difficulty == Difficulty.EXPERT && bot.army.campRush(in) && in.built(plan.barracks) > 0 && workersNow >= 6) continue;
+            // rush defence: every bit of food into soldiers until the army has caught up with theirs
+            if (bot.difficulty == Difficulty.EXPERT && bot.army.rushDefence(in) && workersNow >= 12) continue;
             while (workersNow + queuedWorkers < workerTarget && pp.productionQueue.size() < p.i("workerQueue")
                     && in.food >= cost(plan.worker).food + foodFloor && room(in, plan.worker)) {
                 if (!bot.attentive()) break;
@@ -184,7 +190,12 @@ public final class Production {
             }
         }
 
-        // ---- army
+        // ---- army: what is left after villagers and escrow, or the army fund if that is more
+        if (L.on()) {
+            f = Math.max(f + (int) L.fundFood, (int) L.fundFood);
+            w = Math.max(w + (int) L.fundWood, (int) L.fundWood);
+            o = Math.max(o + (int) L.fundOre, (int) L.fundOre);
+        }
         Map<FactionPlan.Role, Double> want = roleMix(in);
         Map<FactionPlan.Role, Double> have = new EnumMap<>(FactionPlan.Role.class);
         double totalPop = 0;
@@ -258,6 +269,7 @@ public final class Production {
                     && have.getOrDefault(FactionPlan.Role.SUPPORT, 0.0) < 3 * p.get("witchMin") && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore;
             if ((!bankWitch && !pays(c, f, wFor(best, in, w, o), o)) || !room(in, best.item)) { idleReason = "cannot afford " + best.item.getItemName(); continue; }
             if (pp.startProductionItem(best.item)) {
+                bot.ledger.spent(c.food, c.wood, c.ore);
                 bot.log("train " + best.item.getItemName());
                 idleReason = "";
                 f -= c.food; w -= c.wood; o -= c.ore;

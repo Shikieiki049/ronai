@@ -32,7 +32,8 @@ final class BuildOrder {
 
     static boolean active(Bot bot) {
         return bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && bot.params.b("econV2")
-                && minutes() < bot.params.get("openingMinutes") && !bot.army.armyAheadLatch;
+                && minutes() < bot.params.get("openingMinutes") && !bot.army.armyAheadLatch && !Strategy.respondTo(bot, Strategy.RUSH)
+                && !bot.army.campRush(bot.intel);
     }
 
     /** after the opening: the army phase (parameter econPhase2) - workers still by need, not by share */
@@ -58,7 +59,7 @@ final class BuildOrder {
             Building b = r.building();
             if (r.priority() >= 105 || b == plan.capitol || b == plan.house) return false;
             if (b == plan.farm) return true; // re-added below to the curve
-            if (b == com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY && bot.params.b("shrineEarly")) return false;
+            if (b == com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY && (bot.params.b("shrineEarly") || (bot.params.b("shrineMid") && minutes() >= bot.params.get("shrineMinute")))) return false;
             if (b == com.solegendary.reignofnether.building.Buildings.WITCH_HUT && Strategy.witches(bot)) return false;
             if ((b == com.solegendary.reignofnether.building.Buildings.BLACKSMITH || b == com.solegendary.reignofnether.building.Buildings.IRON_GOLEM_BUILDING) && Strategy.golems(bot)) return false;
             if (b == plan.barracks) return in.total(plan.barracks) >= barracksWanted;

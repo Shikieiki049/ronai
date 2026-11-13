@@ -335,6 +335,7 @@ public final class Economy {
         if (!bot.attentive()) idle.clear();
 
         if (p.b("woodDrop")) checkWoodTrip(in, byJob.get(Job.WOOD));
+        shelter(in);
         int gatherers = in.workers.size() - byJob.get(Job.BUILD).size() - byJob.get(Job.MILITARY).size();
         checkStagnation(in, byJob);
         double[] raw = desiredShares(in);
@@ -813,6 +814,38 @@ public final class Economy {
         BlockPos b = ps.get(0);
         for (BlockPos p : ps) if (p.distSqr(to) < b.distSqr(to)) b = p;
         return b;
+    }
+
+    private long shelterSince = -1, lastShelterOrder = -1000;
+
+    /**
+     * Enemy soldiers at the town centre and too few of ours (parameter villagerShelter): the villagers near
+     * it go inside (RON's garrison) instead of dying at their fields; out again once the enemy has gone.
+     */
+    private void shelter(Intel in) {
+        if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("villagerShelter") || in.capitol == null || !in.capitol.isBuilt) return;
+        net.minecraft.world.phys.Vec3 tc = net.minecraft.world.phys.Vec3.atCenterOf(in.capitol.centrePos);
+        int theirs = 0, ours = 0;
+        for (net.minecraft.world.entity.LivingEntity e : in.visibleEnemies)
+            if (!UnitEval.isWorker(e) && Army.realSoldier(e) && e.position().distanceToSqr(tc) < 22 * 22) theirs++;
+        for (Mob a : in.army) if (Army.realSoldier(a) && a.position().distanceToSqr(tc) < 26 * 26) ours++;
+        boolean danger = theirs >= 2 && theirs > ours;
+        if (danger) {
+            shelterSince = bot.now;
+            if (bot.now - lastShelterOrder < 100) return;
+            lastShelterOrder = bot.now;
+            List<Mob> go = new ArrayList<>();
+            for (Mob w : in.workers) if (w.position().distanceToSqr(tc) < 30 * 30 && !((com.solegendary.reignofnether.unit.interfaces.Unit) w).isGarrisoned()) go.add(w);
+            if (!go.isEmpty()) {
+                Orders.garrison(bot.name, go, in.capitol.centrePos);
+                bot.log("enemy soldiers at the town centre (" + theirs + " vs " + ours + "): " + go.size() + " villagers take shelter");
+            }
+        } else if (shelterSince >= 0 && bot.now - shelterSince > 300) {
+            List<Mob> out = new ArrayList<>();
+            for (Mob g : in.workers) if (((com.solegendary.reignofnether.unit.interfaces.Unit) g).isGarrisoned()) out.add(g);
+            if (!out.isEmpty()) { Orders.ungarrison(bot.name, out); bot.log("the enemy has gone: " + out.size() + " villagers back to work"); }
+            shelterSince = -1;
+        }
     }
 
     /** no wood within reach, and the nearest wood has monsters on it: soldiers have to clear the way first */

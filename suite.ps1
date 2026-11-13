@@ -1,4 +1,4 @@
-<#
+﻿<#
   Runs a test suite (tools/suites/<name>.json) through selfplay.ps1 and prints win rates with
   confidence intervals.
 
@@ -30,6 +30,7 @@ param(
     [switch]$AltRon,
     [switch]$Prod,
     [int]$MaxStarting = 3,
+    [int]$GlobalMax = 0,
     [switch]$ReportOnly
 )
 $ErrorActionPreference = 'Stop'
@@ -53,6 +54,7 @@ if (-not $ReportOnly) {
     if ($AltRon) { $spArgs.AltRon = $true }
     if ($Prod) { $spArgs.Prod = $true }
     $spArgs.MaxStarting = $MaxStarting
+    if ($GlobalMax -gt 0) { $spArgs.GlobalMax = $GlobalMax }
     & (Join-Path $root 'selfplay.ps1') @spArgs *>&1 | Out-File -Encoding utf8 (Join-Path $root "tmp\$Label.log")
 }
 & py $tool report $Suite $out

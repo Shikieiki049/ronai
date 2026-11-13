@@ -93,8 +93,15 @@ final class Casters {
 
     // ------------------------------------------------------------------ heroes
 
+    private long nextHeroLog;
+
     private void hero(Intel in, Mob m, HeroUnit h) {
         rankUp(h);
+        if (bot.verbose && bot.now >= nextHeroLog) {
+            nextHeroLog = bot.now + 1200;
+            bot.log("hero status: " + m.getType().toShortString() + " level " + h.getHeroLevel() + " exp " + h.getExperience()
+                    + " points " + h.getSkillPoints() + " hp " + (int) m.getHealth() + "/" + (int) m.getMaxHealth() + " at " + m.blockPosition().toShortString());
+        }
         List<LivingEntity> foes = enemiesNear(in, m, 12);
         for (LivingEntity n : in.neutrals) if (n.distanceToSqr(m) < 12 * 12) foes.add(n);
         if (foes.isEmpty() || bot.now - lastCast.getOrDefault(m.getId(), -1000L) < 20) return;

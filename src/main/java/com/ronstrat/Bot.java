@@ -24,6 +24,9 @@ public final class Bot implements Agent {
     int chosenRoute = -1;
     /** the enemy fields mostly melee: witches were brought in (Strategy, parameter adaptWitches) */
     boolean adaptedWitches;
+    /** the opponent's style as Strategy read it (-1 unknown) */
+    int enemyStyle = -1;
+    long styleCheckedAt = -1000;
     long meleeCheckedAt = -1000;
     public final Economy economy = new Economy(this);
     public final Builder builder = new Builder(this);
@@ -33,6 +36,7 @@ public final class Bot implements Agent {
     public final Bridger bridger = new Bridger(this);
     final Upgrades upgrades = new Upgrades(this);
     final Casters casters = new Casters(this);
+    final Ledger ledger = new Ledger(this);
     final Random random;
     public long now;
     private long nextThink, nextMicro;
@@ -167,6 +171,7 @@ public final class Bot implements Agent {
         if (now >= nextThink) {
             nextThink = now + params.i("thinkTicks");
             intel.refresh(now);
+            ledger.think(intel);
             economy.think(intel);
             builder.think(intel);
             bridger.think(intel);

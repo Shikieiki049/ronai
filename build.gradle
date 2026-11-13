@@ -25,6 +25,7 @@ minecraft {
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', file('build/srg-to-mcp.srg').absolutePath
             args '--nogui'
+            arg '-mixin.config=ronstrat.mixins.json'
             mods { ronstrat { source sourceSets.main } }
         }
     }
@@ -51,6 +52,7 @@ sourceSets {
 }
 tasks.named('compileJava') { finalizedBy 'compileBaselineJava' }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+jar.manifest.attributes('MixinConfigs': 'ronstrat.mixins.json')
 jar.finalizedBy('reobfJar')
 
 // Export the dev-server launch so the self-play tuner can start many servers in parallel

@@ -61,6 +61,49 @@ final class Strategy {
         return bot.adaptedWitches;
     }
 
+    // ------------------------------------------------------------------ the opponent's style
+
+    static final int UNKNOWN = -1, RUSH = 0, STANDARD = 1, BOOM = 2, TECH = 3;
+    static final String[] STYLE_NAMES = { "rush", "standard", "boom", "tech" };
+
+    /**
+     * What the enemy is doing (parameter styleResponse), read off the map from minute 3 (the expert sees it
+     * all): RON's own bots roll rush (14 villagers, 6 pop at ~3 min), standard (22, 10 pop at ~6), boom
+     * (26, 14 pop at ~8) or tech (20, tech bias). Decided once by minute 6; a rush can still be spotted later.
+     */
+    static int enemyStyle(Bot bot) {
+        if (bot.enemyStyle != UNKNOWN && bot.enemyStyle != STANDARD) return bot.enemyStyle;
+        double m = BuildOrder.minutes();
+        if (m < 3 || bot.now - bot.styleCheckedAt < 200) return bot.enemyStyle;
+        bot.styleCheckedAt = bot.now;
+        Intel in = bot.intel;
+        int soldiers = 0, workers = 0, barracks = 0, tech = 0;
+        for (net.minecraft.world.entity.LivingEntity e : in.visibleEnemies) {
+            if (UnitEval.isWorker(e)) workers++;
+            else if (Army.realSoldier(e)) soldiers++;
+        }
+        for (var b : com.solegendary.reignofnether.building.BuildingServerEvents.getBuildings()) {
+            if (b.ownerName == null || b.ownerName.equals(bot.name) || !in.enemies.containsKey(b.ownerName)) continue;
+            String n = b.getBuilding().getClass().getSimpleName().toLowerCase(java.util.Locale.ROOT);
+            if (n.contains("barracks") || n.contains("portal") || n.contains("graveyard") || n.contains("dungeon")) barracks++;
+            if (n.contains("blacksmith") || n.contains("arcane") || n.contains("witch") || n.contains("library") || n.contains("laboratory") || n.contains("bastion") || n.contains("sanctuary")) tech++;
+        }
+        int s = UNKNOWN;
+        if ((m < 5.5 && soldiers >= 3) || (m < 4.5 && barracks >= 1 && workers <= 16)) s = RUSH;
+        else if (m >= 5 && tech >= 1 && m < 9) s = TECH;
+        else if (m >= 6 && soldiers <= 1 && workers >= 20) s = BOOM;
+        else if (m >= 6) s = STANDARD;
+        if (s != UNKNOWN && s != bot.enemyStyle) {
+            bot.enemyStyle = s;
+            bot.log("enemy style: " + STYLE_NAMES[s] + " (minute " + String.format("%.1f", m) + ", soldiers " + soldiers + ", villagers " + workers + ", barracks " + barracks + ", tech " + tech + ")");
+        }
+        return bot.enemyStyle;
+    }
+
+    static boolean respondTo(Bot bot, int style) {
+        return bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && bot.params.b("styleResponse") && enemyStyle(bot) == style;
+    }
+
     /** once, when the town centre stands: the route table first, then what lies around home */
     private static int choose(Bot bot) {
         Intel in = bot.intel;

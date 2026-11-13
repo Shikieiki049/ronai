@@ -1,0 +1,51 @@
+{
+ "description": "build212 vs build211 on Infinity_Isle (witch route, healing potions)",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert vs expert@base readied nohandicap",
+   "us": 0,
+   "pair": "ii",
+   "maps": [
+    "Infinity_Isle"
+   ],
+   "seeds": [
+    301,
+    302,
+    303,
+    304,
+    305,
+    306,
+    307,
+    308,
+    309,
+    310,
+    311,
+    312
+   ]
+  },
+  {
+   "name": "new second",
+   "spec": "expert@base vs expert readied nohandicap",
+   "us": 1,
+   "pair": "ii",
+   "maps": [
+    "Infinity_Isle"
+   ],
+   "seeds": [
+    301,
+    302,
+    303,
+    304,
+    305,
+    306,
+    307,
+    308,
+    309,
+    310,
+    311,
+    312
+   ]
+  }
+ ]
+}

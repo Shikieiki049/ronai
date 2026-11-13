@@ -123,14 +123,46 @@ public final class Army {
         return true;
     }
 
+    /**
+     * Monsters camp by the base and keep killing villagers (parameter campRush): the first barracks and
+     * two or three soldiers come before anything else. Cabana's first seat: wolves took 14 villagers in
+     * 12 minutes, the fields never went up and food income was nil for seven minutes.
+     */
+    boolean campRush(Intel in) {
+        if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("campRush") || BuildOrder.minutes() > 14) return false;
+        int soldiers = 0;
+        for (Mob a : in.army) if (realSoldier(a)) soldiers++;
+        if (soldiers >= 3) return false;
+        return homeCampStrength(in) > 0 && (bot.hazardDeaths >= 2 || in.recentDeath(in.home(), 50, 2400) != null);
+    }
+
     /** the opening ended early: an enemy army was seen well ahead of ours */
     boolean armyAheadLatch;
+    /** ...because of a rush (soldiers before minute 7): defence first until our army has caught up */
+    boolean rushAlert;
+
+    /** rush defence still on: their real soldiers outnumber ours (seen, the expert sees the map) */
+    boolean rushDefence(Intel in) {
+        if (!rushAlert) return false;
+        int theirs = 0, ours = 0;
+        for (Intel.EnemyMemory m : in.enemies.values()) if (m.alive) {
+            int n = 0;
+            for (LivingEntity u : m.seenUnits.values()) if (realSoldier(u)) n++;
+            theirs = Math.max(theirs, n);
+        }
+        for (Mob a : in.army) if (realSoldier(a)) ours++;
+        // till ours is at 70% of theirs, and not past minute 11: pausing the villagers for longer left the
+        // economy at 19 villagers by minute 15
+        return ours < 0.7 * theirs && BuildOrder.minutes() < 11;
+    }
 
     void think(Intel in) {
         BotParams p = bot.params;
         if (!armyAheadLatch && bot.difficulty == Difficulty.EXPERT && BuildOrder.minutes() < p.get("openingMinutes") && enemyArmyAhead(in)) {
             armyAheadLatch = true;
-            bot.log("enemy army ahead of ours: the opening is over, barracks now");
+            StringBuilder seen = new StringBuilder();
+            for (Intel.EnemyMemory m : in.enemies.values()) for (LivingEntity e : m.seenUnits.values()) seen.append(' ').append(e.getType().toShortString());
+            bot.log("enemy army ahead of ours at minute " + String.format("%.1f", BuildOrder.minutes()) + " (ours " + in.army.size() + ", theirs" + seen + "): the opening is over, barracks now");
         }
         if (!armyAheadLatch && bot.difficulty == Difficulty.EXPERT && p.b("clearForWood") && BuildOrder.minutes() < p.get("openingMinutes") && bot.economy.woodBlocked()) {
             armyAheadLatch = true;
@@ -640,6 +672,35 @@ public final class Army {
                 }
             }
         }
+        // in-game switch (parameter boomPunish): the enemy has fielded no army at all by minute 10 while
+        // booming - it never shows an army, so the edge attack above never fires - hit it with what there is
+        boolean punish = p.b("boomPunish") || Strategy.respondTo(bot, Strategy.BOOM);
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && punish && secs >= 600 && armyPop >= p.get("boomPunishPop")) {
+            String tb = chooseTarget(in);
+            Intel.EnemyMemory mb = tb == null ? null : in.enemies.get(tb);
+            if (mb != null && mb.anyBuilding() != null && mb.knownStrength(bot.now) < 1e-6) {
+                target = tb;
+                targetPos = mb.anyBuilding();
+                bot.log("boom punish: no enemy army seen, going with army pop " + (int) armyPop);
+                return true;
+            }
+        }
+        // late game (parameter lateAllIn): from minute lateAllInMinute the game is a stalemate unless someone
+        // commits - go with an army not clearly weaker than theirs (19% of the games against RON's brutal
+        // bot ran out the clock with both armies at 10-16 soldiers)
+        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && p.b("lateAllIn") && secs >= p.get("lateAllInMinute") * 60 && armyPop >= 12) {
+            String tl = chooseTarget(in);
+            Intel.EnemyMemory ml = tl == null ? null : in.enemies.get(tl);
+            if (ml != null && ml.anyBuilding() != null) {
+                double ownL = UnitEval.strength(attackForce(in)), enL = ml.knownStrength(bot.now);
+                if (ownL >= 0.9 * enL) {
+                    target = tl;
+                    targetPos = ml.anyBuilding();
+                    bot.log("late all-in: ours " + (int) ownL + " vs seen " + (int) enL);
+                    return true;
+                }
+            }
+        }
         // a sparring style with a fixed attack time: go with what there is, like a human all-in
         if (p.get("styleAttackAt") > 0 && secs >= p.get("styleAttackAt") && armyPop >= p.get("styleAttackMinPop")) {
             String ts = chooseTarget(in);
@@ -727,16 +788,29 @@ public final class Army {
         double e = 0;
         int soldiers = 0;
         for (Intel.EnemyMemory m : in.enemies.values()) if (m.alive) {
-            e = Math.max(e, m.knownStrength(bot.now));
-            soldiers = Math.max(soldiers, m.seenUnits.size());
+            m.knownStrength(bot.now); // drops the dead and the long unseen
+            List<LivingEntity> real = new ArrayList<>();
+            for (LivingEntity u : m.seenUnits.values()) if (realSoldier(u)) real.add(u);
+            e = Math.max(e, UnitEval.strength(real));
+            soldiers = Math.max(soldiers, real.size());
         }
         // a real rush, not a mirror's barracks coming up a little sooner: a small lead (2 soldiers) broke
         // the opening in even games and cost about 9% there
         // a rush shows early: soldiers before minute 8 (an even opening has none yet - the first barracks
         // comes at 7) - against RON's brutal bot: 4 at 6:00, 9 at 10:00, and the town fell at 12
-        if (BuildOrder.minutes() < bot.params.get("rushMinute") && soldiers >= bot.params.get("rushSoldiers") && soldiers > in.army.size()) return true;
+        int ours = 0;
+        for (Mob a : in.army) if (realSoldier(a)) ours++;
+        if (BuildOrder.minutes() < bot.params.get("rushMinute") && soldiers >= bot.params.get("rushSoldiers") && soldiers > ours) { rushAlert = true; return true; }
         if (soldiers < bot.params.get("openingBreakMin")) return false;
-        return Math.sqrt(e) > Math.sqrt(UnitEval.strength(new ArrayList<>(in.army))) + gap * defaultUnitPower;
+        List<Mob> mine = new ArrayList<>();
+        for (Mob a : in.army) if (realSoldier(a)) mine.add(a);
+        return Math.sqrt(e) > Math.sqrt(UnitEval.strength(mine)) + gap * defaultUnitPower;
+    }
+
+    /** not a scout dog or cat, not villagers called to arms (militia): those triggered the rush rule in mirrors */
+    static boolean realSoldier(LivingEntity u) {
+        String n = u.getClass().getSimpleName();
+        return !(n.startsWith("Scout") || n.contains("Militia"));
     }
 
     /** even game: the army we have would hold what can come - safe to keep booming */
@@ -1703,8 +1777,20 @@ public final class Army {
         return g;
     }
 
+    /** horizontal distance from p to the segment a-b */
+    static double segmentDist(Vec3 a, Vec3 b, Vec3 p) {
+        double dx = b.x - a.x, dz = b.z - a.z, len2 = dx * dx + dz * dz;
+        double t = len2 < 1e-6 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / len2));
+        double qx = a.x + t * dx - p.x, qz = a.z + t * dz - p.z;
+        return Math.sqrt(qx * qx + qz * qz);
+    }
+
     /** heroes (and their escort) off levelling on monster camps this think */
     private final java.util.Set<Integer> creeping = new java.util.HashSet<>();
+    private final java.util.Set<Integer> creepBlacklist = new java.util.HashSet<>();
+    private LivingEntity creepTarget;
+    private double creepBest;
+    private long creepProgressAt;
     private long lastCreepOrder = -1000;
 
     /**
@@ -1734,32 +1820,107 @@ public final class Army {
             party.add(m);
             if (escort != null && escort.distanceToSqr(m) < 40 * 40) party.add(escort);
             double mine = UnitEval.strength(party);
+            // the hero could not get at its last target (a blaze in a pit: four minutes standing at home):
+            // that monster is off the list, the next one gets a turn
+            if (creepTarget != null) {
+                if (!creepTarget.isAlive()) creepTarget = null;
+                else {
+                    double d = Math.sqrt(m.distanceToSqr(creepTarget));
+                    if (d < creepBest - 2) { creepBest = d; creepProgressAt = bot.now; }
+                    else if (bot.now - creepProgressAt > 600 && d > 6) {
+                        creepBlacklist.add(creepTarget.getId());
+                        if (bot.verbose) bot.log("hero cannot reach " + creepTarget.getType().toShortString() + " at " + creepTarget.blockPosition().toShortString() + ": next target");
+                        creepTarget = null;
+                    }
+                }
+            }
             LivingEntity target = null;
             for (LivingEntity n : in.neutrals) {
+                if (creepBlacklist.contains(n.getId())) continue;
                 if (n.position().distanceToSqr(h) > 80 * 80 || strongCamp(n.blockPosition()) || hopelessCamps.contains(campKey(n))) continue;
+                // the camp, and every monster within 12 blocks of the walk there (a brute on the way killed a
+                // level-1 hero heading for a blaze)
                 List<LivingEntity> camp = new ArrayList<>();
-                for (LivingEntity o : in.neutrals) if (o.distanceToSqr(n) < 14 * 14) camp.add(o);
+                Vec3 a0 = m.position(), a1 = n.position();
+                for (LivingEntity o : in.neutrals) {
+                    if (o.distanceToSqr(n) < 14 * 14 || segmentDist(a0, a1, o.position()) < 12) camp.add(o);
+                }
                 if (UnitEval.strength(camp) > 0.6 * mine) continue;
                 if (target == null || n.distanceToSqr(m) < target.distanceToSqr(m)) target = n;
             }
             if (target == null) continue;
+            if (creepTarget == null || creepTarget.getId() != target.getId()) {
+                creepTarget = target; creepBest = Math.sqrt(m.distanceToSqr(target)); creepProgressAt = bot.now;
+            }
             for (Mob q : party) creeping.add(q.getId());
             if (bot.now - lastCreepOrder > 60) {
+                boolean fresh = bot.now - lastCreepOrder > 1200;
                 lastCreepOrder = bot.now;
                 for (Mob q : party) Orders.attack(bot.name, List.of(q), target);
-                if (bot.verbose) bot.log("hero (level " + ((com.solegendary.reignofnether.unit.interfaces.HeroUnit) m).getHeroLevel() + ") levelling on " + target.getType().toShortString() + " at " + target.blockPosition().toShortString() + (party.size() > 1 ? " with an escort" : ""));
+                if (bot.verbose && fresh) bot.log("hero (level " + ((com.solegendary.reignofnether.unit.interfaces.HeroUnit) m).getHeroLevel() + ") levelling on " + target.getType().toShortString() + " at " + target.blockPosition().toShortString() + (party.size() > 1 ? " with an escort" : ""));
             }
+        }
+    }
+
+    /** the raiding party (parameter harass) this think */
+    private final java.util.Set<Integer> raiding = new java.util.HashSet<>();
+    private long lastHarassOrder = -1000, harassUntil = -1;
+
+    /**
+     * Minutes 8-14 (parameter harass): two or three soldiers go for the enemy's woodcutters out in the
+     * field - away from their soldiers and their town centre - and come home when outnumbered. A human
+     * keeps the opponent's villagers busy this way; the expert's army only ever waited at home.
+     */
+    private void harass(Intel in) {
+        raiding.clear();
+        BotParams p = bot.params;
+        double m = BuildOrder.minutes();
+        if (bot.difficulty != Difficulty.EXPERT || bot.outnumbered() || !p.b("harass") || m < 8 || m > 14 || in.army.size() < 6) return;
+        // the party: the fastest ranged soldiers first
+        List<Mob> pool = new ArrayList<>();
+        for (Mob u : in.army) if (realSoldier(u) && !(u instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit) && !creeping.contains(u.getId())) pool.add(u);
+        if (pool.size() < 6) return;
+        pool.sort(Comparator.comparingInt(u -> UnitEval.isRanged(u) ? 0 : 1));
+        List<Mob> party = pool.subList(0, Math.min(3, pool.size()));
+        Vec3 c = centroid(party);
+        // targets: enemy villagers 20+ blocks from any enemy town centre and with no enemy soldier near
+        LivingEntity target = null;
+        for (LivingEntity e : in.visibleEnemies) {
+            if (!UnitEval.isWorker(e)) continue;
+            boolean guarded = false;
+            for (LivingEntity s : in.visibleEnemies) if (!UnitEval.isWorker(s) && realSoldier(s) && s.distanceToSqr(e) < 16 * 16) { guarded = true; break; }
+            if (guarded) continue;
+            boolean home = false;
+            for (Intel.EnemyMemory em : in.enemies.values()) if (em.capitol != null && em.capitol.distSqr(e.blockPosition()) < 20 * 20) { home = true; break; }
+            if (home) continue;
+            if (target == null || e.position().distanceToSqr(c) < target.position().distanceToSqr(c)) target = e;
+        }
+        // outnumbered where the party stands: home
+        int theirs = 0;
+        for (LivingEntity s : in.visibleEnemies) if (!UnitEval.isWorker(s) && realSoldier(s) && s.position().distanceToSqr(c) < 18 * 18) theirs++;
+        if (theirs >= party.size()) {
+            if (bot.now - lastHarassOrder > 60) { lastHarassOrder = bot.now; Orders.move(bot.name, party, rally(in)); }
+            for (Mob u : party) raiding.add(u.getId());
+            return;
+        }
+        if (target == null) return;
+        for (Mob u : party) raiding.add(u.getId());
+        if (bot.now - lastHarassOrder > 60) {
+            lastHarassOrder = bot.now;
+            Orders.attack(bot.name, party, target);
+            if (bot.verbose && bot.now > harassUntil) { harassUntil = bot.now + 1200; bot.log("harass: " + party.size() + " soldiers on villagers at " + target.blockPosition().toShortString()); }
         }
     }
 
     private void gather(Intel in) {
         if (clearNeutrals(in)) return;
         heroCreep(in);
+        harass(in);
         BlockPos r = bot.difficulty == Difficulty.EXPERT && bot.params.b("rallyGuard") ? guardPoint(in) : rally(in);
         java.util.Set<Integer> visiting = upgradeVisits;
         List<Mob> stray = new ArrayList<>();
         for (Mob u : in.army) {
-            if (visiting.contains(u.getId()) || creeping.contains(u.getId())) continue;
+            if (visiting.contains(u.getId()) || creeping.contains(u.getId()) || raiding.contains(u.getId())) continue;
             if (u.blockPosition().distSqr(r) > 10 * 10 && ((Unit) u).isIdle()) stray.add(u);
         }
         if (!stray.isEmpty()) Orders.move(bot.name, stray, r);

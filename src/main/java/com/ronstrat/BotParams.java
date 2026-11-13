@@ -134,6 +134,21 @@ public final class BotParams {
         p.put("floatBarracks",              0,     0,      0,     0);   // food 600+ with every barracks busy: one more (up to maxBarracks + 2)
         p.put("siegeSpread",                0,     0,      0,     1);   // enemy army gone: up to 8 groups of 2+ raze at once
         p.put("adaptWitches",               0,     0,      0,     0);   // from minute 12: an enemy army 65%+ melee brings the witches in
+        p.put("boomPunish",                 0,     0,      0,     1);   // no enemy army at all from minute 10: attack with boomPunishPop
+        p.put("boomPunishPop",              15,    15,     15,    15);
+        p.put("ledger",                     0,     0,      0,     0);   // army fund: a share of everything gathered only soldiers may spend
+        p.put("ledgerFrom",                 5,     5,      5,     5);   // ...from this minute
+        p.put("ledgerShare1",               0.35,  0.35,   0.35,  0.35); // ...this share to minute 10
+        p.put("ledgerShare2",               0.55,  0.55,   0.55,  0.55); // ...this share after
+        p.put("ledgerWoodCap",              200,   200,    200,   200);
+        p.put("ledgerOreCap",               100,   100,    100,   100);
+        p.put("ledgerShareThreat",          0.9,   0.9,    0.9,   0.9); // ...rush or enemy army ahead
+        p.put("styleResponse",              0,     0,      0,     0);   // read the enemy style (rush/standard/boom/tech) and answer it
+        p.put("villagerShelter",            0,     0,      0,     0);   // enemy soldiers at the town centre: nearby villagers garrison it
+        p.put("lateAllIn",                  0,     0,      0,     0);   // from lateAllInMinute: attack with an army at least 90% of theirs
+        p.put("lateAllInMinute",            24,    24,     24,    24);
+        p.put("campRush",                   0,     0,      0,     1);   // monsters camped at home killing villagers: barracks and 3 soldiers first
+        p.put("harass",                     0,     0,      0,     0);   // minutes 8-14: 2-3 soldiers raid the enemy woodcutters
         p.put("strategy",                   0,     0,      0,     -1);   // 0 farms (A), 1 golems (B), 2 witches and tech (C), -1 chosen by Strategy
         p.put("golemOre",                   0.45,  0.45,   0.45,  0.45); // golem route: share of the gatherers on ore
         p.put("golemSites",                 2,     2,      2,     2);   // golem route: golems being built at once
@@ -143,17 +158,21 @@ public final class BotParams {
         p.put("fixedHunters",               0,     0,      0,     0);   // the same villagers hunt all game (at most "hunters")
         p.put("stockpileCooldown",          0,     0,      0,     1);   // no new stockpile within 10 blocks of one cancelled in the last 3 min
         p.put("heroCreep",                  0,     0,      0,     1);   // an idle hero (and one soldier) hunts weak monster camps for experience
-        p.put("shrineEarly",                0,     0,      0,     0);   // the hero shrine right after the first house
+        p.put("shrineMid",                  0,     0,      0,     0);   // the shrine at priority 92 from minute shrineMinute
+        p.put("shrineMinute",               9,     9,      9,     9);
+        p.put("shrineEarlyMinute",          0,     0,      0,     3);   // early shrine not before this minute...
+        p.put("shrineEarlyFields",          0,     0,      0,     2);   // ...nor before this many fields
+        p.put("shrineEarly",                0,     0,      0,     1);   // the hero shrine right after the first house
         p.put("huntReach",                  999,   999,    999,   999); // a villager hunts only game this close to it
         p.put("safePath",                   0,     0,      0,     1);   // no resource whose walk passes monsters or a death spot
         p.put("fleeRaiders",                0,     0,      0,     1);   // villagers run from enemy soldiers too, and a raided work spot is avoided
         p.put("clearForWood",               0,     0,      0,     1);   // woods behind monsters: soldiers clear them (the opening ends for it)
         p.put("rallyGuard",                 0,     0,      0,     1);   // an idle army waits by the villagers out in the field, not at home
         p.put("vilCap",                     99,    99,     99,    38);  // even expert: villagers stop here
-        p.put("rushMinute",                 0,     0,      0,     8);   // before this minute...
-        p.put("rushSoldiers",               99,    99,     99,    99);   // ...this many enemy soldiers (more than ours) end the opening
-        p.put("openingBreakMin",            5,     5,      5,     5);   // ...and the enemy has at least this many soldiers
-        p.put("openingBreak",               0,     0,      0,     4);   // end the opening once a seen enemy army is this many soldiers ahead (0 = never)
+        p.put("rushMinute",                 0,     0,      0,     7);   // before this minute...
+        p.put("rushSoldiers",               99,    99,     99,    3);   // ...this many enemy soldiers (more than ours) end the opening
+        p.put("openingBreakMin",            3,     3,      3,     3);   // ...and the enemy has at least this many soldiers
+        p.put("openingBreak",               0,     0,      0,     2);   // end the opening once a seen enemy army is this many soldiers ahead (0 = never)
         p.put("smithFrom",                  99,    99,     99,    11);   // even expert: blacksmith (and miners for it) from this minute
         p.put("smithMiners",                3,     3,      3,     3);
         p.put("woodDropFrom",               8,     8,      8,     8);   // ...from this minute on

@@ -181,8 +181,13 @@ public final class Builder {
             // monsters keep eating villagers (a wolf den beside the base): a few soldiers clear it, villagers cannot
             boolean beastTrouble = evenExpert && bot.hazardDeaths >= 4 && workers >= 6 && barracks == 0 && in.built(plan.farm) >= 2;
             if (beastTrouble) wantBarracks = 1;
+            // rush defence: two barracks now, ahead of everything but supply
+            boolean rushDef = evenExpert && (bot.army.rushDefence(in) || (Strategy.respondTo(bot, Strategy.RUSH) && workers >= 8 && BuildOrder.minutes() < 12));
+            if (rushDef) wantBarracks = Math.max(wantBarracks, 2);
+            boolean campRush = evenExpert && bot.army.campRush(in) && workers >= 6;
+            if (campRush) wantBarracks = Math.max(wantBarracks, 1);
             if (barracks < wantBarracks) {
-                double pri = earlyArmy ? (barracks == 0 ? 95 : 84) : (barracks == 0 ? 80 : 62) - barracks * 4;
+                double pri = rushDef || campRush ? 106 : earlyArmy ? (barracks == 0 ? 95 : 84) : (barracks == 0 ? 80 : 62) - barracks * 4;
                 if (evenExpert && workers >= 18) pri = barracks < 2 ? 95 : 88;
                 if (styleNow) pri = 105;
                 if (beastTrouble || (evenExpert && barracks == 0 && workers >= 10 && in.built(plan.farm) >= 2 && (!bot.army.safeToBoom(in) || bot.army.homeCampStrength(in) > 0))) pri = 105;
@@ -269,9 +274,18 @@ public final class Builder {
                 reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.WITCH_HUT, 91, home, 12, 30));
             // early shrine (a player's advice): right after the first house - heroes cost nothing but time,
             // so the sooner the shrine stands the more of the game they fight in
+            // ...or a little later (shrineEarlyMinute / shrineEarlyFields): its 125 wood at minute 1 slowed the
+            // first fields, which the brutal bot's rushes punished
             if (p.b("heroes") && p.b("shrineEarly") && in.total(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY) == 0
-                    && in.total(plan.house) >= 1 && workers >= 6)
+                    && in.total(plan.house) >= 1 && workers >= 6
+                    && BuildOrder.minutes() >= p.get("shrineEarlyMinute") && in.built(plan.farm) >= p.get("shrineEarlyFields"))
                 reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY, 99, home, 10, 30));
+            // the shrine at mid game (parameter shrineMid): at priority 72 it lost to every field, house and
+            // barracks for wood and most games never had a hero; from minute shrineMinute it goes ahead of them
+            if (p.b("heroes") && p.b("shrineMid") && bot.difficulty == Difficulty.EXPERT
+                    && in.total(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY) == 0
+                    && in.built(plan.barracks) > 0 && BuildOrder.minutes() >= p.get("shrineMinute"))
+                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY, 92, home, 10, 30));
             // shrine of prosperity: cheap, and its heroes cost no resources at all
             if (p.b("heroes") && in.total(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY) == 0
                     && in.built(plan.barracks) > 0 && workers >= 16 && !evenLean) {
@@ -300,7 +314,13 @@ public final class Builder {
             if (bot.now - lastFail.getOrDefault(b, -100000L) < 200) continue; // no spot found recently
             boolean dropSiteEmergency = b == plan.stockpile && (bot.economy.dropSites(in).isEmpty() || (bot.now - bot.economy.deliveryTrouble < 2400 && r.priority >= 110));
             int woodReserve = dropSiteEmergency ? 0 : Production.WOOD_RESERVE;
-            if (!in.canAfford(b.cost.food, b.cost.wood + woodReserve, b.cost.ore)) {
+            Ledger L = bot.ledger;
+            boolean affordable = L.on()
+                    ? in.food - L.fundFood >= b.cost.food && in.wood - L.fundWood >= b.cost.wood + woodReserve && in.ore - L.fundOre >= b.cost.ore
+                    : in.canAfford(b.cost.food, b.cost.wood + woodReserve, b.cost.ore);
+            // supply and emergencies may still take the fund (a housed-out town centre stops everything)
+            if (!affordable && L.on() && r.priority >= 105) affordable = in.canAfford(b.cost.food, b.cost.wood + woodReserve, b.cost.ore);
+            if (!affordable) {
                 if (reserved == null && r.priority >= 40) reserved = r;
                 // an important building we are saving for must not be starved by cheaper, less
                 // important ones that use the same resource (the escrow rule)

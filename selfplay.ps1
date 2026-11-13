@@ -31,7 +31,10 @@ param(
     # (build.ps1 testJar): starts in about a minute instead of two to six
     [switch]$Prod,
     # at most this many servers loading at once (they slow each other and the running games down)
-    [int]$MaxStarting = 3
+    [int]$MaxStarting = 3,
+    # all test servers on the machine (every batch together) stay under this; 0 = only -Parallel counts.
+    # Two batches can then run side by side and the second fills the slots the first leaves at its end.
+    [int]$GlobalMax = 0
 )
 Add-Type -Namespace RonStrat -Name Idle -MemberDefinition @'
 [StructLayout(LayoutKind.Sequential)] public struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }
@@ -191,6 +194,7 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
             }
         }
         if ($MaxStarting -gt 0 -and $loading -ge $MaxStarting) { break }
+        if ($GlobalMax -gt 0 -and @(Get-Process ronstrat-java -ErrorAction SilentlyContinue).Count -ge $GlobalMax) { break }
         $q = $queue.Dequeue()
         $running += Start-Match $q.Spec $q.Seed $q.Map $q.Extra
         Write-Host "[$(Get-Date -Format HH:mm:ss)] started $($q.Spec) seed $($q.Seed) $(if ($q.Map) { Split-Path $q.Map -Leaf })"

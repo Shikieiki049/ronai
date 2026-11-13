@@ -1,0 +1,8 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.ronstrat.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": ["ChunkSnapshotMixin"],
+  "injectors": { "defaultRequire": 0 }
+}
