@@ -15,17 +15,18 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 MAPS = ["Mirs_Landing", "Berlingrad_Classic", "Cabana_Republic", "Infinity_Isle", "Snowplow", "Post-Youth", "Oceanborn"]
 
 SPACE = {
-    "ledgerFrom":        (3, 8, False),
-    "ledgerShare1":      (0.1, 0.7, False),
-    "ledgerShare2":      (0.3, 0.9, False),
-    "ledgerShareThreat": (0.6, 1.0, False),
-    "openingBreak":      (1, 4, False),
-    "openingBreakMin":   (2, 6, True),
-    "rushSoldiers":      (2, 5, True),
-    "rushMinute":        (5, 9, False),
-    "boomPunishPop":     (8, 30, True),
-    "openingMinutes":    (7, 12, True),
+    "fieldsScale":       (1.0, 1.7, False),
+    "villagersFirst":    (0, 1, True),
+    "villagersFirstGap": (0, 5, True),
+    "boomWorkers":       (20, 34, True),
+    "armyPerWorker":     (0.4, 1.2, False),
+    "vilCap":            (32, 46, True),
     "maxBarracks":       (3, 6, True),
+    "openingBreak":      (1, 3, False),
+    "rushSoldiers":      (2, 4, True),
+    "openingMinutes":    (8, 13, True),
+    "boomPunishPop":     (8, 30, True),
+    "houseBuffer":       (5, 13, True),
 }
 
 
@@ -67,7 +68,8 @@ def evaluate(name, params, base, seeds, parallel):
     (ROOT / "tools/suites" / f"{name}.json").write_text(json.dumps(suite, indent=1), encoding="utf-8")
     label = f"TR_{name}"
     subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(ROOT / "suite.ps1"),
-                    "-Suite", name, "-Label", label, "-Full", "-AltRon", "-Parallel", str(parallel), "-ParallelIdle", str(parallel)],
+                    "-Suite", name, "-Label", label, "-Full", "-AltRon", "-Parallel", str(parallel), "-ParallelIdle", str(parallel),
+                    "-GlobalMax", "16"],
                    cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     out = ROOT / "results" / f"{label}.jsonl"
     sc = []

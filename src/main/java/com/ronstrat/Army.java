@@ -766,7 +766,10 @@ public final class Army {
         for (Mob a : in.army) { per += UnitEval.power(a); perN++; }
         double unit = perN > 0 ? per / perN : defaultUnitPower;
         double mins = bot.now / 1200.0;
-        double prior = Math.max(0, Math.min(30, (mins - 6.5) * 2.0)) * unit;
+        // the expert sees the whole map: what the enemy really has counts, the guess by the clock (7 soldiers
+        // at minute 10) only as far as threatPriorScale lets it. At 1 it put the army ahead of villagers from
+        // 24 villagers on whatever the enemy did: 7 villagers in minutes 5-10 where the town centre could make 20
+        double prior = Math.max(0, Math.min(30, (mins - 6.5) * 2.0)) * unit * (bot.difficulty == Difficulty.EXPERT ? bot.params.get("threatPriorScale") : 1.0);
         return Math.max(seen, prior);
     }
     private static final double defaultUnitPower = 8;
@@ -805,6 +808,19 @@ public final class Army {
         List<Mob> mine = new ArrayList<>();
         for (Mob a : in.army) if (realSoldier(a)) mine.add(a);
         return Math.sqrt(e) > Math.sqrt(UnitEval.strength(mine)) + gap * defaultUnitPower;
+    }
+
+    /** how many more real soldiers the strongest enemy has than we do (seen; the expert sees the map) */
+    int soldierGap(Intel in) {
+        int theirs = 0, ours = 0;
+        for (Intel.EnemyMemory m : in.enemies.values()) if (m.alive) {
+            m.knownStrength(bot.now);
+            int n = 0;
+            for (LivingEntity u : m.seenUnits.values()) if (realSoldier(u)) n++;
+            theirs = Math.max(theirs, n);
+        }
+        for (Mob a : in.army) if (realSoldier(a)) ours++;
+        return theirs - ours;
     }
 
     /** not a scout dog or cat, not villagers called to arms (militia): those triggered the rush rule in mirrors */

@@ -71,7 +71,9 @@ public final class Builder {
                 int sched = hs < 270 ? (hs < 120 ? 1 : hs < 150 ? 2 : hs < 210 ? 3 : 4) : Math.min(10, 5 + (int) ((hs - 270) / 66));
                 // ahead of farms only once supply is getting close; with room left the fields come first
                 // (four houses and no field at 2:30 left a start without hunt at 125 food in 5 minutes)
-                if (in.total(plan.house) < sched && in.popCap < 150 && in.built(plan.capitol) > 0 && unbuiltHouses < 2 && freeSupply <= 10)
+                // lean opening: no house ahead of the schedule's clock while the town centre has no food to train with
+                if (in.total(plan.house) < sched && in.popCap < 150 && in.built(plan.capitol) > 0 && unbuiltHouses < 2
+                        && freeSupply <= (bot.economy.foodStarved(in) ? 2 : 10))
                     reqs.add(new Request(plan.house, freeSupply <= 6 ? 98 : 88, home, 9, 44));
                 buffer = Math.max(buffer, 5);
             }
@@ -278,7 +280,8 @@ public final class Builder {
             // first fields, which the brutal bot's rushes punished
             if (p.b("heroes") && p.b("shrineEarly") && in.total(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY) == 0
                     && in.total(plan.house) >= 1 && workers >= 6
-                    && BuildOrder.minutes() >= p.get("shrineEarlyMinute") && in.built(plan.farm) >= p.get("shrineEarlyFields"))
+                    && BuildOrder.minutes() >= p.get("shrineEarlyMinute")
+                    && in.built(plan.farm) >= p.get("shrineEarlyFields") + (bot.economy.foodStarved(in) ? 2 : 0))
                 reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY, 99, home, 10, 30));
             // the shrine at mid game (parameter shrineMid): at priority 72 it lost to every field, house and
             // barracks for wood and most games never had a hero; from minute shrineMinute it goes ahead of them

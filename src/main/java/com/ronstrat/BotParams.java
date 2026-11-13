@@ -52,6 +52,14 @@ public final class BotParams {
 
     public static synchronized void reload() { CACHE.clear(); }
 
+    /** a private copy with some values replaced (per-map parameters): the shared instance stays as it is */
+    public BotParams with(Map<String, Double> overrides) {
+        BotParams c = new BotParams(difficulty);
+        c.v.putAll(v);
+        for (Map.Entry<String, Double> e : overrides.entrySet()) if (c.v.containsKey(e.getKey())) c.v.put(e.getKey(), e.getValue());
+        return c;
+    }
+
     private static BotParams load(Difficulty d, String profile) {
         BotParams p = defaults(d);
         // the built-in values are written out for reference; a params-<tier>.json next to them overrides
@@ -148,6 +156,20 @@ public final class BotParams {
         p.put("lateAllIn",                  0,     0,      0,     0);   // from lateAllInMinute: attack with an army at least 90% of theirs
         p.put("lateAllInMinute",            24,    24,     24,    24);
         p.put("campRush",                   0,     0,      0,     1);   // monsters camped at home killing villagers: barracks and 3 soldiers first
+        p.put("huntFar",                    0,     0,      0,     0);   // game-rich maps: hunt out to huntFarBox with up to huntFarHunters
+        p.put("huntFarBox",                 110,   110,    110,   110);
+        p.put("huntFarHunters",             4,     4,      4,     4);
+        p.put("mapParams",                  0,     0,      0,     0);   // apply tuning/map_params.json for the map being played
+        p.put("leanDryTicks",               3000,  3000,   3000,  3000);
+        p.put("leanOpening",                0,     0,      0,     0);   // no hunters without a catch, no far forage, no early houses or shrine while starved
+        p.put("fieldsScale",                1,     1,      1,     1.3);   // the opening's field curve times this
+        p.put("villagersFirst",             0,     0,      0,     0);   // villagers before soldiers until the cap unless the enemy is ahead by more than villagersFirstGap soldiers
+        p.put("villagersFirstGap",          2,     2,      2,     2);
+        p.put("threatPriorScale",           1,     1,      1,     1);   // how much of the by-the-clock enemy army guess counts (1 = all, 0 = only what is seen)
+        p.put("farmNudge",                  0,     0,      0,     0);   // a farmer standing with ripe crops left is sent to the nearest one
+        p.put("farmRoles",                  0,     0,      0,     0);   // fields only for villagers that can still become farmers
+        p.put("leafFirst",                  0,     0,      0,     0);   // woodcutters go for leaves (60 wood a minute) before logs (37.5)
+        p.put("leafRange",                  24,    24,     24,    24);
         p.put("harass",                     0,     0,      0,     0);   // minutes 8-14: 2-3 soldiers raid the enemy woodcutters
         p.put("strategy",                   0,     0,      0,     -1);   // 0 farms (A), 1 golems (B), 2 witches and tech (C), -1 chosen by Strategy
         p.put("golemOre",                   0.45,  0.45,   0.45,  0.45); // golem route: share of the gatherers on ore
@@ -170,9 +192,9 @@ public final class BotParams {
         p.put("rallyGuard",                 0,     0,      0,     1);   // an idle army waits by the villagers out in the field, not at home
         p.put("vilCap",                     99,    99,     99,    38);  // even expert: villagers stop here
         p.put("rushMinute",                 0,     0,      0,     7);   // before this minute...
-        p.put("rushSoldiers",               99,    99,     99,    3);   // ...this many enemy soldiers (more than ours) end the opening
+        p.put("rushSoldiers",               99,    99,     99,    2);   // ...this many enemy soldiers (more than ours) end the opening
         p.put("openingBreakMin",            3,     3,      3,     3);   // ...and the enemy has at least this many soldiers
-        p.put("openingBreak",               0,     0,      0,     2);   // end the opening once a seen enemy army is this many soldiers ahead (0 = never)
+        p.put("openingBreak",               0,     0,      0,     1.5);   // end the opening once a seen enemy army is this many soldiers ahead (0 = never)
         p.put("smithFrom",                  99,    99,     99,    11);   // even expert: blacksmith (and miners for it) from this minute
         p.put("smithMiners",                3,     3,      3,     3);
         p.put("woodDropFrom",               8,     8,      8,     8);   // ...from this minute on
@@ -180,7 +202,7 @@ public final class BotParams {
         p.put("rebalanceSlack",             4,     3,      2,     1);    // how far worker split may drift before reassigning
         p.put("farmWorkersShare",           0.45,  0.45,   0.42,  0.40); // food share of workers in mid game
         p.put("econV2",                     0,     0,      0,     1);    // the rewritten economy: opening to the user's curve (BuildOrder), workers by need
-        p.put("openingMinutes",             0,     0,      0,     10);
+        p.put("openingMinutes",             0,     0,      0,     11);
         p.put("openingOreFloor",            0,     0,      0,     100);  // opening: one miner only while ore is under this
         p.put("econPhase2",                 0,     0,      0,     0);    // after the opening: workers by need (fields, miners for armour, rest wood)
         p.put("econWorkers",                0,     0,      0,     34);   // ...and the villager count the army phase stops at

@@ -1,0 +1,43 @@
+{
+ "description": "tuner tr1b vs RON brutal",
+ "items": [
+  {
+   "name": "first",
+   "spec": "expert:tr1b vs expert@ron readied nohandicap",
+   "us": 0,
+   "pair": "tr1b",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    401,
+    402
+   ]
+  },
+  {
+   "name": "second",
+   "spec": "expert@ron vs expert:tr1b readied nohandicap",
+   "us": 1,
+   "pair": "tr1b",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    401,
+    402
+   ]
+  }
+ ]
+}

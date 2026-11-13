@@ -336,6 +336,9 @@ public final class Economy {
 
         if (p.b("woodDrop")) checkWoodTrip(in, byJob.get(Job.WOOD));
         shelter(in);
+        if (bot.verbose && bot.now - lastRoleLog >= 1200) { lastRoleLog = bot.now; logRoles(in); }
+        if (bot.verbose) { trackFarmers(in); sampleTime(in); }
+        if (bot.difficulty == Difficulty.EXPERT && p.b("farmNudge")) nudgeFarmers(in);
         int gatherers = in.workers.size() - byJob.get(Job.BUILD).size() - byJob.get(Job.MILITARY).size();
         checkStagnation(in, byJob);
         double[] raw = desiredShares(in);
@@ -382,6 +385,15 @@ public final class Economy {
         if (BuildOrder.active(bot) && bot.army.sinceThreat() > 1200) {
             int fields = in.built(bot.plan.farm);
             int hunt = animalsNearHome > 0 ? Math.min(maxHunters(in), Math.max(2, 6 - fields)) : (fields == 0 ? 2 : 0);
+            // lean opening: hunters that bring nothing home go to the woods (Cabana: 4-6 of 10 villagers "on
+            // food" brought 125 food in nine minutes; maps with no game at all kept two on it until the first field)
+            if (lean(1)) {
+                int got = foodHarvested();
+                if (got > huntFoodSeen) { huntFoodSeen = got; huntFoodAt = bot.now; }
+                // 150 s: foragers deliver a load at a time, a minute and more apart; Cabana's hunters brought nothing for nine minutes
+                if (hunt > 0 && bot.now - huntFoodAt > p.get("leanDryTicks") && bot.now > p.get("leanDryTicks")) huntDryUntil = bot.now + 2400;
+                if (bot.now < huntDryUntil) hunt = 0;
+            }
             int foodW = Math.min(gatherers, fields + hunt);
             int oreW = in.ore < p.get("openingOreFloor") && gatherers >= 12 ? 1 : 0;
             // golem route: a share of the villagers on ore from the start (golems cost no food)
@@ -612,7 +624,7 @@ public final class Economy {
 
     private int computeFarmsWanted(Intel in, int foodWorkers) {
         // free food first (hunt, berries); farms cost wood and take time to grow
-        int huntable = countAnimals(in, 40);
+        int huntable = countAnimals(in, huntBox(in) + 4);
         animalsNearHome = huntable;
         int hunters = huntable == 0 ? 0 : Math.min(maxHunters(in), huntable);
         int foragers = 0;
@@ -650,7 +662,24 @@ public final class Economy {
 
     private int maxHunters(Intel in) {
         int h = Math.max(2, bot.params.i("hunters"));
+        // a map rich in game (parameter huntFar): the hunters stay on, one per three animals in reach
+        if (farGame >= 0 && bot.difficulty == Difficulty.EXPERT && bot.params.b("huntFar") && in.workers.size() >= 12)
+            return Math.max(2, Math.min(bot.params.i("huntFarHunters"), farGame / 3));
         return in.workers.size() >= 20 && bot.difficulty == Difficulty.EXPERT ? Math.min(2, h) : h;
+    }
+
+    private int farGame = -1;
+    private long farGameAt = -10000;
+
+    /**
+     * How far from home the hunt goes. Maps differ: Cabana has 20-30 animals within 120 blocks that the
+     * 36-block hunt never touched, four maps have none at all. With huntFar the reach is huntFarBox while
+     * at least four animals stand inside it (counted every 30 s).
+     */
+    private double huntBox(Intel in) {
+        if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("huntFar")) return 36;
+        if (bot.now - farGameAt > 600) { farGameAt = bot.now; farGame = countAnimals(in, bot.params.get("huntFarBox")); }
+        return farGame >= 4 ? bot.params.get("huntFarBox") : 36;
     }
 
     private int countAnimals(Intel in, double r) {
@@ -676,6 +705,21 @@ public final class Economy {
         for (BuildingPlacement b : in.own) {
             if (!(b instanceof FarmPlacement) || !b.isBuilt) continue;
             if (farmTaken(in, b)) continue;
+            // a hunter, lumberjack or miner never becomes a farmer (RON: the first profession reached is
+            // kept), so it would plant wheat for good where a farmer plants carrots, then potatoes (+25%,
+            // +50%): a villager without a profession takes the field instead and this one takes its tree
+            if (bot.difficulty == Difficulty.EXPERT && bot.params.b("farmRoles") && lockedOut(w)) {
+                Mob swap = null;
+                for (Mob o : in.workers) {
+                    if (o == w || job(o) != Job.WOOD || lockedOut(o)) continue;
+                    if (swap == null || o.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(b.centrePos)) < swap.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(b.centrePos))) swap = o;
+                }
+                if (swap != null) {
+                    Orders.farm(bot.name, List.of(swap), b.centrePos);
+                    setJob(swap, Job.FOOD);
+                    return assignBlock(in, w, ResourceName.WOOD, Job.WOOD);
+                }
+            }
             Orders.farm(bot.name, List.of(w), b.centrePos);
             setJob(w, Job.FOOD);
             return true;
@@ -690,7 +734,8 @@ public final class Economy {
         }
         if (hunting < Math.max(1, maxHunters(in))) {
             BlockPos h = in.home();
-            AABB box = new AABB(h).inflate(36, 12, 36);
+            double hb = huntBox(in);
+            AABB box = new AABB(h).inflate(hb, 16, hb);
             // a hunter is sent only to game near where it stands (a woodcutter across the map was sent
             // after a cow 70 blocks off, again and again)
             double reach = bot.params.get("huntReach"), reach2 = reach * reach;
@@ -712,6 +757,14 @@ public final class Economy {
         }
         // 3. forage food blocks outside farms (berries, mushrooms, melons...)
         return assignBlock(in, w, ResourceName.FOOD, Job.FOOD);
+    }
+
+    /** a villager whose profession is not farmer and can no longer become one */
+    private static boolean lockedOut(Mob w) {
+        if (!(w instanceof com.solegendary.reignofnether.unit.units.villagers.VillagerUnit v)) return false;
+        var p = v.getUnitProfession();
+        return p != com.solegendary.reignofnether.unit.units.villagers.VillagerUnitProfession.NONE
+                && p != com.solegendary.reignofnether.unit.units.villagers.VillagerUnitProfession.FARMER;
     }
 
     private boolean farmTaken(Intel in, BuildingPlacement farm) {
@@ -744,7 +797,21 @@ public final class Economy {
         if (drops.isEmpty()) drops = List.of(in.home());
         BlockPos best = null;
         double bestScore = Double.MAX_VALUE;
-        for (BlockPos d : drops) {
+        // leaves first (parameter leafFirst): a leaf is 1 wood a second (60 a minute), a log 15 wood in 24
+        // seconds (37.5 a minute) - and the leaves rot away once their log is felled
+        if (type == ResourceName.WOOD && bot.difficulty == Difficulty.EXPERT && bot.params.b("leafFirst")) {
+            for (BlockPos d : drops) {
+                Optional<BlockPos> bp = ResourceIndex.get(bot.level).findClosest(bot.level, d, (int) bot.params.get("leafRange"), type,
+                        pos -> bot.level.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.LeavesBlock
+                                && Math.abs(pos.getY() - d.getY()) <= 8 && RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos)
+                                && crowd(pos, w) < 2 && !in.dangerousPath(d, pos, 14));
+                if (bp.isPresent()) {
+                    double score = Math.sqrt(bp.get().distSqr(d)) + 0.15 * Math.sqrt(bp.get().distSqr(w.blockPosition()));
+                    if (score < bestScore) { bestScore = score; best = bp.get(); }
+                }
+            }
+        }
+        if (best == null) for (BlockPos d : drops) {
             for (int range : new int[] { 14, 24, 40 }) {
                 Optional<BlockPos> bp = ResourceIndex.get(bot.level).findClosest(bot.level, d, range, type,
                         pos -> Math.abs(pos.getY() - d.getY()) <= 8 && RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos)
@@ -782,6 +849,8 @@ public final class Economy {
                 }
             }
         }
+        // lean opening: no walk across the map for food (a forage 147 blocks off) while fields can be built
+        if (best == null && type == ResourceName.FOOD && bot.difficulty == Difficulty.EXPERT && lean(2) && BuildOrder.minutes() < 12) return false;
         if (best == null) {
             // nothing near any drop site: look further out from the worker itself and ask for a stockpile
             Optional<BlockPos> far = ResourceIndex.get(bot.level).findClosest(bot.level, in.home(), 120, type,
@@ -814,6 +883,148 @@ public final class Economy {
         BlockPos b = ps.get(0);
         for (BlockPos p : ps) if (p.distSqr(to) < b.distSqr(to)) b = p;
         return b;
+    }
+
+    private int huntFoodSeen = -1;
+    private long huntFoodAt, huntDryUntil = -1;
+
+    private int foodHarvested() {
+        var rp = com.solegendary.reignofnether.player.PlayerServerEvents.getRTSPlayer(bot.name);
+        return rp == null ? 0 : rp.scores.scoreList.getOrDefault(com.solegendary.reignofnether.player.RTSPlayerScoresEnum.FOOD_HARVESTED, 0);
+    }
+
+    /** the hunt brings nothing (lean opening): the builder holds back what only pays with food coming in */
+    public boolean foodStarved(Intel in) {
+        if (!lean(4)) return false;
+        int got = foodHarvested();
+        if (got > huntFoodSeen) { huntFoodSeen = got; huntFoodAt = bot.now; }
+        return in.food < 50 && bot.now - huntFoodAt > 400;
+    }
+
+    /** leanOpening is a set of rules: 1 dry hunters to the woods, 2 no far forage, 4 no houses or shrine ahead while starved */
+    boolean lean(int bit) { return bot.difficulty == Difficulty.EXPERT && (((int) bot.params.get("leanOpening")) & bit) != 0; }
+
+    private final Map<Integer, Long> nudgedAt = new HashMap<>();
+
+    /**
+     * A farmer standing in its field with ripe crops left (parameter farmNudge): RON's farming goal goes on
+     * to the ripe crops next to the one just cut and otherwise waits for its next search, so farmers stood
+     * 40-50% of the time while a third of the crops were ripe. The order a player gives by clicking a ripe
+     * crop of the field - the farm order at that crop - sends it there at once.
+     */
+    private void nudgeFarmers(Intel in) {
+        java.util.Set<BlockPos> taken = new java.util.HashSet<>();
+        for (Mob w : in.workers) {
+            GatherResourcesGoal g = ((WorkerUnit) w).getGatherResourceGoal();
+            if (g != null && g.getGatherTarget() != null) taken.add(g.getGatherTarget());
+        }
+        for (Mob w : in.workers) {
+            GatherResourcesGoal g = ((WorkerUnit) w).getGatherResourceGoal();
+            if (g == null || g.getTargetFarm() == null || g.getGatherTarget() != null) continue;
+            var rg = ((Unit) w).getReturnResourcesGoal();
+            if (rg != null && rg.getBuildingTarget() != null) continue;
+            if (Unit.atMaxResources((Unit) w) || bot.now - nudgedAt.getOrDefault(w.getId(), -1000L) < 30) continue;
+            BuildingPlacement farm = g.getTargetFarm();
+            BlockPos best = null;
+            for (BlockPos p : BlockPos.betweenClosed(farm.minCorner, farm.maxCorner.above(2))) {
+                var bs = bot.level.getBlockState(p);
+                if (!(bs.getBlock() instanceof net.minecraft.world.level.block.CropBlock c) || !c.isMaxAge(bs) || taken.contains(p)) continue;
+                if (best == null || p.distSqr(w.blockPosition()) < best.distSqr(w.blockPosition())) best = p.immutable();
+            }
+            if (best == null) continue;
+            nudgedAt.put(w.getId(), bot.now);
+            taken.add(best);
+            Orders.farm(bot.name, List.of(w), best);
+        }
+    }
+
+    private long lastRoleLog = -100000;
+    private final Map<BlockPos, Integer> farmWorker = new HashMap<>();
+    /** verbose time budget, per job (wood, farm): samples working / walking to the block / carrying home / standing */
+    private final int[][] timeBudget = new int[2][4];
+    private int leafSamples, logSamples;
+
+    private void sampleTime(Intel in) {
+        for (Mob w : in.workers) {
+            GatherResourcesGoal g = ((WorkerUnit) w).getGatherResourceGoal();
+            if (g == null) continue;
+            int k = g.getTargetFarm() != null ? 1 : job(w) == Job.WOOD ? 0 : -1;
+            if (k < 0) continue;
+            var rg = ((Unit) w).getReturnResourcesGoal();
+            boolean returning = rg != null && rg.getBuildingTarget() != null;
+            int st = returning ? 2 : g.isGathering() ? 0 : w.getNavigation().isInProgress() ? 1 : 3;
+            timeBudget[k][st]++;
+            if (k == 0 && st == 0 && g.getGatherTarget() != null) {
+                if (bot.level.getBlockState(g.getGatherTarget()).getBlock() instanceof net.minecraft.world.level.block.LeavesBlock) leafSamples++; else logSamples++;
+            }
+        }
+    }
+
+    private String budget(int k) {
+        int[] t = timeBudget[k];
+        int n = Math.max(1, t[0] + t[1] + t[2] + t[3]);
+        String s = "work " + 100 * t[0] / n + "% walk " + 100 * t[1] / n + "% carry " + 100 * t[2] / n + "% stand " + 100 * t[3] / n + "%";
+        java.util.Arrays.fill(t, 0);
+        return s;
+    }
+
+    /** verbose: who works which field, and what became of a farmer that left one */
+    private void trackFarmers(Intel in) {
+        Map<BlockPos, Integer> now = new HashMap<>();
+        for (Mob w : in.workers) {
+            GatherResourcesGoal g = ((WorkerUnit) w).getGatherResourceGoal();
+            if (g != null && g.getTargetFarm() != null) now.put(g.getTargetFarm().originPos, w.getId());
+        }
+        // a field is "swapped" when someone other than its last farmer turns up (a trip to the drop site is not a swap)
+        for (Map.Entry<BlockPos, Integer> e : now.entrySet()) {
+            Integer last = farmWorker.put(e.getKey(), e.getValue());
+            if (last == null || last.equals(e.getValue())) continue;
+            Mob old = null;
+            for (Mob w : in.workers) if (w.getId() == last) old = w;
+            GatherResourcesGoal og = old == null ? null : ((WorkerUnit) old).getGatherResourceGoal();
+            String what = old == null ? "gone" : "now " + job(old) + (og != null && og.getTargetFarm() != null ? " on another field" : og != null && og.getGatherTarget() != null ? " at a block" : " no target")
+                    + (old instanceof com.solegendary.reignofnether.unit.units.villagers.VillagerUnit v ? " " + v.getUnitProfession() : "");
+            bot.log("field swap " + e.getKey().toShortString() + ": #" + last + " (" + what + ") -> #" + e.getValue());
+        }
+    }
+
+    /** verbose, once a minute: the villagers' professions, who works the fields, and what grows there */
+    private void logRoles(Intel in) {
+        java.util.Map<String, int[]> prof = new java.util.TreeMap<>(), onFarm = new java.util.TreeMap<>();
+        for (Mob w : in.workers) {
+            if (!(w instanceof com.solegendary.reignofnether.unit.units.villagers.VillagerUnit v)) continue;
+            String p = v.getUnitProfession().name();
+            int[] c = prof.computeIfAbsent(p, k -> new int[2]);
+            c[0]++; if (v.isVeteran()) c[1]++;
+            GatherResourcesGoal g = v.getGatherResourceGoal();
+            if (g != null && g.getTargetFarm() != null) { int[] f = onFarm.computeIfAbsent(p, k -> new int[2]); f[0]++; if (v.isVeteran()) f[1]++; }
+        }
+        int wheat = 0, carrot = 0, potato = 0, ripe = 0, bare = 0, farms = 0;
+        for (BuildingPlacement b : in.own) {
+            if (!(b instanceof FarmPlacement) || !b.isBuilt) continue;
+            farms++;
+            for (BlockPos p : BlockPos.betweenClosed(b.minCorner, b.maxCorner.above(2))) {
+                var bs = bot.level.getBlockState(p);
+                var bl = bs.getBlock();
+                if (bl == net.minecraft.world.level.block.Blocks.WHEAT) wheat++;
+                else if (bl == net.minecraft.world.level.block.Blocks.CARROTS) carrot++;
+                else if (bl == net.minecraft.world.level.block.Blocks.POTATOES) potato++;
+                else { if (bl == net.minecraft.world.level.block.Blocks.FARMLAND && bot.level.getBlockState(p.above()).isAir()) bare++; continue; }
+                if (bs.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.AGE_7) == 7) ripe++;
+            }
+        }
+        StringBuilder sb = new StringBuilder("roles:");
+        for (var e : prof.entrySet()) sb.append(' ').append(e.getKey()).append(' ').append(e.getValue()[0]).append("(v").append(e.getValue()[1]).append(')');
+        sb.append(" | on farms:");
+        for (var e : onFarm.entrySet()) sb.append(' ').append(e.getKey()).append(' ').append(e.getValue()[0]).append("(v").append(e.getValue()[1]).append(')');
+        sb.append(" | ").append(farms).append(" farms: wheat ").append(wheat).append(" carrot ").append(carrot).append(" potato ").append(potato)
+                .append(" ripe ").append(ripe).append(" bare ").append(bare);
+        sb.append(" | wood: ").append(budget(0)).append(" leaves ").append(100 * leafSamples / Math.max(1, leafSamples + logSamples)).append("%")
+                .append(" | farm: ").append(budget(1));
+        leafSamples = logSamples = 0;
+        sb.append(" | game within 40/80/120/200: ").append(countAnimals(in, 40)).append('/').append(countAnimals(in, 80)).append('/')
+                .append(countAnimals(in, 120)).append('/').append(countAnimals(in, 200));
+        bot.log(sb.toString());
     }
 
     private long shelterSince = -1, lastShelterOrder = -1000;

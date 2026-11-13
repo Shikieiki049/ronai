@@ -52,7 +52,8 @@ final class BuildOrder {
         if (!active(bot) || bot.army.sinceThreat() < 1200) return;
         FactionPlan plan = bot.plan;
         double m = minutes() + bot.params.get("openingLead");
-        int fieldsWanted = (int) Math.ceil(at(FIELDS, m) - 0.01);
+        // fieldsScale: more fields than the user's curve when there are more villagers to work them
+        int fieldsWanted = (int) Math.ceil(at(FIELDS, m) * bot.params.get("fieldsScale") - 0.01);
         int barracksWanted = (int) Math.floor(at(BARRACKS, m) + 0.01);
         int stockWanted = (int) Math.floor(at(STOCKPILES, m) + 0.01);
         reqs.removeIf(r -> {

@@ -109,6 +109,15 @@ final class Strategy {
         Intel in = bot.intel;
         if (in == null || in.capitol == null) return FARMS;
         String map = mapName();
+        // per-map parameters (tuning/map_params.json, parameter mapParams): what self-play found better on
+        // this map only - e.g. the lean opening on Cabana, whose game cannot be hunted
+        if (bot.params.b("mapParams")) {
+            java.util.Map<String, Double> mp = mapParams().get(norm(map));
+            if (mp != null && !mp.isEmpty()) {
+                bot.params = bot.params.with(mp);
+                bot.log("map parameters for " + map + ": " + mp);
+            }
+        }
         Integer t = table().get(norm(map));
         if (t != null) { bot.log("route " + t + " from the route table (" + map + ")"); return t; }
         BlockPos h = in.home();
@@ -140,6 +149,32 @@ final class Strategy {
 
     /** "Infinity Isle", "Infinity_Isle" and "infinity-isle" are the same map */
     static String norm(String s) { return s.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", ""); }
+
+    private static java.util.Map<String, java.util.Map<String, Double>> mapParams;
+
+    private static synchronized java.util.Map<String, java.util.Map<String, Double>> mapParams() {
+        if (mapParams != null) return mapParams;
+        mapParams = new java.util.HashMap<>();
+        try {
+            String pd = System.getProperty("ronstrat.profiles");
+            java.nio.file.Path f = pd != null ? java.nio.file.Path.of(pd).getParent().resolve("map_params.json")
+                    : net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get().resolve("ronstrat/map_params.json");
+            String text = null;
+            if (java.nio.file.Files.exists(f)) text = java.nio.file.Files.readString(f);
+            else try (var r = Strategy.class.getResourceAsStream("/ronstrat/map_params.json")) {
+                if (r != null) text = new String(r.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            }
+            if (text != null) {
+                com.google.gson.JsonObject o = com.google.gson.JsonParser.parseString(text).getAsJsonObject();
+                for (var e : o.entrySet()) {
+                    java.util.Map<String, Double> m = new java.util.HashMap<>();
+                    for (var kv : e.getValue().getAsJsonObject().entrySet()) m.put(kv.getKey(), kv.getValue().getAsDouble());
+                    mapParams.put(norm(e.getKey()), m);
+                }
+            }
+        } catch (Exception ignored) { }
+        return mapParams;
+    }
 
     private static java.util.Map<String, Integer> table;
 

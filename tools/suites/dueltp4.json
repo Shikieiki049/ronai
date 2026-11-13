@@ -1,0 +1,51 @@
+{
+ "description": "new economy (profile ws: econV2 on) against the same build without it, 1v1, 8 maps, both seats",
+ "items": [
+  {
+   "name": "tp4 first",
+   "spec": "expert:tp4 vs expert readied nohandicap",
+   "us": 0,
+   "pair": "tp4",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    501,
+    502
+   ]
+  },
+  {
+   "name": "tp4 second",
+   "spec": "expert vs expert:tp4 readied nohandicap",
+   "us": 1,
+   "pair": "tp4",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    501,
+    502
+   ]
+  }
+ ]
+}

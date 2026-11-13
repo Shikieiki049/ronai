@@ -13,7 +13,7 @@ import java.util.Random;
 public final class Bot implements Agent {
     public final String name;
     public final Difficulty difficulty;
-    public final BotParams params;
+    public BotParams params;
     /** parameter profile ("" = the difficulty's defaults) */
     public final String profile;
     public final FactionPlan plan;

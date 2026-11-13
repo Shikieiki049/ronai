@@ -1,0 +1,50 @@
+{
+ "description": "short games (12 minutes) for economy changes: current expert against the baseline, both seat orders, compared on what each side gathered and built",
+ "report": "econ",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert:hf vs expert readied nohandicap",
+   "us": 0,
+   "pair": "hf",
+   "extra": "-Dronstrat.stopAt=900",
+   "maps": [
+    "Cabana_Republic",
+    "Mirs_Landing",
+    "Infinity_Isle"
+   ],
+   "seeds": [
+    502,
+    503,
+    504,
+    505,
+    506,
+    507,
+    508,
+    509
+   ]
+  },
+  {
+   "name": "baseline first",
+   "spec": "expert vs expert:hf readied nohandicap",
+   "us": 1,
+   "pair": "hf",
+   "extra": "-Dronstrat.stopAt=900",
+   "maps": [
+    "Cabana_Republic",
+    "Mirs_Landing",
+    "Infinity_Isle"
+   ],
+   "seeds": [
+    502,
+    503,
+    504,
+    505,
+    506,
+    507,
+    508,
+    509
+   ]
+  }
+ ]
+}

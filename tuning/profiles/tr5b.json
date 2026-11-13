@@ -1,0 +1,13 @@
+{
+ "ledgerFrom": 5.0,
+ "ledgerShare1": 0.35,
+ "ledgerShare2": 0.405,
+ "ledgerShareThreat": 0.9,
+ "openingBreak": 1,
+ "openingBreakMin": 3,
+ "rushSoldiers": 2,
+ "rushMinute": 7.0,
+ "boomPunishPop": 15.0,
+ "openingMinutes": 11,
+ "maxBarracks": 4.0
+}

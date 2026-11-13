@@ -1,0 +1,45 @@
+{
+ "description": "current expert against RON's own BRUTAL computer player (RON 1.5.0b-2, run with -AltRon), 1v1, no handicap, both seat orders",
+ "items": [
+  {
+   "name": "expert first",
+   "spec": "expert:lo vs expert@ron readied nohandicap",
+   "us": 0,
+   "pair": "ron",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "RON bot first",
+   "spec": "expert@ron vs expert:lo readied nohandicap",
+   "us": 1,
+   "pair": "ron",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}
