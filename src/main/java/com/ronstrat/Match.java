@@ -109,6 +109,7 @@ public final class Match {
 
     /** match is decided when one team (or, in FFA, one player) is left */
     public boolean decided() {
+        if (spec.solo) return aliveTeams().isEmpty();
         if (spec.ffa) {
             int alive = 0;
             for (List<Agent> t : teams) for (Agent b : t) if (BotManager.isRtsName(b.name())) alive++;

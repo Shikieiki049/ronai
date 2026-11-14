@@ -123,7 +123,10 @@ public final class Builder {
                         && in.wood < 200 && !dropSiteNear(in, bot.economy.stockpileWanted, 30);
                 // the woodcutters' walk has grown long (they move on tree by tree, away from the drop site)
                 boolean longWalk = p.b("woodDrop") && bot.economy.farWoodTrip && bot.economy.stockpileFor == com.solegendary.reignofnether.resources.ResourceName.WOOD;
-                reqs.add(new Request(plan.stockpile, stuckLoads ? 110 : farWood ? 100 : longWalk ? 98 : 75, bot.economy.stockpileWanted, 2, 14));
+                // stockpileEager: 75 wood that shortens every woodcutter's trip pays back within minutes - ahead of the next house or farm
+                int base = p.b("stockpileEager") && bot.economy.counts.getOrDefault(Economy.Job.WOOD, 0) >= p.i("stockpileEagerWorkers")
+                        && in.built(plan.farm) >= p.i("stockpileEagerFarms") ? 96 : 75;
+                reqs.add(new Request(plan.stockpile, stuckLoads ? 110 : farWood ? 100 : longWalk ? 98 : base, bot.economy.stockpileWanted, 2, 14));
             }
             // boom: extra capitols double and triple villager production (the AoE2 multi-TC boom)
             int capitols = in.total(plan.capitol);
@@ -309,14 +312,44 @@ public final class Builder {
             }
         }
 
+        // the composition planner's tech: the building of a unit that beats what we can train
+        if (p.b("composition") && bot.difficulty == Difficulty.EXPERT && in.built(plan.barracks) > 0 && workers >= 18) {
+            Building tech = bot.composition.techWanted(in);
+            if (tech != null && in.total(tech) == 0) {
+                boolean ok = tech != com.solegendary.reignofnether.building.Buildings.CASTLE
+                        || in.built(com.solegendary.reignofnether.building.Buildings.WITCH_HUT) > 0
+                        && in.built(com.solegendary.reignofnether.building.Buildings.BLACKSMITH) > 0
+                        && in.built(com.solegendary.reignofnether.building.Buildings.ARCANE_TOWER) > 0;
+                if (ok) reqs.add(new Request(tech, 82, home, 12, 30));
+            }
+        }
         BuildOrder.shape(bot, in, reqs, home);
+        // stall protection: no field standing or going up, the bank empty of food and the hunt gone -
+        // the town centre is dead until a field grows, so the first field outranks everything
+        if (p.b("stallFarm") && in.built(plan.capitol) > 0 && in.total(plan.farm) - in.built(plan.farm) == 0
+                && in.built(plan.farm) < 2 && in.food < 50 && workers >= 3) {
+            if (stallSince < 0) stallSince = bot.now;
+            if (bot.now - stallSince >= 600) {
+                reqs.add(new Request(plan.farm, 115, home, 6, 34));
+                if (!stallLogged) { stallLogged = true; bot.stalls++; bot.log("stall: no food, " + in.built(plan.farm) + " fields - a field first"); }
+            }
+        } else { stallSince = -1; stallLogged = false; }
         reqs.sort((a, b) -> Double.compare(b.priority, a.priority));
         reserved = null;
+        note = reqs.isEmpty() ? "nothing wanted" : "";
+        if (bot.verbose && bot.now - lastSpendLog >= 200) {
+            lastSpendLog = bot.now;
+            StringBuilder sb = new StringBuilder("spend: bank " + in.food + "/" + in.wood + "/" + in.ore + " wants");
+            for (int i = 0; i < Math.min(5, reqs.size()); i++) sb.append(' ').append(name(reqs.get(i).building)).append(':').append((int) reqs.get(i).priority);
+            if (p.b("composition")) sb.append(" | comp ").append(bot.composition.describe());
+            sb.append(" | last: ").append(lastNote).append(" | units: ").append(bot.production.idleReason.isEmpty() ? "training" : bot.production.idleReason);
+            bot.log(sb.toString());
+        }
         for (Request r : reqs) {
             Building b = r.building;
-            if (bot.now - lastFail.getOrDefault(b, -100000L) < 200) continue; // no spot found recently
+            if (bot.now - lastFail.getOrDefault(b, -100000L) < 200) { if (note.isEmpty()) note = "no spot for " + name(b); continue; } // no spot found recently
             boolean dropSiteEmergency = b == plan.stockpile && (bot.economy.dropSites(in).isEmpty() || (bot.now - bot.economy.deliveryTrouble < 2400 && r.priority >= 110));
-            int woodReserve = dropSiteEmergency ? 0 : Production.WOOD_RESERVE;
+            int woodReserve = dropSiteEmergency ? 0 : p.i("buildWoodReserve");
             Ledger L = bot.ledger;
             boolean affordable = L.on()
                     ? in.food - L.fundFood >= b.cost.food && in.wood - L.fundWood >= b.cost.wood + woodReserve && in.ore - L.fundOre >= b.cost.ore
@@ -324,6 +357,8 @@ public final class Builder {
             // supply and emergencies may still take the fund (a housed-out town centre stops everything)
             if (!affordable && L.on() && r.priority >= 105) affordable = in.canAfford(b.cost.food, b.cost.wood + woodReserve, b.cost.ore);
             if (!affordable) {
+                if (note.isEmpty()) note = "saving for " + name(b) + " (" + b.cost.food + "/" + b.cost.wood + "/" + b.cost.ore + ")"
+                        + (r.priority >= 60 && bot.params.get("spendingEscrow") > 0 ? ", everything else waits" : "");
                 if (reserved == null && r.priority >= 40) reserved = r;
                 // an important building we are saving for must not be starved by cheaper, less
                 // important ones that use the same resource (the escrow rule)
@@ -335,6 +370,7 @@ public final class Builder {
             if (r.priority < 100 && b.cost.wood > 0 && bot.production.savingForPotions(in)) continue;
             if (bot.now - lastPlaced < 10) break;
             if (place(in, r)) {
+                if (note.isEmpty()) note = "placed " + name(b);
                 lastPlaced = bot.now;
                 // spend reservation is now actually spent; let the next think re-rank
                 if (bot.economy.stockpileWanted != null && b == plan.stockpile) bot.economy.stockpileWanted = null;
@@ -345,8 +381,16 @@ public final class Builder {
             }
             break;
         }
+        if (!note.isEmpty()) lastNote = note;
         keepBuildersOnSites(in);
     }
+
+    private long stallSince = -1;
+    private boolean stallLogged;
+
+    /** what the builder did with the money this think, for the verbose spending log */
+    private String note = "", lastNote = "";
+    private long lastSpendLog = -1000;
 
     private long lastStockpileCancel = -100000;
     /** stockpiles given up (stalled, monsters): the same spot is not tried again for three minutes
@@ -364,7 +408,25 @@ public final class Builder {
 
     private boolean place(Intel in, Request r) {
         Building b = r.building;
-        BlockPos origin = findSpot(in, b, r.anchor, r.rMin, r.rMax);
+        BlockPos origin = null;
+        BotParams p = bot.params;
+        boolean ring = p.b("farmRing");
+        if (ring && b == bot.plan.farm) {
+            // fields hug the drop sites, the town centre first, then the stockpiles nearest home: every
+            // harvest walks a few blocks instead of 10-30 (a friend's report; a player rings the town centre)
+            List<BlockPos> sites = new ArrayList<>(bot.economy.dropSites(in));
+            BlockPos home = in.home();
+            sites.sort(java.util.Comparator.comparingDouble(s -> s.distSqr(home)));
+            for (BlockPos s : sites) {
+                origin = findSpot(b, s, 4, p.i("farmRingMax"), 1, 6);
+                if (origin != null) break;
+            }
+        } else if (ring && b != bot.plan.stockpile && b != bot.plan.capitol && r.anchor.equals(in.home())) {
+            // the ring next to the town centre is kept for fields: other buildings go further out
+            int rMin = Math.max(r.rMin, p.i("farmRingKeep"));
+            origin = findSpot(in, b, r.anchor, rMin, Math.max(r.rMax, rMin + 16));
+        }
+        if (origin == null) origin = findSpot(in, b, r.anchor, r.rMin, r.rMax);
         if (origin == null) return false;
         int n;
         if (b == bot.plan.capitol) n = in.total(b) == 0 ? in.workers.size() : 3;
@@ -505,6 +567,9 @@ public final class Builder {
         int sx = size.getX(), sz = size.getZ();
         int gap = 2;
         boolean dropSite = b.canAcceptResources;
+        // farmRing: fields pack tight - one block between fields, two to a drop site (a player's ring of
+        // fields round the town centre); crops do not block a walk, so the walkways stay open
+        boolean tightFarm = b == bot.plan.farm && bot.params.b("farmRing");
         int checks = 0;
         // a deterministic spiral of candidate centres, nearest ring first
         for (int r = rMin; r <= rMax; r += 2) {
@@ -515,7 +580,7 @@ public final class Builder {
                 int cx = anchor.getX() + (int) Math.round(Math.cos(a) * r);
                 int cz = anchor.getZ() + (int) Math.round(Math.sin(a) * r);
                 int ox = cx - sx / 2, oz = cz - sz / 2;
-                if (!clearOfBuildings(ox, oz, sx, sz, gap, dropSite)) continue;
+                if (tightFarm ? !clearForField(ox, oz, sx, sz) : !clearOfBuildings(ox, oz, sx, sz, gap, dropSite)) continue;
                 if (nearBadSpot(ox, oz)) continue;
                 int y = bot.level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, cx, cz);
                 if (Math.abs(y - anchor.getY()) > yTol && b != bot.plan.capitol) continue;
@@ -545,6 +610,17 @@ public final class Builder {
     private boolean clearOfBuildings(int ox, int oz, int sx, int sz, int gap, boolean selfIsDropSite) {
         for (BuildingPlacement p : BuildingServerEvents.getBuildings()) {
             int g = (selfIsDropSite || p.getBuilding().canAcceptResources) ? Math.max(gap, 4) : gap;
+            int x0 = ox - g, z0 = oz - g, x1 = ox + sx - 1 + g, z1 = oz + sz - 1 + g;
+            if (p.maxCorner.getX() < x0 || p.minCorner.getX() > x1) continue;
+            if (p.maxCorner.getZ() < z0 || p.minCorner.getZ() > z1) continue;
+            return false;
+        }
+        return true;
+    }
+
+    private boolean clearForField(int ox, int oz, int sx, int sz) {
+        for (BuildingPlacement p : BuildingServerEvents.getBuildings()) {
+            int g = p.getBuilding() == bot.plan.farm ? 1 : p.getBuilding().canAcceptResources ? 2 : 2;
             int x0 = ox - g, z0 = oz - g, x1 = ox + sx - 1 + g, z1 = oz + sz - 1 + g;
             if (p.maxCorner.getX() < x0 || p.minCorner.getX() > x1) continue;
             if (p.maxCorner.getZ() < z0 || p.minCorner.getZ() > z1) continue;

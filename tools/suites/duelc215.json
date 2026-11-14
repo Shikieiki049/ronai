@@ -1,0 +1,51 @@
+{
+ "description": "build215 candidate c215 vs current expert",
+ "items": [
+  {
+   "name": "n14 first",
+   "spec": "expert:c215 vs expert readied nohandicap",
+   "us": 0,
+   "pair": "comp",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105
+   ]
+  },
+  {
+   "name": "n14 second",
+   "spec": "expert vs expert:c215 readied nohandicap",
+   "us": 1,
+   "pair": "comp",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105
+   ]
+  }
+ ]
+}

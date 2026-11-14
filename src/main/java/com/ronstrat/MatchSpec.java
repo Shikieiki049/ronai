@@ -24,6 +24,8 @@ public final class MatchSpec {
 
     public final List<List<Player>> teams = new ArrayList<>();
     public boolean ffa;
+    /** "expert solo": one player alone on the map - the economy measured without an enemy (needs -Dronstrat.stopAt) */
+    public boolean solo;
     /** 1vN handicap for the lone side; on by default, "nohandicap" turns it off */
     public boolean handicap = true;
     /** "readied": every player starts the way RON starts a seat from its lobby (town centre placed, 150/150/50) */
@@ -46,6 +48,7 @@ public final class MatchSpec {
             if (t.endsWith(" night")) { m.night = true; t = t.substring(0, t.length() - 6); again = true; }
             if (t.endsWith(" fog")) { m.fog = true; t = t.substring(0, t.length() - 4); again = true; }
             if (t.endsWith(" ffa")) { m.ffa = true; t = t.substring(0, t.length() - 4); again = true; }
+            if (t.endsWith(" solo")) { m.solo = true; t = t.substring(0, t.length() - 5); again = true; }
         }
         for (String side : t.split("\\s+vs\\s+")) {
             List<Player> team = new ArrayList<>();
@@ -60,6 +63,7 @@ public final class MatchSpec {
             }
             if (!team.isEmpty()) m.teams.add(team);
         }
+        if (m.solo && m.teams.size() == 1) return m;
         if (m.teams.size() < 2 && !(m.ffa && !m.teams.isEmpty() && m.teams.get(0).size() > 1))
             throw new IllegalArgumentException("need at least two sides, e.g. 'expert vs normal*5'");
         return m;

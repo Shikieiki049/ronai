@@ -35,6 +35,7 @@ public final class AutoTest {
     private static long realStart;
     private static boolean done;
     private static Field nextTickTime;
+    static final int PATH_BACKLOG = Integer.getInteger("ronstrat.pathBacklog", 40);
     private static long lastProgress;
 
     public static boolean enabled() { return System.getProperty("ronstrat.autotest") != null || System.getProperty("ronstrat.lobbytest") != null; }
@@ -259,7 +260,11 @@ public final class AutoTest {
             lobbyTest();
             return;
         }
-        if (nextTickTime != null) {
+        // fast-forward, except while RON's path workers (threads, on wall-clock time) are behind: a game run
+        // ten times faster than real time starved them until the path queue hit its cap of 500 and every unit
+        // on the map stood still for minutes (both sides; 18 of 84 games against RON's bot). At real speed a
+        // tick gives them 50 ms, so waiting out a backlog keeps the test the game a player sees.
+        if (nextTickTime != null && Bot.pathQueue() < PATH_BACKLOG) {
             try { nextTickTime.setLong(server, Util.getMillis()); } catch (Exception ignored) { }
         }
         if (ticks == 60 && System.getProperty("ronstrat.dumpCosts") != null) {
@@ -321,6 +326,10 @@ public final class AutoTest {
         }
         if (match == null) return;
         long gameTicks = PlayerServerEvents.rtsGameTicks - match.startTick;
+        if (ArenaTest.enabled()) {
+            if (ArenaTest.tick(server.overworld(), match, gameTicks)) { done = true; RonStrategist.LOG.info("autotest result: arena finished"); server.halt(false); }
+            return;
+        }
         long timeout = Long.getLong("ronstrat.timeoutMinutes", 45L) * 60 * 20;
         if (gameTicks - lastProgress >= 20 * 60) {
             lastProgress = gameTicks;
@@ -340,7 +349,7 @@ public final class AutoTest {
         // razing the remaining houses only costs wall time
         if (gameTicks % 200 == 0) match.trackPeaks();
         Telemetry.tick(gameTicks, BotManager.bots());
-        if (gameTicks % 200 == 0 && gameTicks > 20 * 60 * 8 && !match.spec.ffa) {
+        if (gameTicks % 200 == 0 && gameTicks > 20 * 60 * 8 && !match.spec.ffa && !match.spec.solo) {
             int lead = match.dominantTeam(5.0);
             if (lead >= 0 && lead == domTeam) {
                 if (gameTicks - domSince >= 20 * 120) { finish(gameTicks, false, lead); return; }

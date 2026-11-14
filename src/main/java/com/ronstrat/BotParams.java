@@ -127,7 +127,7 @@ public final class BotParams {
         p.put("workerTarget",               9,     13,     18,    44);
         p.put("workerQueue",                1,     1,      1,     2);    // villagers queued at once per capitol
         p.put("armyFromWorkers",            0,     0,      0,     20);   // expert: no army before this many villagers (unless raided)
-        p.put("boomWorkers",                99,    99,     20,    24);   // after this many workers the army gets food first
+        p.put("boomWorkers",                99,    99,     20,    29);   // after this many workers the army gets food first
         p.put("armyPerWorker",              0,     0.5,    0.6,   0.8);  // ...until army pop reaches this many per worker
         p.put("hunters",                    0,     2,      3,     4);
         p.put("useStockpiles",              0,     1,      1,     1);
@@ -162,9 +162,9 @@ public final class BotParams {
         p.put("mapParams",                  0,     0,      0,     0);   // apply tuning/map_params.json for the map being played
         p.put("leanDryTicks",               3000,  3000,   3000,  3000);
         p.put("leanOpening",                0,     0,      0,     0);   // no hunters without a catch, no far forage, no early houses or shrine while starved
-        p.put("fieldsScale",                1,     1,      1,     1.3);   // the opening's field curve times this
-        p.put("villagersFirst",             0,     0,      0,     0);   // villagers before soldiers until the cap unless the enemy is ahead by more than villagersFirstGap soldiers
-        p.put("villagersFirstGap",          2,     2,      2,     2);
+        p.put("fieldsScale",                1,     1,      1,     1.101);   // the opening's field curve times this
+        p.put("villagersFirst",             0,     0,      0,     1);   // villagers before soldiers until the cap unless the enemy is ahead by more than villagersFirstGap soldiers
+        p.put("villagersFirstGap",          2,     2,      2,     4);
         p.put("threatPriorScale",           1,     1,      1,     1);   // how much of the by-the-clock enemy army guess counts (1 = all, 0 = only what is seen)
         p.put("farmNudge",                  0,     0,      0,     0);   // a farmer standing with ripe crops left is sent to the nearest one
         p.put("farmRoles",                  0,     0,      0,     0);   // fields only for villagers that can still become farmers
@@ -190,7 +190,7 @@ public final class BotParams {
         p.put("fleeRaiders",                0,     0,      0,     1);   // villagers run from enemy soldiers too, and a raided work spot is avoided
         p.put("clearForWood",               0,     0,      0,     1);   // woods behind monsters: soldiers clear them (the opening ends for it)
         p.put("rallyGuard",                 0,     0,      0,     1);   // an idle army waits by the villagers out in the field, not at home
-        p.put("vilCap",                     99,    99,     99,    38);  // even expert: villagers stop here
+        p.put("vilCap",                     99,    99,     99,    39);  // even expert: villagers stop here
         p.put("rushMinute",                 0,     0,      0,     7);   // before this minute...
         p.put("rushSoldiers",               99,    99,     99,    2);   // ...this many enemy soldiers (more than ours) end the opening
         p.put("openingBreakMin",            3,     3,      3,     3);   // ...and the enemy has at least this many soldiers
@@ -198,7 +198,7 @@ public final class BotParams {
         p.put("smithFrom",                  99,    99,     99,    11);   // even expert: blacksmith (and miners for it) from this minute
         p.put("smithMiners",                3,     3,      3,     3);
         p.put("woodDropFrom",               8,     8,      8,     8);   // ...from this minute on
-        p.put("woodDropSlack",              6,     6,      6,     6);   // ...longer than dropDistance plus this
+        p.put("woodDropSlack",              6,     6,      6,     8);   // ...longer than dropDistance plus this
         p.put("rebalanceSlack",             4,     3,      2,     1);    // how far worker split may drift before reassigning
         p.put("farmWorkersShare",           0.45,  0.45,   0.42,  0.40); // food share of workers in mid game
         p.put("econV2",                     0,     0,      0,     1);    // the rewritten economy: opening to the user's curve (BuildOrder), workers by need
@@ -207,6 +207,27 @@ public final class BotParams {
         p.put("econPhase2",                 0,     0,      0,     0);    // after the opening: workers by need (fields, miners for armour, rest wood)
         p.put("econWorkers",                0,     0,      0,     34);   // ...and the villager count the army phase stops at
         p.put("phase2Ore",                  0,     0,      0,     0.15); // ...share of gatherers mining once a blacksmith stands
+        p.put("composition",                0,     0,      0,     1);    // army shares from the arena's unit matrix (Composition)
+        p.put("compTemp",                   0.15,  0.15,   0.15,  0.15); // softmax temperature: lower = more of the single best unit
+        p.put("compTech",                   0.10,  0.10,   0.10,  0.10); // score discount of a unit whose building we lack
+        p.put("compMinShare",               0.08,  0.08,   0.08,  0.08); // shares below this are dropped
+        p.put("compTechGap",                0.15,  0.15,   0.15,  0.15); // build a tech building when its unit beats ours by this
+        p.put("spendBalance",               0,     0,      0,     0);    // workers follow the spending: food piling while wood is dry -> to wood
+        p.put("spendBalanceHigh",           400,   400,    400,   400);
+        p.put("spendBalanceLow",            150,   150,    150,   150);
+        p.put("spendBalanceMax",            6,     6,      6,     6);
+        p.put("buildWoodReserve",           40,    40,     40,    59);   // wood the builder leaves for replanting (Production.WOOD_RESERVE)
+        p.put("stallFarm",                  0,     0,      0,     1);    // no field, no food, wood in the bank for 30 s: a field before anything else
+        p.put("stockpileEager",             0,     0,      0,     1);    // stockpiles at the woods early and urgently (a friend: the AI builds too few)
+        p.put("stockpileEagerDist",         12,    12,     12,    12);   // ...when a woodcutter's spot is further than this from every drop site
+        p.put("stockpileEagerWorkers",      3,     3,      3,     3);    // ...urgent once this many villagers cut wood
+        p.put("stockpileEagerFarms",        0,     0,      0,     10);    // ...only once this many fields stand (the opening wood goes to fields first)
+        p.put("farmRing",                   0,     0,      0,     1);    // fields right around the town centre and stockpiles; other buildings further out
+        p.put("farmRingMax",                16,    16,     16,    16);   // ...search radius for a field around a drop site
+        p.put("farmRingKeep",               18,    18,     18,    18);   // ...houses, barracks etc. no nearer to the town centre than this
+        p.put("woodDesperate",              0,     0,      0,     1);    // no wood for 4 min, none banked: woods near monsters and up hills are fine
+        p.put("resourceClear",              0,     0,      0,     1);    // army + hero clear camps on the woods/ore further out while nothing threatens
+        p.put("resourceClearReach",         75,    75,     75,    75);   // ...this far from home
         p.put("openingLead",                0,     0,      0,     0.5);  // minutes the opening runs ahead of the user's curve
         p.put("foodCapToFarms",             0,     0,      0,     0);    // even opening: food workers capped at fields + hunters + 1, rest on wood
         p.put("foodCapMinutes",             0,     0,      0,     12);
@@ -214,14 +235,14 @@ public final class BotParams {
         p.put("openFood2",                  0.45,  0.45,   0.45,  0.45); // ...of villagers 8-13
         p.put("oreFromMinute",              5,     5,      5,     5);    // even game: no early miners before this minute (golem / upgrade ore after it)
         p.put("earlyOreFloor",              9999,  9999,   9999,  9999); // ...while ore is at least this (9999 = rule off)
-        p.put("oreShare",                   0.15,  0.15,   0.15,  0.15);
+        p.put("oreShare",                   0.15,  0.15,   0.15,  0.173);
         p.put("houseBuffer",                2,     4,      6,     9);    // free supply kept ahead of population
-        p.put("maxParallelHouses",          1,     1,      2,     3);
-        p.put("buildersPerBuilding",        1,     2,      2,     2);
+        p.put("maxParallelHouses",          1,     1,      2,     4);
+        p.put("buildersPerBuilding",        1,     2,      2,     1);
         p.put("extraCapitols",              0,     0,      0,     2);
         p.put("spendingEscrow",             0,     0.5,    0.5,   0.5);    // save for the top building priority instead of spending on units
         // --- production / tech ---
-        p.put("barracksPerWorkers",         99,    16,     14,    10);   // one extra barracks per this many workers
+        p.put("barracksPerWorkers",         99,    16,     14,    9);   // one extra barracks per this many workers
         p.put("maxBarracks",                1,     2,      2,     4);
         p.put("maxTechBuildings",           0,     0,      1,     5);
         p.put("researchLevel",              0,     1,      2,     3);    // 0 none, 1 cheap, 2 most, 3 all useful

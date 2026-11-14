@@ -434,6 +434,20 @@ public final class Economy {
                 want[1] -= fromWood; want[2] += fromWood;
             }
         }
+        // spend balance (parameter spendBalance): the split follows what the money is spent on. Food piling up
+        // while wood runs dry means the barracks and fields wait on wood: every 30 s one more worker from food to
+        // wood (and back the other way), at most spendBalanceMax, easing off once both banks are moving
+        if (p.b("spendBalance") && bot.difficulty == Difficulty.EXPERT && gatherers >= 14) {
+            if (bot.now - lastBalance >= 600) {
+                lastBalance = bot.now;
+                int hi = p.i("spendBalanceHigh"), lo = p.i("spendBalanceLow"), max = p.i("spendBalanceMax");
+                if (in.food >= hi && in.wood < lo) balanceBias = Math.min(max, balanceBias + 1);
+                else if (in.wood >= hi && in.food < lo) balanceBias = Math.max(-max, balanceBias - 1);
+                else if (in.food < hi && in.wood < hi) balanceBias -= Integer.signum(balanceBias) * (bot.now % 1200 < 600 ? 1 : 0);
+            }
+            int move = balanceBias > 0 ? Math.min(balanceBias, want[0]) : -Math.min(-balanceBias, want[1]);
+            want[0] -= move; want[1] += move;
+        }
         int[] have = { byJob.get(Job.FOOD).size(), byJob.get(Job.WOOD).size(), byJob.get(Job.ORE).size() };
 
         // pull workers off surplus jobs when the split drifts too far
@@ -520,6 +534,17 @@ public final class Economy {
     private long lastHarvestCheck;
 
     /** workers on a resource that has brought in nothing for two minutes are wasted: free them */
+    private int woodDry; // stagnation checks in a row with (almost) no wood
+
+    /**
+     * No wood for four minutes and none in the bank (parameter woodDesperate): the safe-walk rules have left
+     * the woodcutters nowhere to go - fifteen villagers stood idle for 24 minutes with wood and food at 0, the
+     * fields unable to be replanted. Accept woods near monsters (not in a camp) and on other levels.
+     */
+    boolean woodDesperate(Intel in) {
+        return bot.params.b("woodDesperate") && woodDry >= 2 && in.wood < 100;
+    }
+
     private void checkStagnation(Intel in, Map<Job, List<Mob>> byJob) {
         if (bot.now - lastHarvestCheck < 2400) return;
         lastHarvestCheck = bot.now;
@@ -531,16 +556,33 @@ public final class Economy {
                 s.getOrDefault(com.solegendary.reignofnether.player.RTSPlayerScoresEnum.ORES_HARVESTED, 0) };
         Job[] gj = { Job.FOOD, Job.WOOD, Job.ORE };
         for (int i = 0; i < 3; i++) {
+            if (i == 1) woodDry = lastHarvest[i] >= 0 && now[i] - lastHarvest[i] < 60 ? woodDry + 1 : 0;
             if (lastHarvest[i] >= 0 && now[i] - lastHarvest[i] < 60 && byJob.get(gj[i]).size() >= 3) {
-                exhaustedUntil[i] = bot.now + 2400;
+                // wood dry for two checks running (the near woods cut, the rest past monsters or up a
+                // hill): freed woodcutters go straight back out under the relaxed rules of woodDesperate
+                exhaustedUntil[i] = i == 1 && woodDesperate(in) ? bot.now : bot.now + 2400;
                 for (Mob w : byJob.get(gj[i])) setJob(w, Job.IDLE);
                 bot.log("no " + gj[i] + " income for 2 min: freeing " + byJob.get(gj[i]).size() + " workers");
+                if (bot.verbose) for (Mob w : byJob.get(gj[i])) {
+                    GatherResourcesGoal g = ((WorkerUnit) w).getGatherResourceGoal();
+                    var rg = ((Unit) w).getReturnResourcesGoal();
+                    bot.log("   #" + w.getId() + " pos=" + w.blockPosition().toShortString() + " items=" + ((Unit) w).getItems().size()
+                            + " max=" + Unit.atMaxResources((Unit) w) + " nav=" + w.getNavigation().isInProgress()
+                            + " farm=" + (g != null && g.getTargetFarm() != null ? g.getTargetFarm().originPos.toShortString() : "-")
+                            + " gt=" + (g != null && g.getGatherTarget() != null ? g.getGatherTarget().toShortString() : "-")
+                            + " gathering=" + (g != null && g.isGathering())
+                            + " ret=" + (rg != null && rg.getBuildingTarget() != null ? rg.getBuildingTarget().originPos.toShortString() : "-")
+                            + " target=" + (((Unit) w).getTargetGoal().getTarget() == null ? "-" : ((Unit) w).getTargetGoal().getTarget().getType().toShortString())
+                            + " idle=" + WorkerUnit.isIdle((WorkerUnit) w));
+                }
             }
             lastHarvest[i] = now[i];
         }
     }
     private final Map<Integer, Integer> stuck = new HashMap<>();
     private long lastRebalance = -1000;
+    private long lastBalance = -1000;
+    int balanceBias; // spendBalance: workers moved from food to wood (negative: wood to food)
 
     private static int jobIndex(Job j) {
         return j == Job.FOOD ? 0 : j == Job.ORE ? 2 : 1;
@@ -811,11 +853,13 @@ public final class Economy {
                 }
             }
         }
+        boolean desperate = type == ResourceName.WOOD && woodDesperate(in);
+        int dangerR = desperate ? 8 : 24, yTol = desperate ? 20 : 8;
         if (best == null) for (BlockPos d : drops) {
-            for (int range : new int[] { 14, 24, 40 }) {
+            for (int range : desperate ? new int[] { 14, 24, 40, 64 } : new int[] { 14, 24, 40 }) {
                 Optional<BlockPos> bp = ResourceIndex.get(bot.level).findClosest(bot.level, d, range, type,
-                        pos -> Math.abs(pos.getY() - d.getY()) <= 8 && RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, 24) && !unreachableSpot(pos)
-                                && (type != ResourceName.WOOD || crowd(pos, w) < 2) && !in.dangerousPath(d, pos, 14));
+                        pos -> Math.abs(pos.getY() - d.getY()) <= yTol && RonCompat.canGather(g, bot.level, pos, type) && !in.dangerous(pos, dangerR) && !unreachableSpot(pos)
+                                && (type != ResourceName.WOOD || crowd(pos, w) < 2) && (desperate || !in.dangerousPath(d, pos, 14)));
                 if (bp.isPresent()) {
                     double dist = Math.sqrt(bp.get().distSqr(d));
                     double score = dist + 0.15 * Math.sqrt(bp.get().distSqr(w.blockPosition()));
@@ -868,7 +912,9 @@ public final class Economy {
         }
         // a lean even start: every 75-wood stockpile is half a farm - walk a little further first
         double dropDist = bot.params.get("dropDistance");
-        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && in.built(bot.plan.farm) < 8) dropDist = Math.max(dropDist, 20);
+        // stockpileEager: a player's habit (1-2 stockpiles at the woods early) - every trip shorter from the start
+        if (bot.params.b("stockpileEager") && in.built(bot.plan.farm) >= bot.params.i("stockpileEagerFarms")) dropDist = bot.params.get("stockpileEagerDist");
+        else if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && in.built(bot.plan.farm) < 8) dropDist = Math.max(dropDist, 20);
         if (type != ResourceName.FOOD && bestScore > dropDist && bot.params.b("useStockpiles")) {
             stockpileWanted = best;
             stockpileFor = type;

@@ -36,6 +36,7 @@ public final class Telemetry {
     private int samples, lowFood, lowWood, lowOre, highFood, highWood, highOre;
     private int tcSamples, tcIdle, tcIdleFood, tcIdlePop, tcIdleFree; // while the villager count is under 38 (the expert's cap)
     private int placeFails;
+    int stalls, pathSat;
     private long idleWorkerSum, workerSum;
     private int peakWorkers, peakArmy, retreatsSeen;
     private final Map<String, Integer> firstBuilt = new LinkedHashMap<>(); // building class -> second its first one was placed
@@ -113,6 +114,7 @@ public final class Telemetry {
         int food = r == null ? 0 : r.food, wood = r == null ? 0 : r.wood, ore = r == null ? 0 : r.ore;
 
         samples++;
+        if (Bot.pathQueue() >= 450) pathSat++; // RON's path queue full: nothing on the map can walk
         if (food < 50) lowFood++;
         if (wood < 50) lowWood++;
         if (ore < 50) lowOre++;
@@ -159,6 +161,7 @@ public final class Telemetry {
         }
         retreatsSeen = (int) a.stat("retreats");
         placeFails = (int) a.stat("placeFails");
+        stalls = (int) a.stat("stalls");
 
         if (samples % SERIES_EVERY == 0)
             series.add(new int[] { sec, workers, army, food, wood, ore, farms, barracks, armoured, enchanted, idle, mine,
@@ -189,6 +192,8 @@ public final class Telemetry {
         o.addProperty("tcIdlePop", t.tcSamples == 0 ? 0 : round(t.tcIdlePop / (double) t.tcSamples));
         o.addProperty("tcIdleFree", t.tcSamples == 0 ? 0 : round(t.tcIdleFree / (double) t.tcSamples));
         o.addProperty("placeFails", t.placeFails);
+        o.addProperty("stalls", t.stalls);
+        o.addProperty("pathSat", t.pathSat);
         o.addProperty("idleWorkers", t.workerSum == 0 ? 0 : round(t.idleWorkerSum / (double) t.workerSum));
         o.addProperty("peakWorkers", t.peakWorkers);
         o.addProperty("peakArmy", t.peakArmy);

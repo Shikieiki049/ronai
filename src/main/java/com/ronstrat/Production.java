@@ -327,6 +327,7 @@ public final class Production {
     /** desired share of army population per role */
     Map<FactionPlan.Role, Double> roleMix(Intel in) {
         BotParams p = bot.params;
+        if (p.b("composition") && bot.difficulty == Difficulty.EXPERT) return bot.composition.roleMix(in);
         Map<FactionPlan.Role, Double> m = new EnumMap<>(FactionPlan.Role.class);
         double golem = p.get("golemShare"), caster = p.get("casterShare");
         if (bot.outnumbered() && golem >= 0.3 && in.ore > 500) golem = 0.6; // ore-fed army when food is the war

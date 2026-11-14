@@ -1676,9 +1676,16 @@ public final class Army {
         if (bot.now - clearBegan > 1200) { clearCooldownUntil = bot.now + 2400; return false; }
         Vec3 h = Vec3.atCenterOf(in.home());
         LivingEntity near = null;
+        // resourceClear: the army (the hero with it) also takes the camps sitting on the woods and ore the
+        // economy will need next, further out - a player clears the way before the villagers get there
+        // instead of waiting until the near woods are cut and the woodcutters stand idle
+        boolean resClear = bot.difficulty == Difficulty.EXPERT && bot.params.b("resourceClear") && !waveTime && safeToBoom(in);
+        double reach = waveTime ? 28 : resClear ? bot.params.get("resourceClearReach") : 45;
         for (LivingEntity n : in.neutrals) {
-            if (n.position().distanceToSqr(h) > (waveTime ? 28 * 28 : 45 * 45) || strongCamp(n.blockPosition())) continue;
-            if (near == null || n.position().distanceToSqr(h) < near.position().distanceToSqr(h)) near = n;
+            double d2 = n.position().distanceToSqr(h);
+            if (d2 > reach * reach || strongCamp(n.blockPosition()) || hopelessCamps.contains(campKey(n))) continue;
+            if (d2 > 45 * 45 && !guardsResources(n)) continue;
+            if (near == null || d2 < near.position().distanceToSqr(h)) near = n;
         }
         BlockPos goal;
         String what;
@@ -1752,6 +1759,20 @@ public final class Army {
             }
         }
         return true;
+    }
+
+    private final java.util.Map<Integer, long[]> guardsCache = new java.util.HashMap<>();
+
+    /** wood or ore within 20 blocks of this monster (cached for 30 s) */
+    private boolean guardsResources(LivingEntity n) {
+        long[] c = guardsCache.get(n.getId());
+        if (c != null && bot.now - c[0] < 600) return c[1] == 1;
+        var idx = com.solegendary.reignofnether.resources.ResourceIndex.get(bot.level);
+        boolean g = idx.findClosest(bot.level, n.blockPosition(), 20, com.solegendary.reignofnether.resources.ResourceName.WOOD, pos -> true).isPresent()
+                || idx.findClosest(bot.level, n.blockPosition(), 20, com.solegendary.reignofnether.resources.ResourceName.ORE, pos -> true).isPresent();
+        guardsCache.put(n.getId(), new long[] { bot.now, g ? 1 : 0 });
+        if (guardsCache.size() > 400) guardsCache.entrySet().removeIf(e -> bot.now - e.getValue()[0] > 600);
+        return g;
     }
 
     /** our army is this many times the monsters seen within 20 blocks of a spot */

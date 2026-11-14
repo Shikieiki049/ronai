@@ -36,6 +36,7 @@ public final class Bot implements Agent {
     public final Bridger bridger = new Bridger(this);
     final Upgrades upgrades = new Upgrades(this);
     final Casters casters = new Casters(this);
+    final Composition composition = new Composition(this);
     final Ledger ledger = new Ledger(this);
     final Random random;
     public long now;
@@ -98,6 +99,7 @@ public final class Bot implements Agent {
 
     /** a building that found no place to stand (Builder) - a map analysis measure */
     int placeFails;
+    int stalls; // stall protection fired (Builder)
 
     @Override public String name() { return name; }
     @Override public Difficulty difficulty() { return difficulty; }
@@ -122,6 +124,7 @@ public final class Bot implements Agent {
             case "workers": return intel.workers.size();
             case "deaths": return deaths;
             case "placeFails": return placeFails;
+            case "stalls": return stalls;
             default: return 0;
         }
     }
@@ -215,6 +218,11 @@ public final class Bot implements Agent {
         if (verbose) RonStrategist.LOG.info("[{}|{}] {}", name, difficulty.key(), s);
     }
 
+    /** RON's path request queue (chunk builds waiting + searches running); -1 where the RON build has none */
+    static int pathQueue() {
+        try { return com.solegendary.reignofnether.unit.pathfinding.PathfinderWorkerPool.queueDepth(); } catch (Throwable t) { return -1; }
+    }
+
     public String status() {
         Intel in = intel;
         var c = economy.counts;
@@ -229,7 +237,7 @@ public final class Bot implements Agent {
         return String.format("%s [%s] workers=%d(F%d W%d O%d B%d I%d) army=%d(g%d m%d s%d) pop=%d/%d res F%d W%d O%d%s farms=%d/%d mode=%s target=%s",
                 name, difficulty.zh, in.workers.size(), c.get(Economy.Job.FOOD), c.get(Economy.Job.WOOD), c.get(Economy.Job.ORE),
                 c.get(Economy.Job.BUILD), c.get(Economy.Job.IDLE), in.army.size(), in.garrisoned.size(), in.militia.size(), in.scouts.size(), in.pop, in.popCap, in.food, in.wood, in.ore,
-                harvested, in.built(plan.farm), economy.farmsWanted, army.mode, army.target) + " animals=" + economy.animalsNearHome + " deaths=" + deaths + "/" + hazardDeaths + " unreach=" + economy.unreachableCount + String.format(" threat=%.0f own=%.0f", army.threatPower(in), army.ownPower(in)) + production.tcIdleText() + (production.idleReason.isEmpty() ? "" : " prodIdle=" + production.idleReason);
+                harvested, in.built(plan.farm), economy.farmsWanted, army.mode, army.target) + " animals=" + economy.animalsNearHome + " deaths=" + deaths + "/" + hazardDeaths + " unreach=" + economy.unreachableCount + String.format(" threat=%.0f own=%.0f", army.threatPower(in), army.ownPower(in)) + production.tcIdleText() + (production.idleReason.isEmpty() ? "" : " prodIdle=" + production.idleReason) + " pathQ=" + pathQueue() + " orders:" + Orders.report(name);
     }
 
     /** per-worker dump for debugging the economy */

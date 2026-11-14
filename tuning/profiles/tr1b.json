@@ -1,13 +1,14 @@
 {
- "ledgerFrom": 5.0,
- "ledgerShare1": 0.35,
- "ledgerShare2": 0.405,
- "ledgerShareThreat": 0.9,
- "openingBreak": 1.487,
- "openingBreakMin": 3.0,
- "rushSoldiers": 3.0,
- "rushMinute": 7.0,
+ "fieldsScale": 1.3,
+ "villagersFirst": 0.0,
+ "villagersFirstGap": 2.0,
+ "boomWorkers": 20,
+ "armyPerWorker": 0.8,
+ "vilCap": 38.0,
+ "maxBarracks": 4,
+ "openingBreak": 1.67,
+ "rushSoldiers": 2.0,
+ "openingMinutes": 11.0,
  "boomPunishPop": 15.0,
- "openingMinutes": 10.0,
- "maxBarracks": 4
+ "houseBuffer": 9.0
 }

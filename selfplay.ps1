@@ -74,6 +74,13 @@ New-Item -ItemType Directory -Force (Split-Path $outPath) | Out-Null
 $snap = Join-Path $root ("work\_snap-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
 # -ClassesDir: run an older build (a previous snapshot's classes) for A/B comparisons
 $srcClasses = if ($ClassesDir) { $ClassesDir } else { Join-Path $root 'build\classes\java\main' }
+# a build running right now leaves the class and resource folders half written: wait for it to finish
+for ($try = 0; $try -lt 60; $try++) {
+    $okToml = Test-Path (Join-Path $root 'build\resources\main\META-INF\mods.toml')
+    $okMain = $ClassesDir -or (Test-Path (Join-Path $srcClasses 'com\ronstrat\RonStrategist.class'))
+    if ($okToml -and $okMain) { break }
+    Start-Sleep -Seconds 5
+}
 Copy-Item -Recurse $srcClasses (Join-Path $snap 'classes')
 # frozen older brains (tools/freeze.py, spec 'expert@base') live in the same classes folder
 $baseClasses = Join-Path $root 'build\classes\java\baseline'

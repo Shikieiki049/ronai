@@ -1,0 +1,68 @@
+{
+ "source": "AM2",
+ "units": {
+  "vindicator": {
+   "vindicator": 0.0,
+   "pillager": 0.617,
+   "golem": 0.433,
+   "witch": 0.441,
+   "evoker": -0.168,
+   "ravager": 0.583,
+   "windcaller": -0.745
+  },
+  "pillager": {
+   "vindicator": -0.617,
+   "pillager": 0.0,
+   "golem": -0.527,
+   "witch": 0.046,
+   "evoker": 0.505,
+   "ravager": 0.351,
+   "windcaller": 0.892
+  },
+  "golem": {
+   "vindicator": -0.433,
+   "pillager": 0.527,
+   "golem": 0.0,
+   "witch": 0.356,
+   "evoker": 0.206,
+   "ravager": 0.424,
+   "windcaller": -0.551
+  },
+  "witch": {
+   "vindicator": -0.441,
+   "pillager": -0.046,
+   "golem": -0.356,
+   "witch": 0.0,
+   "evoker": 0.37,
+   "ravager": -0.163,
+   "windcaller": -0.579
+  },
+  "evoker": {
+   "vindicator": 0.168,
+   "pillager": -0.505,
+   "golem": -0.206,
+   "witch": -0.37,
+   "evoker": 0.0,
+   "ravager": 0.347,
+   "windcaller": -0.953
+  },
+  "ravager": {
+   "vindicator": -0.583,
+   "pillager": -0.351,
+   "golem": -0.424,
+   "witch": 0.163,
+   "evoker": -0.347,
+   "ravager": 0.0,
+   "windcaller": -0.85
+  },
+  "windcaller": {
+   "vindicator": 0.745,
+   "pillager": -0.892,
+   "golem": 0.551,
+   "witch": 0.579,
+   "evoker": 0.953,
+   "ravager": 0.85,
+   "windcaller": 0.0
+  }
+ }
+}

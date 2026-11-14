@@ -1,0 +1,14 @@
+{
+ "fieldsScale": 1.329,
+ "villagersFirst": 0,
+ "villagersFirstGap": 1,
+ "boomWorkers": 26,
+ "armyPerWorker": 0.8,
+ "vilCap": 38.0,
+ "maxBarracks": 4,
+ "openingBreak": 1.67,
+ "rushSoldiers": 2,
+ "openingMinutes": 9,
+ "boomPunishPop": 13,
+ "houseBuffer": 9.0
+}

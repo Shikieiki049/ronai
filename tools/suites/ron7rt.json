@@ -1,9 +1,9 @@
 {
- "description": "current expert against RON's own BRUTAL computer player (RON 1.5.0b-2, run with -AltRon), 1v1, no handicap, both seat orders",
+ "description": "expert default (composition on) vs RON BRUTAL, real-time path harness",
  "items": [
   {
    "name": "expert first",
-   "spec": "expert:rt vs expert@ron readied nohandicap",
+   "spec": "expert vs expert@ron readied nohandicap",
    "us": 0,
    "pair": "ron",
    "maps": [
@@ -18,12 +18,15 @@
    "seeds": [
     101,
     102,
-    103
+    103,
+    104,
+    105,
+    106
    ]
   },
   {
    "name": "RON bot first",
-   "spec": "expert@ron vs expert:rt readied nohandicap",
+   "spec": "expert@ron vs expert readied nohandicap",
    "us": 1,
    "pair": "ron",
    "maps": [
@@ -38,7 +41,10 @@
    "seeds": [
     101,
     102,
-    103
+    103,
+    104,
+    105,
+    106
    ]
   }
  ]

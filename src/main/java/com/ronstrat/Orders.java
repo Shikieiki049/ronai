@@ -22,8 +22,21 @@ public final class Orders {
         return r;
     }
 
+    /** unit orders given per owner and action since the last report (verbose: how many path requests we cause) */
+    static final java.util.Map<String, int[]> issued = new java.util.concurrent.ConcurrentHashMap<>();
+
+    static String report(String owner) {
+        int[] c = issued.remove(owner);
+        if (c == null) return "";
+        StringBuilder b = new StringBuilder();
+        UnitAction[] all = UnitAction.values();
+        for (int i = 0; i < c.length; i++) if (c[i] > 0) b.append(' ').append(all[i].name().toLowerCase()).append('=').append(c[i]);
+        return b.toString();
+    }
+
     private static void act(String owner, UnitAction a, int targetId, int[] ids, BlockPos pos, BlockPos building) {
         if (ids.length == 0) return;
+        issued.computeIfAbsent(owner, k -> new int[UnitAction.values().length])[a.ordinal()] += ids.length;
         UnitServerEvents.addActionItem(owner, a, targetId, ids, pos, building == null ? BlockPos.ZERO : building);
     }
 
