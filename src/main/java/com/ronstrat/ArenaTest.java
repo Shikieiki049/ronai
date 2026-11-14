@@ -83,6 +83,12 @@ final class ArenaTest {
                 spawn(level, f[1].trim(), ownerA, -1, sideA);
                 spawn(level, f[2].trim(), ownerB, +1, sideB);
                 hpA0 = hp(sideA); hpB0 = hp(sideB);
+                // the AI's own forecast of this fight (CombatSim), to calibrate it against what happens
+                boolean was = CombatSim.v2;
+                CombatSim.v2 = false; sim = CombatSim.run(sideA, sideB, 0, 32);
+                CombatSim.v2 = true; sim2 = CombatSim.run(sideA, sideB, 0, 32);
+                CombatSim.v2 = was;
+                dumpStats(f[1].trim(), sideA); dumpStats(f[2].trim(), sideB);
                 phase = 1; phaseAt = ticks + 20;
                 return false;
             }
@@ -95,6 +101,7 @@ final class ArenaTest {
                 return false;
             }
             if (ticks % 10 != 0) return false;
+            if (ticks % 20 == 0) { heal(ownerA, sideA); heal(ownerB, sideB); }
             int aliveA = alive(sideA), aliveB = alive(sideB);
             long t = ticks - phaseAt;
             // armies that lost each other (a unit pushed off, a kiter gone far): order again every 10 s
@@ -110,6 +117,8 @@ final class ArenaTest {
             o.addProperty("b", f[2].trim());
             double la = hpA0 <= 0 ? 0 : hp(sideA) / hpA0, lb = hpB0 <= 0 ? 0 : hp(sideB) / hpB0;
             o.addProperty("aLeft", Math.round(la * 1000) / 1000.0);
+            if (sim != null) { o.addProperty("simA", Math.round(sim.ownLeft * 1000) / 1000.0); o.addProperty("simB", Math.round(sim.enemyLeft * 1000) / 1000.0); }
+            if (sim2 != null) { o.addProperty("sim2A", Math.round(sim2.ownLeft * 1000) / 1000.0); o.addProperty("sim2B", Math.round(sim2.enemyLeft * 1000) / 1000.0); }
             o.addProperty("bLeft", Math.round(lb * 1000) / 1000.0);
             o.addProperty("aAlive", aliveA);
             o.addProperty("bAlive", aliveB);
@@ -145,6 +154,44 @@ final class ArenaTest {
             Orders.ability(owner, UnitAction.CAST_SUMMON_VEXES_AUTOCAST_ENABLE, -1, evokers, centre);
     }
 
+    private static final java.util.Set<String> dumped = new java.util.HashSet<>();
+
+    /** the forecast's numbers for each unit of an army spec (once per spec and unit type): tools/simfit.py fits the sim on them */
+    private static void dumpStats(String spec, List<Mob> ms) {
+        String out = System.getProperty("ronstrat.out");
+        if (out == null) return;
+        for (Mob m : ms) {
+            String key = spec + "#" + m.getType().toShortString();
+            if (!dumped.add(key)) continue;
+            CombatSim.U u = CombatSim.of(m);
+            JsonObject o = new JsonObject();
+            o.addProperty("spec", spec); o.addProperty("type", m.getType().toShortString());
+            o.addProperty("hp", u.hp); o.addProperty("armour", u.armour); o.addProperty("dps", u.dps);
+            o.addProperty("range", u.range); o.addProperty("speed", u.speed);
+            o.addProperty("flying", m instanceof Unit un && un.isFlyingUnit());
+            try { Files.writeString(Path.of(out + ".stats"), o + System.lineSeparator(), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND); } catch (Exception ignored) { }
+        }
+    }
+
+    /** the AI's own witch rule (Casters.witch): a healing potion on the worst-hurt soldier under half health in range */
+    private static void heal(String owner, List<Mob> ms) {
+        if (!ResearchServerEvents.playerHasResearch(owner, ProductionItems.RESEARCH_HEALING_POTIONS)) return;
+        for (Mob w : ms) {
+            if (!w.isAlive() || w.getType() != EntityRegistrar.WITCH_UNIT.get()) continue;
+            com.solegendary.reignofnether.ability.Ability heal = null;
+            for (var a : ((com.solegendary.reignofnether.unit.interfaces.Unit) w).getAbilities().get()) if (a.action == UnitAction.THROW_HEALING_POTION) heal = a;
+            if (heal == null || !heal.isOffCooldown((com.solegendary.reignofnether.unit.interfaces.Unit) w)) continue;
+            Mob worst = null;
+            double r = Math.max(6, heal.range);
+            for (Mob a : ms) {
+                if (a == w || !a.isAlive() || a.distanceToSqr(w) > r * r) continue;
+                double f = a.getHealth() / a.getMaxHealth();
+                if (f < 0.5 && (worst == null || f < worst.getHealth() / worst.getMaxHealth())) worst = a;
+            }
+            if (worst != null) Orders.ability(owner, UnitAction.THROW_HEALING_POTION, worst.getId(), List.of(w), worst.blockPosition());
+        }
+    }
+
     private static List<Mob> living(List<Mob> ms) { List<Mob> l = new ArrayList<>(); for (Mob m : ms) if (m.isAlive()) l.add(m); return l; }
     private static int alive(List<Mob> ms) { int n = 0; for (Mob m : ms) if (m.isAlive()) n++; return n; }
     private static double hp(List<Mob> ms) { double s = 0; for (Mob m : ms) if (m.isAlive()) s += m.getHealth(); return s; }
@@ -172,10 +219,12 @@ final class ArenaTest {
             case "windcallers" -> ProductionItems.RESEARCH_UPGRADED_WINDCALLERS;
             case "lingering" -> ProductionItems.RESEARCH_LINGERING_POTIONS;
             case "golemsmith" -> ProductionItems.RESEARCH_GOLEM_SMITHING;
+            case "healing" -> ProductionItems.RESEARCH_HEALING_POTIONS;
             default -> null;
         };
     }
 
+    private static CombatSim.Result sim, sim2;
     private static final java.lang.reflect.Method DO_ENCHANT;
     static {
         try { DO_ENCHANT = EnchantAbility.class.getDeclaredMethod("doEnchant", LivingEntity.class); DO_ENCHANT.setAccessible(true); }

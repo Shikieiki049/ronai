@@ -61,24 +61,84 @@ public final class FactionPlan {
     }
 
     public Faction faction;
+    /** the villagers' own rules (blacksmith armour, library enchants, witches, golems) apply only to them */
+    public boolean villagers;
     public Building capitol, house, farm, stockpile, barracks, tower, market;
+    /** heroes: the building that makes them and the heroes / revives, best first */
+    public Building heroBuilding;
+    public List<ProductionItem> heroes = List.of();
+    /** monsters: buildings that keep the night around them (sun-burning units are safe there) */
+    public List<Building> nightSources = List.of();
     public ProductionItem marketUpgrade;
     public ProductionItem worker, scout;
     public final List<UnitOption> units = new ArrayList<>();
     public final List<TechStep> tech = new ArrayList<>();
     public final List<ResearchStep> research = new ArrayList<>();
 
-    private static FactionPlan villagers;
+    private static FactionPlan villagersPlan, monstersPlan;
 
     public static FactionPlan forFaction(Faction f) {
-        // Villagers are the faction the AI is built and tuned for; the structure is faction-agnostic.
+        if (f == Factions.MONSTERS) return monsters();
         return villagers();
     }
 
+    /**
+     * The monsters: what builds what and what unlocks what, read from RON (buildings/monsters/*.java, the
+     * build buttons' hasFinishedBuilding checks). The worker counts and levels are only starting points for
+     * our own tests (tools/solo.py), not a build order copied from anyone.
+     * Costs (measured, -Dronstrat.dumpCosts): zombie 75f pop 1, skeleton 50f 45w pop 1, spider 80f 20w 20o pop 2,
+     * creeper 40f 120o pop 2, warden 275f 125o pop 5; pumpkin farm 200w, haunted house 100w +10 pop, sculk
+     * catalyst 125w +12 pop and night 30-50 blocks, graveyard 150w, laboratory 250w 150o.
+     */
+    public static synchronized FactionPlan monsters() {
+        if (monstersPlan != null) return monstersPlan;
+        FactionPlan p = new FactionPlan();
+        p.faction = Factions.MONSTERS;
+        p.villagers = false;
+        p.capitol = Buildings.MAUSOLEUM;
+        p.house = Buildings.HAUNTED_HOUSE;
+        p.farm = Buildings.PUMPKIN_FARM;
+        p.stockpile = Buildings.SPRUCE_STOCKPILE;
+        p.barracks = Buildings.GRAVEYARD;
+        p.tower = Buildings.DARK_WATCHTOWER;
+        p.market = Buildings.MONSTER_MARKET;
+        p.marketUpgrade = ProductionItems.RESEARCH_MARKET_UPGRADE_MONSTERS;
+        p.worker = ProductionItems.ZOMBIE_VILLAGER;
+        p.scout = ProductionItems.BAT;
+        p.heroBuilding = Buildings.ALTAR_OF_DARKNESS;
+        p.heroes = List.of(ProductionItems.NECROMANCER, ProductionItems.WRETCHED_WRAITH, ProductionItems.NECROMANCER_REVIVE, ProductionItems.WRETCHED_WRAITH_REVIVE);
+        p.nightSources = List.of(Buildings.MAUSOLEUM, Buildings.SCULK_CATALYST, Buildings.STRONGHOLD);
+
+        p.units.add(new UnitOption(ProductionItems.ZOMBIE, Role.MELEE, Buildings.GRAVEYARD, 0));
+        p.units.add(new UnitOption(ProductionItems.SKELETON, Role.RANGED, Buildings.GRAVEYARD, 0));
+        p.units.add(new UnitOption(ProductionItems.SPIDER, Role.TANK, Buildings.SPIDER_LAIR, 14));
+        p.units.add(new UnitOption(ProductionItems.CREEPER, Role.SIEGE, Buildings.DUNGEON, 20));
+        p.units.add(new UnitOption(ProductionItems.WRAITH, Role.CASTER, Buildings.DUNGEON, 20));
+        p.units.add(new UnitOption(ProductionItems.SLIME, Role.SUPPORT, Buildings.SLIME_PIT, 24));
+        p.units.add(new UnitOption(ProductionItems.WARDEN, Role.TANK, Buildings.STRONGHOLD, 30));
+
+        p.tech.add(new TechStep(Buildings.SPIDER_LAIR, 16, 1, Buildings.GRAVEYARD));
+        p.tech.add(new TechStep(Buildings.LABORATORY, 20, 2, Buildings.GRAVEYARD, Buildings.MAUSOLEUM));
+        p.tech.add(new TechStep(Buildings.DUNGEON, 22, 3, Buildings.GRAVEYARD));
+        p.tech.add(new TechStep(Buildings.SLIME_PIT, 28, 4, Buildings.GRAVEYARD));
+        p.tech.add(new TechStep(Buildings.STRONGHOLD, 34, 5, Buildings.DUNGEON, Buildings.LABORATORY, Buildings.SLIME_PIT, Buildings.SPIDER_LAIR));
+
+        p.research.add(new ResearchStep(ProductionItems.RESEARCH_RESOURCE_CAPACITY, Buildings.SPRUCE_STOCKPILE, 1));
+        p.research.add(new ResearchStep(ProductionItems.RESEARCH_HUSKS, Buildings.LABORATORY, 2));      // zombies become husks: no sun burn
+        p.research.add(new ResearchStep(ProductionItems.RESEARCH_MARKET_UPGRADE_MONSTERS, Buildings.MONSTER_MARKET, 2));
+        p.research.add(new ResearchStep(ProductionItems.RESEARCH_POISON_SPIDERS, Buildings.LABORATORY, 3));
+        p.research.add(new ResearchStep(ProductionItems.RESEARCH_STRAYS, Buildings.LABORATORY, 3));     // skeletons become strays
+        monstersPlan = p;
+        return p;
+    }
+
     public static synchronized FactionPlan villagers() {
-        if (villagers != null) return villagers;
+        if (villagersPlan != null) return villagersPlan;
         FactionPlan p = new FactionPlan();
         p.faction = Factions.VILLAGERS;
+        p.villagers = true;
+        p.heroBuilding = Buildings.SHRINE_OF_PROSPERITY;
+        p.heroes = List.of(ProductionItems.ROYAL_GUARD, ProductionItems.ENCHANTER, ProductionItems.ROYAL_GUARD_REVIVE, ProductionItems.ENCHANTER_REVIVE);
         p.capitol = Buildings.TOWN_CENTRE;
         p.house = Buildings.VILLAGER_HOUSE;
         p.farm = Buildings.WHEAT_FARM;
@@ -111,7 +171,7 @@ public final class FactionPlan {
         p.research.add(new ResearchStep(ProductionItems.RESEARCH_HEALING_POTIONS, Buildings.WITCH_HUT, 3));
         p.research.add(new ResearchStep(ProductionItems.RESEARCH_EVOKER_VEXES, Buildings.LIBRARY, 3));
         p.research.add(new ResearchStep(ProductionItems.RESEARCH_GRAND_LIBRARY, Buildings.LIBRARY, 3)); // sharpness II, vigor
-        villagers = p;
+        villagersPlan = p;
         return p;
     }
 

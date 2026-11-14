@@ -84,7 +84,10 @@ public final class BotManager {
     }
 
     public static Agent start(ServerLevel level, String name, Difficulty d, BlockPos pos, String brain, String profile) {
-        Faction faction = Factions.VILLAGERS;
+        return start(level, name, d, pos, brain, profile, Factions.VILLAGERS);
+    }
+
+    public static Agent start(ServerLevel level, String name, Difficulty d, BlockPos pos, String brain, String profile, Faction faction) {
         if (isRtsName(name)) throw new IllegalStateException(name + " is already playing");
         synchronized (PlayerServerEvents.rtsPlayers) {
             PlayerServerEvents.rtsPlayers.add(RTSPlayer.getNewBot(name, faction));
@@ -121,7 +124,10 @@ public final class BotManager {
     }
 
     public static Agent startReadied(ServerLevel level, String name, Difficulty d, BlockPos pos, int colorId, String brain, String profile) {
-        Faction faction = Factions.VILLAGERS;
+        return startReadied(level, name, d, pos, colorId, brain, profile, Factions.VILLAGERS);
+    }
+
+    public static Agent startReadied(ServerLevel level, String name, Difficulty d, BlockPos pos, int colorId, String brain, String profile, Faction faction) {
         if (isRtsName(name)) throw new IllegalStateException(name + " is already playing");
         RTSPlayer rp = RTSPlayer.getNewBot(name, faction);
         rp.startPosColorId = colorId;

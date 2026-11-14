@@ -35,6 +35,9 @@ public final class Builder {
     Builder(Bot bot) { this.bot = bot; }
 
     /** resources held back for the top build request */
+    /** since when the builder's top want has been waiting for wood (-1: not waiting) - woodDemand reads it */
+    long woodWaitSince = -1;
+
     public int[] reservedCost() {
         if (reserved == null || bot.params.get("spendingEscrow") <= 0) return new int[3];
         double k = bot.params.get("spendingEscrow");
@@ -176,6 +179,19 @@ public final class Builder {
             // into army - mid-game armies stayed at a third to a half of a human's while food sat unspent
             if (evenExpert && p.b("floatBarracks") && in.food >= 600 && in.wood >= 150 && barracks >= 1 && bot.production.allBarracksBusy(in))
                 wantBarracks = Math.max(wantBarracks, Math.min(p.i("maxBarracks") + 2, barracks + 1));
+            // foodBarracks: food piling up while every barracks trains (a 2v2 the user won: the allied expert had
+            // 500-760 food in the bank from minute 13 and one barracks until minute 15 - two soldiers a minute
+            // against the user's six from three barracks by minute 11). Vindicators are food only: the next
+            // barracks goes ahead of fields, stockpiles and spare houses.
+            boolean foodBarracks = bot.difficulty == Difficulty.EXPERT && p.b("foodBarracks") && barracks >= 1 && workers >= 14
+                    && in.food >= p.get("foodBarracksFood") && bot.production.allBarracksBusy(in) && in.built(plan.barracks) == barracks;
+            if (foodBarracks) wantBarracks = Math.max(wantBarracks, Math.min(p.i("maxBarracks") + 2, barracks + 1));
+            // boomDone (parameter boomBarracks): the town centre is near the villager cap - from here food goes to
+            // the army, so the barracks it needs go up ahead of more fields (the user: three barracks by minute 11,
+            // the expert one at minute 10 while every 150 wood went to field after field)
+            boolean boomDone = bot.difficulty == Difficulty.EXPERT && p.b("boomBarracks") && workers >= p.i("vilCap") - p.i("boomBarracksSlack")
+                    && in.built(plan.farm) >= p.i("boomBarracksFarms");
+            if (boomDone) wantBarracks = Math.max(wantBarracks, Math.min(p.i("maxBarracks"), 1 + in.built(plan.farm) / 3));
             // being pushed with two barracks up: new ones would go up in the enemy army's face - spend on units
             boolean pushed = evenExpert && bot.army.sinceThreat() < 1200;
             if (pushed && barracks >= 2) wantBarracks = barracks;
@@ -195,6 +211,7 @@ public final class Builder {
                 double pri = rushDef || campRush ? 106 : earlyArmy ? (barracks == 0 ? 95 : 84) : (barracks == 0 ? 80 : 62) - barracks * 4;
                 if (evenExpert && workers >= 18) pri = barracks < 2 ? 95 : 88;
                 if (styleNow) pri = 105;
+                if (foodBarracks || boomDone) pri = Math.max(pri, 101);
                 if (beastTrouble || (evenExpert && barracks == 0 && workers >= 10 && in.built(plan.farm) >= 2 && (!bot.army.safeToBoom(in) || bot.army.homeCampStrength(in) > 0))) pri = 105;
                 reqs.add(new Request(plan.barracks, pri, pushed ? bot.army.rearAnchor(in) : bot.army.frontAnchor(in), 10, 24));
             }
@@ -205,13 +222,13 @@ public final class Builder {
             boolean floating = in.food + in.wood + in.ore > 2500;
             // even expert: enchants were 0 all game - the library (4th in line) never came while wood was short.
             // After the blacksmith it is next, ahead of the arcane tower and witch hut
-            if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && in.total(com.solegendary.reignofnether.building.Buildings.LIBRARY) == 0
+            if (plan.villagers && bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && in.total(com.solegendary.reignofnether.building.Buildings.LIBRARY) == 0
                     && in.built(com.solegendary.reignofnether.building.Buildings.BLACKSMITH) > 0 && in.built(plan.barracks) >= 2 && workers >= 30
                     // not before minute 15 and only when safe: its 300 wood at minute 9 left Snowplow without the army for the first wave
                     && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks >= 18000 && bot.army.safeToBoom(in))
                 reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.LIBRARY, 76, home, 12, 28));
             // armour from minute smithFrom (even expert): the blacksmith once a barracks stands and its ore is in
-            if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && BuildOrder.minutes() >= p.get("smithFrom")
+            if (plan.villagers && bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && BuildOrder.minutes() >= p.get("smithFrom")
                     && in.total(com.solegendary.reignofnether.building.Buildings.BLACKSMITH) == 0 && in.built(plan.barracks) >= 1
                     && in.ore >= com.solegendary.reignofnether.building.Buildings.BLACKSMITH.cost.ore && bot.army.sinceThreat() > 600)
                 reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.BLACKSMITH, 89, home, 12, 30));
@@ -232,7 +249,7 @@ public final class Builder {
             }
             // golem economy: golems cost no food, so against many food-starved opponents the expert turns
             // ore into its army - blacksmith early, a second one once ore piles up
-            if (p.get("golemShare") >= 0.3 && bot.outnumbered() && in.built(plan.barracks) > 0) {
+            if (plan.villagers && p.get("golemShare") >= 0.3 && bot.outnumbered() && in.built(plan.barracks) > 0) {
                 Building smith = bot.plan.option(com.solegendary.reignofnether.building.production.ProductionItems.IRON_GOLEM).producer;
                 int smiths = in.total(smith);
                 // ore piling up (a rich start, nothing else wants it): the golem smith turns it into army
@@ -242,7 +259,7 @@ public final class Builder {
             }
             // even game: food is the bottleneck while the starting/stray ore sits idle - golems cost no
             // food and beat the first vindicator raids, so a golem smith once the barracks are going
-            if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && in.built(plan.barracks) >= 1
+            if (plan.villagers && bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && in.built(plan.barracks) >= 1
                     && workers >= 18 && in.ore >= 350) {
                 Building smith = bot.plan.option(com.solegendary.reignofnether.building.production.ProductionItems.IRON_GOLEM).producer;
                 // a rich start (handicap ore) sat unused for 18 min behind barracks and houses: go first
@@ -263,7 +280,7 @@ public final class Builder {
                     reqs.add(new Request(bot.plan.market, 60, home, 12, 34));
             }
             // golem route: the blacksmith as soon as its ore is in, then golems built by villagers
-            if (Strategy.golems(bot) && in.built(plan.capitol) > 0) {
+            if (plan.villagers && Strategy.golems(bot) && in.built(plan.capitol) > 0) {
                 if (in.total(com.solegendary.reignofnether.building.Buildings.BLACKSMITH) == 0 && in.ore >= com.solegendary.reignofnether.building.Buildings.BLACKSMITH.cost.ore && workers >= 8)
                     reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.BLACKSMITH, 99, home, 12, 30));
                 boolean smithing = com.solegendary.reignofnether.research.ResearchServerEvents.playerHasResearch(bot.name, com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_GOLEM_SMITHING);
@@ -273,7 +290,7 @@ public final class Builder {
             }
             // witch hut early (a player's advice): witches are the villagers' only healing, and their
             // harming potions hit hard - right after the first barracks, ahead of the blacksmith
-            if (Strategy.witches(bot) && !bot.outnumbered()
+            if (plan.villagers && Strategy.witches(bot) && !bot.outnumbered()
                     && in.total(com.solegendary.reignofnether.building.Buildings.WITCH_HUT) == 0 && in.built(plan.barracks) >= 1
                     && workers >= 18 && BuildOrder.minutes() >= p.get("witchFrom"))
                 reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.WITCH_HUT, 91, home, 12, 30));
@@ -281,21 +298,21 @@ public final class Builder {
             // so the sooner the shrine stands the more of the game they fight in
             // ...or a little later (shrineEarlyMinute / shrineEarlyFields): its 125 wood at minute 1 slowed the
             // first fields, which the brutal bot's rushes punished
-            if (p.b("heroes") && p.b("shrineEarly") && in.total(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY) == 0
+            if (p.b("heroes") && p.b("shrineEarly") && in.total(plan.heroBuilding) == 0
                     && in.total(plan.house) >= 1 && workers >= 6
                     && BuildOrder.minutes() >= p.get("shrineEarlyMinute")
                     && in.built(plan.farm) >= p.get("shrineEarlyFields") + (bot.economy.foodStarved(in) ? 2 : 0))
-                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY, 99, home, 10, 30));
+                reqs.add(new Request(plan.heroBuilding, 99, home, 10, 30));
             // the shrine at mid game (parameter shrineMid): at priority 72 it lost to every field, house and
             // barracks for wood and most games never had a hero; from minute shrineMinute it goes ahead of them
             if (p.b("heroes") && p.b("shrineMid") && bot.difficulty == Difficulty.EXPERT
-                    && in.total(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY) == 0
+                    && in.total(plan.heroBuilding) == 0
                     && in.built(plan.barracks) > 0 && BuildOrder.minutes() >= p.get("shrineMinute"))
-                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY, 92, home, 10, 30));
+                reqs.add(new Request(plan.heroBuilding, 92, home, 10, 30));
             // shrine of prosperity: cheap, and its heroes cost no resources at all
-            if (p.b("heroes") && in.total(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY) == 0
+            if (p.b("heroes") && in.total(plan.heroBuilding) == 0
                     && in.built(plan.barracks) > 0 && workers >= 16 && !evenLean) {
-                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY, 72, home, 10, 30));
+                reqs.add(new Request(plan.heroBuilding, 72, home, 10, 30));
             }
             // defensive towers once someone has come for us
             if (p.b("buildTowers") && bot.army.timesRaided > 0 && in.total(plan.tower) < 2 && workers >= 18) {
@@ -313,7 +330,7 @@ public final class Builder {
         }
 
         // the composition planner's tech: the building of a unit that beats what we can train
-        if (p.b("composition") && bot.difficulty == Difficulty.EXPERT && in.built(plan.barracks) > 0 && workers >= 18) {
+        if (plan.villagers && p.b("composition") && bot.difficulty == Difficulty.EXPERT && in.built(plan.barracks) > 0 && workers >= 18) {
             Building tech = bot.composition.techWanted(in);
             if (tech != null && in.total(tech) == 0) {
                 boolean ok = tech != com.solegendary.reignofnether.building.Buildings.CASTLE
@@ -362,7 +379,9 @@ public final class Builder {
                 if (reserved == null && r.priority >= 40) reserved = r;
                 // an important building we are saving for must not be starved by cheaper, less
                 // important ones that use the same resource (the escrow rule)
-                if (r.priority >= 60 && bot.params.get("spendingEscrow") > 0) break;
+                // escrowSplit: only what needs the same resource waits behind it (a food- or ore-only want
+                // goes ahead while the top one saves wood)
+                if (r.priority >= 60 && bot.params.get("spendingEscrow") > 0 && !p.b("escrowSplit")) break;
                 continue;
             }
             if (reserved != null && sharesInput(reserved.building, b)) continue;
@@ -382,6 +401,14 @@ public final class Builder {
             break;
         }
         if (!note.isEmpty()) lastNote = note;
+        // waiting on wood: the top unaffordable want (priority 60+) is short of wood and not of food or ore
+        boolean woodWait = false;
+        if (reserved != null && reserved.priority >= 60) {
+            Building rb = reserved.building;
+            int wr = p.i("buildWoodReserve");
+            woodWait = in.wood < rb.cost.wood + wr && in.food >= rb.cost.food && in.ore >= rb.cost.ore;
+        }
+        if (woodWait) { if (woodWaitSince < 0) woodWaitSince = bot.now; } else woodWaitSince = -1;
         keepBuildersOnSites(in);
     }
 

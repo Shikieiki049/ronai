@@ -1,0 +1,18 @@
+{
+ "flyingRule": true,
+ "dpsMultiplier": {
+  "evoker_unit": 1.6,
+  "iron_golem_unit": 1.0,
+  "pillager_unit": 1.0,
+  "ravager_unit": 0.75,
+  "vindicator_unit": 1.0,
+  "windcaller_unit": 0.8,
+  "witch_unit": 2.5
+ },
+ "mse": 0.1394,
+ "winnerRight": 0.816,
+ "baseline": {
+  "mse": 0.2703,
+  "winnerRight": 0.761
+ }
+}

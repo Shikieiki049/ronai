@@ -140,6 +140,26 @@ public final class BotParams {
         p.put("witchMicro",                 0,     0,      0,     1);   // witches autocast harming potions, heal the worst-hurt soldier
         p.put("heroSkills",                 0,     0,      0,     1);   // heroes learn their skills and use them in fights
         p.put("floatBarracks",              0,     0,      0,     0);   // food 600+ with every barracks busy: one more (up to maxBarracks + 2)
+        p.put("foodBarracks",               0,     0,      0,     1);   // food banked with every barracks busy: the next barracks ahead of fields and stockpiles
+        p.put("foodBarracksFood",           300,   300,    300,   300);
+        p.put("boomBarracks",               0,     0,      0,     1);   // villagers near the cap: barracks ahead of further fields
+        p.put("boomBarracksSlack",          8,     8,      8,    14);   // ...from vilCap minus this many villagers
+        p.put("boomBarracksFarms",          6,     6,      6,     6);   // ...once this many fields stand
+        p.put("woodDemand",                 0,     0,      0,     0);   // the builder waiting on wood moves workers to wood, one per 30 s
+        p.put("woodDemandWait",             600,   600,    600,   600); // ...after this many ticks of waiting
+        p.put("woodDemandMax",              6,     6,      6,     6);
+        p.put("woodDemandFood",             100,   100,    100,   100); // ...food workers only while this much food is banked
+        p.put("escrowSplit",                0,     0,      0,     0);   // a saved-for building blocks only wants that share one of its resources
+        p.put("enchantPolicy",              0,     0,      0,     0);   // no maiming; multishot for pillagers once the grand library stands
+        p.put("upgradeTier",                0,     0,      0,     0);   // grand library + superior blacksmith paid from the bank once the army is formed
+        p.put("upgradeTierArmy",            12,    12,     12,    12);
+        p.put("simV2",                      0,     0,      0,     0);   // the fight forecast calibrated on the arena (flyers, per-type damage)
+        p.put("retarget",                   0,     0,      0,     0);   // woodcutters/miners with no next block picked get a new one
+        p.put("retargetTicks",              40,    40,     40,    40);
+        p.put("nightPlan",                  0,     0,      0,     1);   // monsters: attack by night, home before dawn, burning units inside the night by day
+        p.put("nightSunSafeShare",          0.25,  0.25,   0.25,  0.25); // a force with at most this share burning ignores the clock
+        p.put("nightFightTicks",            1800,  1800,   1800,  1800); // night kept for the fight itself
+        p.put("nightDawnMargin",            400,   400,    400,   400);  // start home this much before the walk back would meet the dawn
         p.put("siegeSpread",                0,     0,      0,     1);   // enemy army gone: up to 8 groups of 2+ raze at once
         p.put("adaptWitches",               0,     0,      0,     0);   // from minute 12: an enemy army 65%+ melee brings the witches in
         p.put("boomPunish",                 0,     0,      0,     1);   // no enemy army at all from minute 10: attack with boomPunishPop

@@ -1,0 +1,45 @@
+{
+ "description": "monsters expert vs villager expert, day/night on",
+ "items": [
+  {
+   "name": "monsters first",
+   "spec": "expert#monsters vs expert readied nohandicap night",
+   "us": 0,
+   "pair": "mvv",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "villagers first",
+   "spec": "expert vs expert#monsters readied nohandicap night",
+   "us": 1,
+   "pair": "mvv",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}

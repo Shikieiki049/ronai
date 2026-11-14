@@ -37,6 +37,7 @@ public final class Bot implements Agent {
     final Upgrades upgrades = new Upgrades(this);
     final Casters casters = new Casters(this);
     final Composition composition = new Composition(this);
+    final NightPlan night = new NightPlan(this);
     final Ledger ledger = new Ledger(this);
     final Random random;
     public long now;

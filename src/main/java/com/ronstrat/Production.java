@@ -118,7 +118,7 @@ public final class Production {
         }
 
         // ---- golem route: golem smithing at the blacksmith, before anything else there
-        if (Strategy.golems(bot) && !ResearchServerEvents.playerHasResearch(bot.name, com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_GOLEM_SMITHING)
+        if (plan.villagers && Strategy.golems(bot) && !ResearchServerEvents.playerHasResearch(bot.name, com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_GOLEM_SMITHING)
                 && !com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_GOLEM_SMITHING.itemIsBeingProduced(false, bot.name)) {
             ResourceCost gc = cost(com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_GOLEM_SMITHING);
             if (in.wood >= gc.wood && in.ore >= gc.ore)
@@ -147,6 +147,12 @@ public final class Production {
             // which pay for themselves within minutes
             boolean urgent = r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_RESOURCE_CAPACITY
                     || r.item == plan.marketUpgrade;
+            // upgradeTier (mid/late game, the army formed): the grand library (sharpness, multishot) and the superior
+            // blacksmith (chainmail) are a planned spend, not leftovers - 12 against 12, chain + sharpness won +0.47
+            boolean tier = p.b("upgradeTier") && in.army.size() >= p.i("upgradeTierArmy")
+                    && (r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_GRAND_LIBRARY
+                        || r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_SUPERIOR_BLACKSMITH);
+            if (tier) urgent = true;
             int margin = urgent ? 0 : 150;
             // carry bags (expert): paid from the bank, not what is left after escrow - every other spend
             // came first and the research waited the whole game
@@ -157,6 +163,7 @@ public final class Production {
             boolean potions = r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HEALING_POTIONS
                     && Strategy.witches(bot) && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore;
             if (potions) bags = true;
+            if (tier && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore) bags = true;
             if (!bags && (f < c.food + margin || w < c.wood + margin || o < c.ore + margin / 2)) continue;
             for (BuildingPlacement b : in.own) {
                 if (!b.isBuilt || b.getBuilding() != r.at || !(b instanceof ProductionPlacement pp)) continue;
@@ -178,9 +185,9 @@ public final class Production {
         // ---- heroes: free units from the shrine (RON enforces the hero limit and revive rules)
         if (p.b("heroes")) {
             for (BuildingPlacement b : in.own) {
-                if (!b.isBuilt || b.getBuilding() != com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY
+                if (!b.isBuilt || b.getBuilding() != plan.heroBuilding
                         || !(b instanceof ProductionPlacement pp) || !pp.productionQueue.isEmpty()) continue;
-                for (ProductionItem item : HEROES) {
+                for (ProductionItem item : plan.heroes) {
                     ResourceCost c = cost(item);
                     if (!item.canProduce(pp) || !pays(c, f, w, o) || !room(in, item)) continue;
                     // a revive costs food the army needs: only from a surplus
@@ -230,7 +237,7 @@ public final class Production {
         for (BuildingPlacement b : in.own) {
             if (!b.isBuilt || !(b instanceof ProductionPlacement pp) || b.isCapitol) continue;
             if (!(b.getBuilding() instanceof ProductionBuilding)) continue;
-            if (b.getBuilding() == com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY) continue;
+            if (b.getBuilding() == bot.plan.heroBuilding) continue;
             if (pp.productionQueue.size() >= perBuilding) continue;
             if (armyCapped) { idleReason = "army cap"; continue; }
             if (!bot.attentive()) continue;
@@ -327,7 +334,7 @@ public final class Production {
     /** desired share of army population per role */
     Map<FactionPlan.Role, Double> roleMix(Intel in) {
         BotParams p = bot.params;
-        if (p.b("composition") && bot.difficulty == Difficulty.EXPERT) return bot.composition.roleMix(in);
+        if (bot.plan.villagers && p.b("composition") && bot.difficulty == Difficulty.EXPERT) return bot.composition.roleMix(in);
         Map<FactionPlan.Role, Double> m = new EnumMap<>(FactionPlan.Role.class);
         double golem = p.get("golemShare"), caster = p.get("casterShare");
         if (bot.outnumbered() && golem >= 0.3 && in.ore > 500) golem = 0.6; // ore-fed army when food is the war

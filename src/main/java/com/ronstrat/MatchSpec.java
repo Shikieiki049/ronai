@@ -15,10 +15,19 @@ import java.util.List;
  */
 public final class MatchSpec {
     /** brain "" = current code, profile "" = plain difficulty, handicap = lobby handicap levels */
-    public record Player(Difficulty difficulty, String brain, String profile, int handicap) {
-        /** the part of the bot's name after the team number: expert, expert@base, expert:rush7 */
+    public record Player(Difficulty difficulty, String brain, String profile, int handicap, String faction) {
+        /** the part of the bot's name after the team number: expert, expert@base, expert:rush7, expert#monsters */
         public String label() {
-            return difficulty.key() + (brain.isEmpty() ? "" : "@" + brain) + (profile.isEmpty() ? "" : ":" + profile);
+            return difficulty.key() + (faction.equals("villagers") ? "" : "#" + faction) + (brain.isEmpty() ? "" : "@" + brain) + (profile.isEmpty() ? "" : ":" + profile);
+        }
+
+        /** the RON faction: "#monsters" / "#piglins" after the difficulty, villagers otherwise */
+        public com.solegendary.reignofnether.faction.Faction ronFaction() {
+            return switch (faction) {
+                case "monsters" -> com.solegendary.reignofnether.faction.Factions.MONSTERS;
+                case "piglins" -> com.solegendary.reignofnether.faction.Factions.PIGLINS;
+                default -> com.solegendary.reignofnether.faction.Factions.VILLAGERS;
+            };
         }
     }
 
@@ -75,12 +84,15 @@ public final class MatchSpec {
         int handicap = 0;
         int at = head.indexOf('@');
         if (at >= 0) { brain = head.substring(at + 1).trim(); head = head.substring(0, at); }
+        String faction = "villagers";
+        int hash = head.indexOf('#');
+        if (hash >= 0) { faction = head.substring(hash + 1).trim(); head = head.substring(0, hash); }
         for (int i = 1; i < f.length; i++) {
             String x = f[i].trim();
             if (x.matches("h\\d+")) handicap = Integer.parseInt(x.substring(1));
             else if (!x.isEmpty()) profile = x;
         }
-        return new Player(Difficulty.parse(head), brain, profile, handicap);
+        return new Player(Difficulty.parse(head), brain, profile, handicap, faction);
     }
 
     public int players() {

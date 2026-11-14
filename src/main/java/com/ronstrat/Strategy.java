@@ -32,11 +32,11 @@ final class Strategy {
     private static boolean even(Bot bot) { return bot.difficulty == Difficulty.EXPERT && !bot.outnumbered(); }
 
     static boolean golems(Bot bot) {
-        return even(bot) && route(bot) == GOLEMS && BuildOrder.minutes() < bot.params.get("golemUntil");
+        return bot.plan.villagers && even(bot) && route(bot) == GOLEMS && BuildOrder.minutes() < bot.params.get("golemUntil");
     }
 
     static boolean witches(Bot bot) {
-        return bot.difficulty == Difficulty.EXPERT && (bot.params.b("witchEarly") || (even(bot) && route(bot) == WITCHES) || meleeHeavyFoe(bot));
+        return bot.plan.villagers && bot.difficulty == Difficulty.EXPERT && (bot.params.b("witchEarly") || (even(bot) && route(bot) == WITCHES) || meleeHeavyFoe(bot));
     }
 
     /**

@@ -312,6 +312,24 @@ public final class Economy {
                 lastLoad.remove(w.getId());
                 loadChangedAt.put(w.getId(), bot.now);
             }
+            // retarget (parameter retarget): a woodcutter or miner whose gather goal found no next block stands
+            // there with the goal still set - not idle to RON, so nobody gave it work (70-90% of the woodcutters'
+            // standing time, a quarter of their day by minute 10; in a 2v2 the user won, half of it)
+            if (p.b("retarget") && (seen == Job.WOOD || seen == Job.ORE || recorded == Job.WOOD || recorded == Job.ORE)) {
+                GatherResourcesGoal rgG = ((WorkerUnit) w).getGatherResourceGoal();
+                var rgR = ((Unit) w).getReturnResourcesGoal();
+                boolean lost = rgG != null && rgG.getTargetFarm() == null && rgG.getGatherTarget() == null && !rgG.isGathering()
+                        && !w.getNavigation().isInProgress() && (rgR == null || rgR.getBuildingTarget() == null);
+                if (lost) {
+                    long lostFor = bot.now - noTargetSince.computeIfAbsent(w.getId(), k -> bot.now);
+                    if (lostFor >= p.i("retargetTicks") && bot.now - assignedAt.getOrDefault(w.getId(), -10000L) > 40) {
+                        noTargetSince.remove(w.getId());
+                        retargets++;
+                        idle.add(w); jobs.put(w.getId(), Job.IDLE);
+                        continue;
+                    }
+                } else noTargetSince.remove(w.getId());
+            }
             boolean reallyIdle = seen == Job.IDLE && WorkerUnit.isIdle((WorkerUnit) w);
             if (reallyIdle) {
                 long idleFor = bot.now - idleSince.computeIfAbsent(w.getId(), k -> bot.now);
@@ -417,7 +435,7 @@ public final class Economy {
         }
         // armour: the blacksmith from minute smithFrom - its ore is mined for it first (nothing else mines
         // in an even game, so it came in 29 of 80 games, at 23:48 on average, and 1% of soldiers had armour)
-        if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && BuildOrder.minutes() >= p.get("smithFrom") - 1.5
+        if (bot.plan.villagers && bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && BuildOrder.minutes() >= p.get("smithFrom") - 1.5
                 && bot.army.sinceThreat() > 600 && !popMaxed(in)) {
             Building smith = com.solegendary.reignofnether.building.Buildings.BLACKSMITH;
             int needOre = in.total(smith) == 0 ? smith.cost.ore + 50 : 300;
@@ -447,6 +465,26 @@ public final class Economy {
             }
             int move = balanceBias > 0 ? Math.min(balanceBias, want[0]) : -Math.min(-balanceBias, want[1]);
             want[0] -= move; want[1] += move;
+        }
+        // wood demand (parameter woodDemand): the builder has waited on wood for woodDemandWait ticks - fields,
+        // houses and barracks all queue behind 150 wood while 9-10 of 30 villagers cut it (a 2v2 the user won:
+        // "saving for ... everything else waits" for most of minutes 0-11). Every 30 s one more woodcutter,
+        // from the miners while ore is banked, else from food while the town centre still has its food;
+        // back one at a time once nothing waits on wood.
+        if (p.b("woodDemand") && bot.difficulty == Difficulty.EXPERT && gatherers >= 8) {
+            if (bot.now - lastWoodDemand >= 600) {
+                lastWoodDemand = bot.now;
+                long since = bot.builder.woodWaitSince;
+                boolean waiting = since >= 0 && bot.now - since >= p.get("woodDemandWait");
+                if (waiting) woodBias = Math.min(p.i("woodDemandMax"), woodBias + 1);
+                else if (woodBias > 0 && (since < 0)) woodBias--;
+            }
+            int left = woodBias;
+            int fromOre = Math.min(left, in.ore >= 150 ? want[2] : 0);
+            want[2] -= fromOre; want[1] += fromOre; left -= fromOre;
+            // the town centre keeps making villagers: food workers go only while food is banked
+            int fromFood = Math.min(left, in.food >= p.get("woodDemandFood") ? Math.max(0, want[0] - 1) : 0);
+            want[0] -= fromFood; want[1] += fromFood;
         }
         int[] have = { byJob.get(Job.FOOD).size(), byJob.get(Job.WOOD).size(), byJob.get(Job.ORE).size() };
 
@@ -582,6 +620,7 @@ public final class Economy {
     private final Map<Integer, Integer> stuck = new HashMap<>();
     private long lastRebalance = -1000;
     private long lastBalance = -1000;
+    int woodBias; private long lastWoodDemand = -1000; // woodDemand: workers moved to wood
     int balanceBias; // spendBalance: workers moved from food to wood (negative: wood to food)
 
     private static int jobIndex(Job j) {
@@ -633,7 +672,7 @@ public final class Economy {
         double scale = 1 + n / 25.0;
         double tf = 250 * scale + need[0], tw = 250 * scale + need[1], to = 120 * scale + need[2];
         // golems are paid in ore: keep enough coming once they can be built
-        if (in.built(bot.plan.option(com.solegendary.reignofnether.building.production.ProductionItems.IRON_GOLEM).producer) > 0
+        if (bot.plan.villagers && in.built(bot.plan.option(com.solegendary.reignofnether.building.production.ProductionItems.IRON_GOLEM).producer) > 0
                 && p.get("golemShare") > 0.2) to = Math.max(to, bot.outnumbered() ? 900 : 600);
         if (bot.outnumbered() && p.get("golemShare") >= 0.3) ore = Math.max(ore, 0.22);
         // ore piling up while wood is short: golems (50 wood + 250 ore) are waiting for wood
@@ -1000,10 +1039,27 @@ public final class Economy {
             boolean returning = rg != null && rg.getBuildingTarget() != null;
             int st = returning ? 2 : g.isGathering() ? 0 : w.getNavigation().isInProgress() ? 1 : 3;
             timeBudget[k][st]++;
+            if (k == 0 && st == 3) {
+                // why a woodcutter stands: no tree picked / a tree picked but out of reach / a full pack
+                if (g.getGatherTarget() == null) standWhy[0]++;
+                else if (Unit.atMaxResources((Unit) w)) standWhy[2]++;
+                else standWhy[1]++;
+            }
             if (k == 0 && st == 0 && g.getGatherTarget() != null) {
                 if (bot.level.getBlockState(g.getGatherTarget()).getBlock() instanceof net.minecraft.world.level.block.LeavesBlock) leafSamples++; else logSamples++;
             }
         }
+    }
+
+    private final int[] standWhy = new int[3];
+    private final Map<Integer, Long> noTargetSince = new HashMap<>();
+    int retargets;
+
+    private String standText() {
+        int n = Math.max(1, standWhy[0] + standWhy[1] + standWhy[2]);
+        String r = " (stand: no tree " + 100 * standWhy[0] / n + "% tree " + 100 * standWhy[1] / n + "% full " + 100 * standWhy[2] / n + "%)";
+        java.util.Arrays.fill(standWhy, 0);
+        return r;
     }
 
     private String budget(int k) {
@@ -1065,7 +1121,7 @@ public final class Economy {
         for (var e : onFarm.entrySet()) sb.append(' ').append(e.getKey()).append(' ').append(e.getValue()[0]).append("(v").append(e.getValue()[1]).append(')');
         sb.append(" | ").append(farms).append(" farms: wheat ").append(wheat).append(" carrot ").append(carrot).append(" potato ").append(potato)
                 .append(" ripe ").append(ripe).append(" bare ").append(bare);
-        sb.append(" | wood: ").append(budget(0)).append(" leaves ").append(100 * leafSamples / Math.max(1, leafSamples + logSamples)).append("%")
+        sb.append(" | wood: ").append(budget(0)).append(standText()).append(" leaves ").append(100 * leafSamples / Math.max(1, leafSamples + logSamples)).append("%")
                 .append(" | farm: ").append(budget(1));
         leafSamples = logSamples = 0;
         sb.append(" | game within 40/80/120/200: ").append(countAnimals(in, 40)).append('/').append(countAnimals(in, 80)).append('/')

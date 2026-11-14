@@ -157,6 +157,7 @@ public final class Army {
     }
 
     void think(Intel in) {
+        CombatSim.v2 = bot.params.b("simV2"); // the calibrated forecast (CombatSim.v2) for this bot's decisions
         BotParams p = bot.params;
         if (!armyAheadLatch && bot.difficulty == Difficulty.EXPERT && BuildOrder.minutes() < p.get("openingMinutes") && enemyArmyAhead(in)) {
             armyAheadLatch = true;
@@ -612,6 +613,15 @@ public final class Army {
         BotParams p = bot.params;
         double secs = PlayerServerEvents.rtsGameTicks / 20.0;
         if (secs < p.get("firstAttackSeconds") * jitter()) return false;
+        // monsters (NightPlan): out only when the night covers the march, the fight and the way back
+        if (bot.night.on()) {
+            double near = 1e9;
+            for (Intel.EnemyMemory em : in.enemies.values()) {
+                BlockPos b = em.alive ? em.anyBuilding() : null;
+                if (b != null) near = Math.min(near, Math.sqrt(b.distSqr(in.home())));
+            }
+            if (near < 1e9 && !bot.night.attackWindow(attackForce(in), near)) return false;
+        }
         double armyPop = 0;
         for (Mob m : in.army) armyPop += UnitEval.popValue(m);
         if (teamOn()) {
@@ -942,6 +952,15 @@ public final class Army {
 
     private void runAttack(Intel in) {
         BotParams p = bot.params;
+        // monsters: home before the dawn burns the army on the open field (NightPlan)
+        if (bot.night.on() && bot.night.mustReturn(attackForce(in), in.home())) {
+            bot.log("dawn coming (" + bot.night.nightLeft() / 20 + " s of night left): the army goes home");
+            endAttack();
+            mode = Mode.RETREAT;
+            retreatUntil = bot.now + 600;
+            Orders.move(bot.name, attackForce(in), in.home());
+            return;
+        }
         Intel.EnemyMemory m = target == null ? null : in.enemies.get(target);
         if (m == null || !m.alive || m.anyBuilding() == null) {
             String t = chooseTarget(in);
@@ -1950,10 +1969,14 @@ public final class Army {
     }
 
     private void gather(Intel in) {
-        if (clearNeutrals(in)) return;
-        heroCreep(in);
+        // monsters by day: the burning units and the heroes wait inside the night at home - no camp hunts,
+        // no hero levelling, no guard post out by the woodcutters
+        boolean sunUp = bot.night.on() && bot.night.day() && NightPlan.burnShare(in.army) > bot.params.get("nightSunSafeShare");
+        if (!sunUp && clearNeutrals(in)) return;
+        if (!(bot.night.on() && bot.night.day())) heroCreep(in);
+        else creeping.clear();
         harass(in);
-        BlockPos r = bot.difficulty == Difficulty.EXPERT && bot.params.b("rallyGuard") ? guardPoint(in) : rally(in);
+        BlockPos r = !sunUp && bot.difficulty == Difficulty.EXPERT && bot.params.b("rallyGuard") ? guardPoint(in) : rally(in);
         java.util.Set<Integer> visiting = upgradeVisits;
         List<Mob> stray = new ArrayList<>();
         for (Mob u : in.army) {

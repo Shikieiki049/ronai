@@ -72,8 +72,8 @@ public final class Match {
                 // RON player names: letters, digits, '-' only. T1-expert-1 stays as it always was.
                 String name = (pl.brain().startsWith("ron") ? "Bot-" : "") + "T" + (teams.size() + 1) + "-" + d.key() + (pl.brain().isEmpty() ? "" : "-" + pl.brain()) + "-" + (++idx);
                 bots.add(spec.readied
-                        ? BotManager.startReadied(level, name, d, seats.get(seat++), spec.ffa ? 100 + idx : teams.size() + 1, pl.brain(), pl.profile())
-                        : BotManager.start(level, name, d, seats.get(seat++), pl.brain(), pl.profile()));
+                        ? BotManager.startReadied(level, name, d, seats.get(seat++), spec.ffa ? 100 + idx : teams.size() + 1, pl.brain(), pl.profile(), pl.ronFaction())
+                        : BotManager.start(level, name, d, seats.get(seat++), pl.brain(), pl.profile(), pl.ronFaction()));
                 if (pl.handicap() > 0) handicaps.add(new int[] { teams.size(), bots.size() - 1, pl.handicap() });
             }
             teams.add(bots);

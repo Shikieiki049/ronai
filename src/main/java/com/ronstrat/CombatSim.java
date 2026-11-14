@@ -28,11 +28,12 @@ public final class CombatSim {
     public static final class U {
         double hp, hp0, armour, dps, range, speed, pos;
         boolean fixed; // a tower: shoots, cannot be killed, does not count as a survivor
+        boolean flying; // upgraded windcallers, bats...: out of melee reach (simV2)
         int hitBy;
 
         U copy() {
             U u = new U();
-            u.hp = hp; u.hp0 = hp0; u.armour = armour; u.dps = dps; u.range = range; u.speed = speed; u.fixed = fixed;
+            u.hp = hp; u.hp0 = hp0; u.armour = armour; u.dps = dps; u.range = range; u.speed = speed; u.fixed = fixed; u.flying = flying;
             return u;
         }
     }
@@ -57,7 +58,38 @@ public final class CombatSim {
         u.range = Math.max(1.5, UnitEval.range(e));
         double a = e.getAttribute(Attributes.MOVEMENT_SPEED) == null ? 0.25 : e.getAttributeValue(Attributes.MOVEMENT_SPEED);
         u.speed = Math.max(1.5, Math.min(8, a * a * 58));
+        u.flying = e instanceof Unit un2 && un2.isFlyingUnit();
+        if (v2) u.dps *= dpsMultiplier(e.getType().toShortString());
         return u;
+    }
+
+    /**
+     * simV2: the forecast calibrated on the arena (tools/simfit.py on 1840 fights -> tuning/sim_calibration.json):
+     * melee cannot hit flying units, and per unit type a factor on damage per second for what the plain model
+     * misses (witch potions splash, evoker fangs and vexes). Winner right 76% -> 82%, squared error 0.27 -> 0.14.
+     * Set by Army.think from the bot's parameters (the server runs the bots one after the other).
+     */
+    static boolean v2;
+    private static java.util.Map<String, Double> calibration;
+
+    static synchronized double dpsMultiplier(String type) {
+        if (calibration == null) {
+            calibration = new java.util.HashMap<>();
+            try {
+                String pd = System.getProperty("ronstrat.profiles");
+                java.nio.file.Path f = pd != null ? java.nio.file.Path.of(pd).getParent().resolve("sim_calibration.json") : null;
+                String text = null;
+                if (f != null && java.nio.file.Files.exists(f)) text = java.nio.file.Files.readString(f);
+                else try (var r = CombatSim.class.getResourceAsStream("/ronstrat/sim_calibration.json")) {
+                    if (r != null) text = new String(r.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                }
+                if (text != null) {
+                    var o = com.google.gson.JsonParser.parseString(text).getAsJsonObject().getAsJsonObject("dpsMultiplier");
+                    for (var e : o.entrySet()) calibration.put(e.getKey(), e.getValue().getAsDouble());
+                }
+            } catch (Exception ex) { RonStrategist.LOG.warn("sim calibration not read: {}", ex.toString()); }
+        }
+        return calibration.getOrDefault(type, 1.0);
     }
 
     public static U tower() {
@@ -127,6 +159,7 @@ public final class CombatSim {
                 U t = to.get(i);
                 if (t.hp <= 0 || t.fixed) continue;
                 if (melee && t.hitBy >= MELEE_PER_TARGET) continue;
+                if (melee && v2 && t.flying) continue;
                 // nearest first; among equally near ones the weakest (focus fire)
                 double d = Math.abs(t.pos - u.pos) + 0.001 * (t.hp - dmg[i]);
                 if (dmg[i] >= t.hp) d += 50; // already dead this step: do not waste the hit

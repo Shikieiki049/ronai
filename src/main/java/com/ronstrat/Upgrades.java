@@ -56,6 +56,7 @@ final class Upgrades {
             l.add((EnchantAbility) staticField(Library.class, "ENCHANT_QUICK_CHARGE")); // no upgrade needed
             l.add((EnchantAbility) staticField(Library.class, "ENCHANT_SHARPNESS"));    // grand library
             l.add((EnchantAbility) staticField(Library.class, "ENCHANT_VIGOR"));        // grand library
+            l.add((EnchantAbility) staticField(Library.class, "ENCHANT_MULTISHOT"));    // grand library
             leather = (EquipAbility) staticField(Blacksmith.class, "EQUIP_LEATHER_CHESTPLATE_INSTANCE");
             chainmail = (EquipAbility) staticField(Blacksmith.class, "EQUIP_CHAINMAIL_CHESTPLATE");
             wantedEnchants = l;
@@ -85,9 +86,13 @@ final class Upgrades {
     }
 
     /** sharpness and vigor need the grand library; before it vindicators get maiming instead */
-    private static List<EnchantAbility> enchantsFor(BuildingPlacement b) {
+    private List<EnchantAbility> enchantsFor(BuildingPlacement b) {
         boolean grand = false;
         try { grand = b.getBuilding().getUpgradeLevel(b) > 0; } catch (Throwable ignored) { }
+        // enchantPolicy (arena, 12 against 12): sharpness +0.34, multishot +0.44, quick charge +0.19, maiming
+        // +0.04 - maiming is not worth its price, multishot beats quick charge once the grand library stands
+        if (bot.params.b("enchantPolicy"))
+            return grand ? List.of(wantedEnchants.get(2), wantedEnchants.get(4), wantedEnchants.get(3)) : List.of(wantedEnchants.get(1));
         return grand ? List.of(wantedEnchants.get(2), wantedEnchants.get(1), wantedEnchants.get(3)) : List.of(wantedEnchants.get(0), wantedEnchants.get(1));
     }
 
@@ -99,7 +104,7 @@ final class Upgrades {
     }
 
     void think(Intel in) {
-        if (!bot.params.b("upgrades") || !init()) return;
+        if (!bot.plan.villagers || !bot.params.b("upgrades") || !init()) return;
         if (!costsLogged) { costsLogged = true; StringBuilder sb = new StringBuilder("upgrade costs:"); for (EnchantAbility e : wantedEnchants) sb.append(" ").append(e.getClass().getSimpleName()).append("=").append(e.cost.food).append("/").append(e.cost.wood).append("/").append(e.cost.ore); sb.append(" leather=").append(leather.cost.food).append("/").append(leather.cost.wood).append("/").append(leather.cost.ore).append(" chain=").append(chainmail.cost.food).append("/").append(chainmail.cost.wood).append("/").append(chainmail.cost.ore); bot.log(sb.toString()); }
         boolean rich = rich(in), armRich = armourRich(in);
         if (rich != wasRich) { wasRich = rich; if (bot.verbose) bot.log("upgrades autocast " + (rich ? "on" : "off")); }
