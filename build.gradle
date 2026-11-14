@@ -35,11 +35,11 @@ repositories { flatDir { dirs 'libs' }; mavenCentral() }
 configurations { ronAlt }
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.4.28'
-    implementation fg.deobf('local:reignofnether:1.5.1c')
+    implementation fg.deobf('local:reignofnether:1.5.1d')
     ronAlt fg.deobf('alt:ronalt:1.5.0b2')
 }
 // another RON build (with RON's own bots) to run self-play against: only its deobfuscated jar is made,
-// the mod is still compiled against 1.5.1c. tools/altserver.py swaps it into the server classpath.
+// the mod is compiled against 1.5.1d. tools/altserver.py swaps it into the server classpath.
 tasks.register('altRonPath') {
     doLast { file('build/ronalt.txt').text = configurations.ronAlt.resolve().collect { it.absolutePath }.join(';') }
 }
