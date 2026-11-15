@@ -32,7 +32,8 @@ import java.util.List;
  * the file:   name | side A | side B      a side = units and options, e.g.
  *     vindicator*12                          twelve vindicators
  *     pillager*8+vindicator*4 leather axes   mixed, leather armour, the vindicator axes research
- * units: vindicator pillager golem witch evoker ravager windcaller guard militia
+ * units: vindicator pillager golem witch evoker ravager windcaller guard militia; zombie husk skeleton creeper spider;
+ *        brute headhunter marauder hoglin blaze witherskeleton magmacube ghast
  * options: leather chain (armour on every unit that can wear it), axes crossbows vexes windcallers lingering golemsmith (research),
  *          sharpness maiming quickcharge multishot vigor (enchantments on the units that take them)
  * Each fight ends when a side is dead or after 90 seconds; the result (share of hit points left on each
@@ -207,6 +208,21 @@ final class ArenaTest {
             case "windcaller" -> EntityRegistrar.WINDCALLER_UNIT.get();
             case "guard" -> EntityRegistrar.ROYAL_GUARD_UNIT.get();
             case "militia" -> EntityRegistrar.MILITIA_UNIT.get();
+            // monsters
+            case "zombie" -> EntityRegistrar.ZOMBIE_UNIT.get();
+            case "husk" -> EntityRegistrar.HUSK_UNIT.get();
+            case "skeleton" -> EntityRegistrar.SKELETON_UNIT.get();
+            case "creeper" -> EntityRegistrar.CREEPER_UNIT.get();
+            case "spider" -> EntityRegistrar.SPIDER_UNIT.get();
+            // piglins
+            case "brute" -> EntityRegistrar.BRUTE_UNIT.get();
+            case "headhunter" -> EntityRegistrar.HEADHUNTER_UNIT.get();
+            case "marauder" -> EntityRegistrar.MARAUDER_UNIT.get();
+            case "hoglin" -> EntityRegistrar.HOGLIN_UNIT.get();
+            case "blaze" -> EntityRegistrar.BLAZE_UNIT.get();
+            case "witherskeleton" -> EntityRegistrar.WITHER_SKELETON_UNIT.get();
+            case "magmacube" -> EntityRegistrar.MAGMA_CUBE_UNIT.get();
+            case "ghast" -> EntityRegistrar.GHAST_UNIT.get();
             default -> throw new IllegalArgumentException("arena: unknown unit " + name);
         };
     }
