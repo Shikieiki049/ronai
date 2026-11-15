@@ -172,6 +172,10 @@ public final class BotParams {
         p.put("bigArmyGo",                  0,     0,      0,     0);   // 20+ soldiers: a weak raid gets a detachment, the rest still attacks; monsters attack first by night
         p.put("expandOut",                  0,     0,      1,     1);   // catalysts and piglin portals fan out expandDist from home: more ground (the user)
         p.put("expandDist",                 24,    24,     24,    24);
+        p.put("piglinMix",                  1,     1,      1,     1);   // piglins: brutes + magma cubes + headhunters (+ ghasts), from the arena
+        p.put("pigMagma",                   0.2,   0.2,    0.2,   0.2);
+        p.put("pigHead",                    0.18,  0.18,   0.18,  0.18);
+        p.put("pigGhast",                   0.3,   0.3,    0.3,   0.3);
         p.put("monsterMix",                 0,     0,      0,     0);   // monsters: zombies tank, skeletons damage, creepers strike (shares below)
         p.put("mixZombie",               0.45,  0.45,   0.45,  0.45);  // share of army population: zombies / husks in front
         p.put("mixSkeleton",             0.35,  0.35,   0.35,  0.35);  // skeletons / strays behind them

@@ -341,6 +341,18 @@ public final class Production {
         Map<FactionPlan.Role, Double> m = new EnumMap<>(FactionPlan.Role.class);
         // monsters: zombies take the hits, skeletons deal the damage behind them, creepers are the strongest
         // blow - the army is built to that ratio (a creeper the dungeon cannot make yet goes to the other two)
+        // piglins (piglinMix): the arena's order - brutes the core, magma cubes once the springs stand,
+        // headhunters against flyers, ghasts once the fortress stands
+        if (bot.plan.portals && p.b("piglinMix")) {
+            boolean springs = in.built(com.solegendary.reignofnether.building.Buildings.BASALT_SPRINGS) > 0;
+            boolean fortress = in.built(com.solegendary.reignofnether.building.Buildings.FORTRESS) > 0;
+            double ghast = fortress ? p.get("pigGhast") : 0, magma = springs ? p.get("pigMagma") : 0, head = p.get("pigHead");
+            m.put(FactionPlan.Role.SIEGE, ghast);
+            m.put(FactionPlan.Role.SUPPORT, magma);
+            m.put(FactionPlan.Role.RANGED, head);
+            m.put(FactionPlan.Role.MELEE, Math.max(0.2, 1 - ghast - magma - head));
+            return m;
+        }
         if (!bot.plan.villagers && p.b("monsterMix")) {
             double z = p.get("mixZombie"), s = p.get("mixSkeleton"), c = p.get("mixCreeper");
             if (in.built(com.solegendary.reignofnether.building.Buildings.DUNGEON) == 0) { double t = Math.max(1e-6, z + s); z /= t; s /= t; c = 0; }

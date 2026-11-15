@@ -170,21 +170,24 @@ public final class FactionPlan {
         p.heroBuilding = Buildings.INFERNAL_PORTAL;
         p.heroes = List.of(ProductionItems.WILDFIRE, ProductionItems.PIGLIN_MERCHANT, ProductionItems.WILDFIRE_REVIVE, ProductionItems.PIGLIN_MERCHANT_REVIVE);
 
+        // roles from the arena (APIG1, equal cost): brutes beat every ground army but ghasts; ghasts beat every
+        // melee army; magma cubes next; headhunters only fair (but they shoot the ghasts); blazes, hoglins,
+        // wither skeletons and marauders lose for their price - kept as options at zero share (piglinMix)
         p.units.add(new UnitOption(ProductionItems.BRUTE, Role.MELEE, Buildings.PORTAL_MILITARY, 0));
         p.units.add(new UnitOption(ProductionItems.HEADHUNTER, Role.RANGED, Buildings.PORTAL_MILITARY, 0));
-        p.units.add(new UnitOption(ProductionItems.HOGLIN, Role.TANK, Buildings.PORTAL_MILITARY, 14, Buildings.HOGLIN_STABLES));
-        p.units.add(new UnitOption(ProductionItems.BLAZE, Role.CASTER, Buildings.PORTAL_MILITARY, 18, Buildings.FLAME_SANCTUARY));
-        p.units.add(new UnitOption(ProductionItems.MARAUDER, Role.SIEGE, Buildings.PORTAL_MILITARY, 20, Buildings.BASTION));
-        p.units.add(new UnitOption(ProductionItems.WITHER_SKELETON, Role.TANK, Buildings.PORTAL_MILITARY, 26, Buildings.WITHER_SHRINE));
-        p.units.add(new UnitOption(ProductionItems.MAGMA_CUBE, Role.SUPPORT, Buildings.PORTAL_MILITARY, 26, Buildings.BASALT_SPRINGS));
-        p.units.add(new UnitOption(ProductionItems.GHAST, Role.SIEGE, Buildings.PORTAL_MILITARY, 34, Buildings.FORTRESS));
+        p.units.add(new UnitOption(ProductionItems.MAGMA_CUBE, Role.SUPPORT, Buildings.PORTAL_MILITARY, 18, Buildings.BASALT_SPRINGS));
+        p.units.add(new UnitOption(ProductionItems.GHAST, Role.SIEGE, Buildings.PORTAL_MILITARY, 30, Buildings.FORTRESS));
+        p.units.add(new UnitOption(ProductionItems.HOGLIN, Role.TANK, Buildings.PORTAL_MILITARY, 99, Buildings.HOGLIN_STABLES));
+        p.units.add(new UnitOption(ProductionItems.BLAZE, Role.CASTER, Buildings.PORTAL_MILITARY, 99, Buildings.FLAME_SANCTUARY));
 
-        p.tech.add(new TechStep(Buildings.HOGLIN_STABLES, 16, 1, Buildings.PORTAL_BASIC));
-        p.tech.add(new TechStep(Buildings.BASTION, 20, 2, Buildings.PORTAL_BASIC));
-        p.tech.add(new TechStep(Buildings.FLAME_SANCTUARY, 22, 3, Buildings.HOGLIN_STABLES));
-        p.tech.add(new TechStep(Buildings.WITHER_SHRINE, 26, 4, Buildings.BASTION));
-        p.tech.add(new TechStep(Buildings.BASALT_SPRINGS, 30, 5, Buildings.BASTION));
-        p.tech.add(new TechStep(Buildings.FORTRESS, 36, 6, Buildings.BASALT_SPRINGS, Buildings.FLAME_SANCTUARY, Buildings.WITHER_SHRINE));
+        // tech toward the magma cubes (basalt springs, after a bastion) and then the fortress (ghasts) - the
+        // fortress needs the sanctuary (after the stables) and the shrine too
+        p.tech.add(new TechStep(Buildings.BASTION, 18, 1, Buildings.PORTAL_BASIC));
+        p.tech.add(new TechStep(Buildings.BASALT_SPRINGS, 20, 2, Buildings.BASTION));
+        p.tech.add(new TechStep(Buildings.HOGLIN_STABLES, 28, 3, Buildings.PORTAL_BASIC));
+        p.tech.add(new TechStep(Buildings.WITHER_SHRINE, 28, 3, Buildings.BASTION));
+        p.tech.add(new TechStep(Buildings.FLAME_SANCTUARY, 30, 4, Buildings.HOGLIN_STABLES));
+        p.tech.add(new TechStep(Buildings.FORTRESS, 32, 5, Buildings.BASALT_SPRINGS, Buildings.FLAME_SANCTUARY, Buildings.WITHER_SHRINE));
 
         p.research.add(new ResearchStep(ProductionItems.RESEARCH_RESOURCE_CAPACITY, Buildings.PORTAL_CIVILIAN, 1));
         p.research.add(new ResearchStep(ProductionItems.RESEARCH_BRUTE_SHIELDS, Buildings.BASTION, 2));
