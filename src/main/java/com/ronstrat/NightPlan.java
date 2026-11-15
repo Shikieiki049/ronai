@@ -76,20 +76,24 @@ final class NightPlan {
      * fight (nightFightTicks) and the way back. By day: only a force that mostly does not burn.
      */
     boolean attackWindow(Collection<? extends Mob> force, double distance) {
+        // the user: by day the monsters' army stays in the dark at home and defends - it does not go out,
+        // not even husks that do not burn
+        if (day()) return false;
         double burn = burnShare(force);
         if (burn <= bot.params.get("nightSunSafeShare")) return true;
-        if (day()) return false;
         return nightLeft() >= 2 * walkTicks(distance) + bot.params.get("nightFightTicks");
     }
 
     /** the army out on an attack has to start home now: the dawn would catch the burning part on the way */
     boolean mustReturn(Collection<? extends Mob> force, BlockPos home) {
-        if (force.isEmpty() || burnShare(force) <= bot.params.get("nightSunSafeShare")) return false;
+        if (force.isEmpty()) return false;
         double x = 0, z = 0;
         for (Mob m : force) { x += m.getX(); z += m.getZ(); }
         x /= force.size(); z /= force.size();
         double back = Math.sqrt((x - home.getX()) * (x - home.getX()) + (z - home.getZ()) * (z - home.getZ()));
+        // by day: back into the dark, whatever the army is made of
         if (day()) return !NightUtils.isInRangeOfNightSource(new Vec3(x, home.getY(), z), false);
+        if (burnShare(force) <= bot.params.get("nightSunSafeShare")) return false;
         return nightLeft() < walkTicks(back) + bot.params.get("nightDawnMargin");
     }
 }

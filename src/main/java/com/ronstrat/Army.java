@@ -412,6 +412,9 @@ public final class Army {
                 for (Mob w : in.workers) if (w.distanceToSqr(e) <= 12 * 12) { out.add(e); break; }
             }
         }
+        // monsters by day: the army defends the dark only - an enemy outside it is not chased into the sun
+        if (bot.night.on() && bot.night.day())
+            out.removeIf(e -> !com.solegendary.reignofnether.time.NightUtils.isInRangeOfNightSource(e.position(), false));
         // enemy workers wandering by are not a raid unless they are building next to us
         out.removeIf(e -> UnitEval.isWorker(e) && e.distanceToSqr(Vec3.atCenterOf(in.home())) > 20 * 20);
         // a scout looking around is not a raid either; the army should not chase dogs around the base
@@ -2022,7 +2025,7 @@ public final class Army {
     private void gather(Intel in) {
         // monsters by day: the burning units and the heroes wait inside the night at home - no camp hunts,
         // no hero levelling, no guard post out by the woodcutters
-        boolean sunUp = bot.night.on() && bot.night.day() && NightPlan.burnShare(in.army) > bot.params.get("nightSunSafeShare");
+        boolean sunUp = bot.night.on() && bot.night.day(); // by day the whole army waits in the dark at home
         if (!sunUp && clearNeutrals(in)) return;
         if (!(bot.night.on() && bot.night.day())) heroCreep(in);
         else creeping.clear();

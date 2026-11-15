@@ -108,6 +108,7 @@ public final class BotManager {
         }
         ResourcesServerEvents.resetResources(name, false);
         PlayerServerEvents.saveRTSPlayers();
+        showToClients(name);
         Agent bot = create(brain, profile, name, d, faction, pos, level);
         BOTS.put(name, bot);
         save(level.getServer());
@@ -183,10 +184,25 @@ public final class BotManager {
                 if (!other.name.equals(name) && other.startPosColorId == colorId) ally(name, other.name);
         }
         PlayerServerEvents.saveRTSPlayers();
+        showToClients(name);
         Agent bot = create(brain, profile, name, d, faction, pos, level);
         BOTS.put(name, bot);
         save(level.getServer());
         return bot;
+    }
+
+    /**
+     * RON sends the player list to a client only when it logs in: a computer player added later was missing
+     * from every client - not in the spectator menu, no team colour on its units. Tell the clients now.
+     */
+    static void showToClients(String name) {
+        try {
+            RTSPlayer rp = PlayerServerEvents.getRTSPlayer(name);
+            if (rp == null) return;
+            com.solegendary.reignofnether.player.PlayerClientboundPacket.addRTSPlayer(rp.name, rp.faction, (long) rp.id, rp.startPosColorId, rp.isDogPerson, true);
+        } catch (Throwable t) {
+            RonStrategist.LOG.warn("RON Strategist: could not show {} to the clients ({})", name, t.toString());
+        }
     }
 
     /**
