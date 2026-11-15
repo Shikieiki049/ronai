@@ -184,6 +184,7 @@ public final class Bot implements Agent {
             trader.think(intel);
             upgrades.think(intel);
             casters.think(intel);
+            production.slimeAutocast(intel);
             peakWorkers = Math.max(peakWorkers, intel.workers.size());
             peakArmy = Math.max(peakArmy, intel.army.size());
         }

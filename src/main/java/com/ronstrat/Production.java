@@ -336,6 +336,7 @@ public final class Production {
 
     /** desired share of army population per role */
     Map<FactionPlan.Role, Double> roleMix(Intel in) {
+        if (bot.plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS && bot.params.b("monsterCounter")) return monsterCounter(in);
         Map<FactionPlan.Role, Double> m = roleMix0(in);
         // monsters (the user's rule): the enemy fields evokers - no wraiths, their share goes to the rest
         if (bot.plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS && enemyEvokers(in)) {
@@ -343,6 +344,65 @@ public final class Production {
             if (w > 0) { m.put(FactionPlan.Role.CASTER, 0.0); m.merge(FactionPlan.Role.MELEE, w, Double::sum); }
         }
         return m;
+    }
+
+    /**
+     * The user's monster rules (monsterCounter): wraiths dodge half of all damage - the core of the army,
+     * with zombies (front) and skeletons (behind) always in it for mixed damage. Against a crossbow-heavy army
+     * more slimes (they eat each other and grow) and wraiths; against vindicators and golems more wraiths and
+     * creepers; against evokers no wraiths at all - slimes and a sea of skeletons. Shares of army population
+     * by role: MELEE zombies, RANGED skeletons, CASTER wraiths, SIEGE creepers, SUPPORT slimes.
+     */
+    private Map<FactionPlan.Role, Double> monsterCounter(Intel in) {
+        int ranged = 0, heavy = 0, all = 0;
+        boolean evokers = enemyEvokers(in);
+        java.util.Set<Integer> seen = new java.util.HashSet<>();
+        java.util.List<LivingEntity> es = new java.util.ArrayList<>(in.visibleEnemies);
+        for (Intel.EnemyMemory em : in.enemies.values()) es.addAll(em.seenUnits.values());
+        for (LivingEntity e : es) {
+            if (!seen.add(e.getId()) || UnitEval.isWorker(e) || UnitEval.isScout(e)) continue;
+            all++;
+            if (UnitEval.isRanged(e)) ranged++;
+            if (e instanceof com.solegendary.reignofnether.unit.units.villagers.VindicatorUnit
+                    || e instanceof com.solegendary.reignofnether.unit.units.villagers.IronGolemUnit
+                    || e instanceof com.solegendary.reignofnether.unit.units.villagers.RavagerUnit) heavy++;
+        }
+        double z, sk, w, c, sl;
+        String why;
+        if (evokers) { z = 0.15; sk = 0.45; w = 0; c = 0.10; sl = 0.30; why = "evokers"; }
+        else if (all >= 4 && ranged >= 0.5 * all) { z = 0.15; sk = 0.15; w = 0.40; c = 0.05; sl = 0.25; why = "crossbows"; }
+        else if (all >= 4 && heavy >= 0.5 * all) { z = 0.15; sk = 0.20; w = 0.40; c = 0.25; sl = 0; why = "melee"; }
+        else { z = 0.25; sk = 0.25; w = 0.35; c = 0.10; sl = 0.05; why = "mixed"; }
+        // what cannot be made yet (no dungeon / slime pit) goes to the zombies and skeletons
+        boolean dungeon = in.built(com.solegendary.reignofnether.building.Buildings.DUNGEON) > 0;
+        boolean pit = in.built(com.solegendary.reignofnether.building.Buildings.SLIME_PIT) > 0;
+        double spare = (dungeon ? 0 : w + c) + (pit ? 0 : sl);
+        if (!dungeon) { w = 0; c = 0; }
+        if (!pit) sl = 0;
+        double zs = z + sk;
+        z += spare * z / zs; sk += spare * sk / zs;
+        if (!why.equals(counterWhy)) { counterWhy = why; bot.log("army mix vs " + why + ": zombies " + Math.round(z * 100) + "% skeletons " + Math.round(sk * 100)
+                + "% wraiths " + Math.round(w * 100) + "% creepers " + Math.round(c * 100) + "% slimes " + Math.round(sl * 100) + "%"); }
+        Map<FactionPlan.Role, Double> m = new java.util.EnumMap<>(FactionPlan.Role.class);
+        m.put(FactionPlan.Role.MELEE, z); m.put(FactionPlan.Role.RANGED, sk); m.put(FactionPlan.Role.CASTER, w);
+        m.put(FactionPlan.Role.SIEGE, c); m.put(FactionPlan.Role.SUPPORT, sl);
+        return m;
+    }
+    private String counterWhy = "";
+
+    /** the enemy's mix calls for slimes: they eat each other to grow - every slime of ours gets the autocast */
+    boolean slimesWanted(Intel in) { return bot.params.b("monsterCounter") && (enemyEvokers(in) || "crossbows".equals(counterWhy)); }
+
+    private final java.util.Set<Integer> slimesAutocast = new java.util.HashSet<>();
+    /** every slime and magma cube of ours eats the smaller ones by itself (RON's consume autocast) */
+    void slimeAutocast(Intel in) {
+        java.util.List<Mob> fresh = new java.util.ArrayList<>();
+        for (Mob m : in.army)
+            if (m instanceof com.solegendary.reignofnether.unit.units.monsters.SlimeUnit && slimesAutocast.add(m.getId())) fresh.add(m);
+        if (!fresh.isEmpty()) {
+            Orders.ability(bot.name, com.solegendary.reignofnether.unit.UnitAction.CONSUME_SLIME_AUTOCAST_ENABLE, -1, fresh, fresh.get(0).blockPosition());
+            bot.log("consume autocast on for " + fresh.size() + " slimes");
+        }
     }
 
     /** any evoker in the enemy armies we have seen */

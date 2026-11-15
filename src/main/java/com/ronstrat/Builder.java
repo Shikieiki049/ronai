@@ -133,7 +133,8 @@ public final class Builder {
             }
             // boom: extra capitols double and triple villager production (the AoE2 multi-TC boom)
             int capitols = in.total(plan.capitol);
-            int extra = p.i("extraCapitols");
+            // the user's rule: never a second town centre (mausoleum / central portal) - one capitol per game
+            int extra = 0;
             // even game: one town centre like a human; a second only once resources pile up unspent
             if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && in.food + in.wood < 1500
                     && bot.now - bot.economy.deliveryTrouble > 6000) extra = 0;
@@ -232,6 +233,16 @@ public final class Builder {
                     && in.total(com.solegendary.reignofnether.building.Buildings.BLACKSMITH) == 0 && in.built(plan.barracks) >= 1
                     && in.ore >= com.solegendary.reignofnether.building.Buildings.BLACKSMITH.cost.ore && bot.army.sinceThreat() > 600)
                 reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.BLACKSMITH, 89, home, 12, 30));
+            // monsters (monsterCounter): the dungeon is the core of the army (wraiths dodge half of all damage,
+            // creepers) - right after the first graveyard, ahead of fields and catalysts; it sat at priority 44-69
+            // behind every field for 20 minutes
+            if (plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS && p.b("monsterCounter")
+                    && in.total(com.solegendary.reignofnether.building.Buildings.DUNGEON) == 0 && in.built(plan.barracks) >= 1 && workers >= 18)
+                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.DUNGEON, 93, home, 10, 30));
+            // ...and the slime pit once the enemy fields crossbows or evokers
+            if (plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS && bot.production.slimesWanted(in)
+                    && in.total(com.solegendary.reignofnether.building.Buildings.SLIME_PIT) == 0 && in.built(plan.barracks) >= 1 && workers >= 20)
+                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.SLIME_PIT, 91, home, 10, 30));
             if (techOwned < p.i("maxTechBuildings") && (!bot.outnumbered() || floating) && (!evenLean || floating)) {
                 for (FactionPlan.TechStep t : plan.tech) {
                     if (in.total(t.building) > 0) continue;

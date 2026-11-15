@@ -118,15 +118,17 @@ public final class FactionPlan {
         p.units.add(new UnitOption(ProductionItems.ZOMBIE, Role.MELEE, Buildings.GRAVEYARD, 0));
         p.units.add(new UnitOption(ProductionItems.SKELETON, Role.RANGED, Buildings.GRAVEYARD, 0));
         p.units.add(new UnitOption(ProductionItems.SPIDER, Role.TANK, Buildings.SPIDER_LAIR, 14));
-        p.units.add(new UnitOption(ProductionItems.CREEPER, Role.SIEGE, Buildings.DUNGEON, 20));
-        p.units.add(new UnitOption(ProductionItems.WRAITH, Role.CASTER, Buildings.DUNGEON, 20));
-        p.units.add(new UnitOption(ProductionItems.SLIME, Role.SUPPORT, Buildings.SLIME_PIT, 24));
+        p.units.add(new UnitOption(ProductionItems.CREEPER, Role.SIEGE, Buildings.DUNGEON, 18));
+        p.units.add(new UnitOption(ProductionItems.WRAITH, Role.CASTER, Buildings.DUNGEON, 18));
+        p.units.add(new UnitOption(ProductionItems.SLIME, Role.SUPPORT, Buildings.SLIME_PIT, 20));
         p.units.add(new UnitOption(ProductionItems.WARDEN, Role.TANK, Buildings.STRONGHOLD, 30));
 
-        p.tech.add(new TechStep(Buildings.SPIDER_LAIR, 16, 1, Buildings.GRAVEYARD));
+        // the dungeon first (wraiths: half of all damage dodged; creepers), then the laboratory (husks) and the
+        // slime pit; the spider lair last
+        p.tech.add(new TechStep(Buildings.DUNGEON, 18, 1, Buildings.GRAVEYARD));
         p.tech.add(new TechStep(Buildings.LABORATORY, 20, 2, Buildings.GRAVEYARD, Buildings.MAUSOLEUM));
-        p.tech.add(new TechStep(Buildings.DUNGEON, 22, 3, Buildings.GRAVEYARD));
-        p.tech.add(new TechStep(Buildings.SLIME_PIT, 28, 4, Buildings.GRAVEYARD));
+        p.tech.add(new TechStep(Buildings.SLIME_PIT, 22, 3, Buildings.GRAVEYARD));
+        p.tech.add(new TechStep(Buildings.SPIDER_LAIR, 28, 4, Buildings.GRAVEYARD));
         p.tech.add(new TechStep(Buildings.STRONGHOLD, 34, 5, Buildings.DUNGEON, Buildings.LABORATORY, Buildings.SLIME_PIT, Buildings.SPIDER_LAIR));
 
         p.research.add(new ResearchStep(ProductionItems.RESEARCH_RESOURCE_CAPACITY, Buildings.SPRUCE_STOCKPILE, 1));
