@@ -371,6 +371,11 @@ public final class Builder {
             }
         } else { stallSince = -1; stallLogged = false; }
         if (plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS) monsterRules(in, reqs, workers, home);
+        // piglins: the fields found no nether ground (a small island: the workers stopped at 18) - another portal
+        // spreads 20 blocks more of it, and holds 15 more population
+        if (plan.portals && bot.now - groundShortAt < 600 && in.total(com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC)
+                - in.built(com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC) == 0 && workers >= 8)
+            reqs.add(new Request(plan.house, 99, home, 8, 30));
         reqs.removeIf(r -> r.building == null); // a building this faction does not have (piglins: no tower)
         reqs.sort((a, b) -> Double.compare(b.priority, a.priority));
         reserved = null;
@@ -418,6 +423,7 @@ public final class Builder {
                 if (bot.economy.stockpileWanted != null && b == plan.stockpile) bot.economy.stockpileWanted = null;
             } else {
                 lastFail.put(b, bot.now);
+                if (plan.portals && b == plan.farm) groundShortAt = bot.now; // no nether ground left for fields
                 bot.placeFails++;
                 bot.log("no spot for " + name(b) + " near " + r.anchor.toShortString() + " r" + r.rMin + "-" + r.rMax);
             }
@@ -438,6 +444,7 @@ public final class Builder {
 
     // ---- piglins: a house, drop site or barracks is a basic portal transformed by a research on the portal
     private final Map<BlockPos, Building> portalIntent = new HashMap<>();
+    private long groundShortAt = -100000;
 
     /** what a basic portal of ours was placed to become (null: not decided) */
     Building portalIntentOf(BlockPos origin) { return portalIntent.get(origin); }
@@ -576,8 +583,10 @@ public final class Builder {
         for (BuildingPlacement o : in.own) if (territory(o.getBuilding()) || (bot.plan.portals && o.getBuilding() instanceof com.solegendary.reignofnether.building.buildings.piglins.AbstractPortal)) k++;
         BlockPos home = in.home(), f = bot.army.frontAnchor(in);
         double base = Math.atan2(f.getZ() - home.getZ(), f.getX() - home.getX());
-        double dist = bot.params.get("expandDist");
-        for (int t = 0; t < 4; t++) {
+        double d0 = bot.params.get("expandDist");
+        for (int t = 0; t < 9; t++) {
+            // 24 blocks out first, then closer and further (small islands, hills)
+            double dist = t < 4 ? d0 : t < 7 ? d0 * 0.65 : d0 * 1.35;
             double ang = base + (k + t) * 2.39996;
             BlockPos at = new BlockPos((int) Math.round(home.getX() + Math.cos(ang) * dist), home.getY(), (int) Math.round(home.getZ() + Math.sin(ang) * dist));
             BlockPos spot = findSpot(b, at, 0, 8, 1, 6);
