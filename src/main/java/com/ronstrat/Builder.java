@@ -449,6 +449,19 @@ public final class Builder {
         BotParams p = bot.params;
         Building lab = com.solegendary.reignofnether.building.Buildings.LABORATORY;
         Building cat = com.solegendary.reignofnether.building.Buildings.SCULK_CATALYST;
+        // monsterLean: the user's monster game (2026-11-15, won with husks against two expert villagers) built
+        // catalysts, pumpkin fields, graveyards, the altar and one laboratory - nothing else - and spent it on
+        // zombies, then husks from minute 15. Our monster AI had a spider lair, dungeon, slime pit, stronghold,
+        // watchtower and market up by minute 25, and 4 fields at minute 5 against his 10. Theory: the monsters'
+        // strength is the cheap mass (zombie 75 food, 1 pop); every other building is a luxury until the bank floats.
+        if (p.b("monsterLean") && in.food + in.wood + in.ore < 2500) {
+            java.util.Set<Building> keep = java.util.Set.of(plan.capitol, plan.house, plan.farm, plan.stockpile, plan.barracks, plan.heroBuilding, lab);
+            reqs.removeIf(r -> !keep.contains(r.building()));
+            // fields ahead: one per two workers until 14 (his 10 by minute 5)
+            int fields = in.total(plan.farm);
+            if (fields < Math.min(14, workers / 2) && in.built(plan.capitol) > 0 && in.total(plan.farm) - in.built(plan.farm) < 2)
+                reqs.add(new Request(plan.farm, 96, home, 8, 30));
+        }
         if (p.b("huskRush") && in.total(lab) == 0 && in.built(plan.barracks) >= 1 && workers >= p.i("huskWorkers")
                 && !com.solegendary.reignofnether.research.ResearchServerEvents.playerHasResearch(bot.name,
                         com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HUSKS))
