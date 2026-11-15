@@ -166,7 +166,7 @@ public final class FactionPlan {
         p.market = Buildings.PIGLIN_MARKET;
         p.marketUpgrade = ProductionItems.RESEARCH_MARKET_UPGRADE_PIGLINS;
         p.worker = ProductionItems.GRUNT;
-        p.scout = ProductionItems.BABY_HOGLIN;
+        p.scout = null; // the baby hoglin: not in RON 1.5.0b2 (BabyHoglinProd), and the computer sees the whole map
         p.heroBuilding = Buildings.INFERNAL_PORTAL;
         p.heroes = List.of(ProductionItems.WILDFIRE, ProductionItems.PIGLIN_MERCHANT, ProductionItems.WILDFIRE_REVIVE, ProductionItems.PIGLIN_MERCHANT_REVIVE);
 

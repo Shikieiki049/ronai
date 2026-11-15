@@ -336,6 +336,26 @@ public final class Production {
 
     /** desired share of army population per role */
     Map<FactionPlan.Role, Double> roleMix(Intel in) {
+        Map<FactionPlan.Role, Double> m = roleMix0(in);
+        // monsters (the user's rule): the enemy fields evokers - no wraiths, their share goes to the rest
+        if (bot.plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS && enemyEvokers(in)) {
+            double w = m.getOrDefault(FactionPlan.Role.CASTER, 0.0);
+            if (w > 0) { m.put(FactionPlan.Role.CASTER, 0.0); m.merge(FactionPlan.Role.MELEE, w, Double::sum); }
+        }
+        return m;
+    }
+
+    /** any evoker in the enemy armies we have seen */
+    private boolean enemyEvokers(Intel in) {
+        for (Intel.EnemyMemory em : in.enemies.values())
+            for (LivingEntity e : em.seenUnits.values())
+                if (e instanceof com.solegendary.reignofnether.unit.units.villagers.EvokerUnit) return true;
+        for (LivingEntity e : in.visibleEnemies)
+            if (e instanceof com.solegendary.reignofnether.unit.units.villagers.EvokerUnit) return true;
+        return false;
+    }
+
+    private Map<FactionPlan.Role, Double> roleMix0(Intel in) {
         BotParams p = bot.params;
         if (bot.plan.villagers && p.b("composition") && bot.difficulty == Difficulty.EXPERT) return bot.composition.roleMix(in);
         Map<FactionPlan.Role, Double> m = new EnumMap<>(FactionPlan.Role.class);
