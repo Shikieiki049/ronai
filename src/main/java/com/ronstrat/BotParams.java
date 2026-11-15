@@ -322,7 +322,7 @@ public final class BotParams {
         p.put("monsterBell",                0,     0,      1,     1);    // ...and when the army is not enough the town bell calls the villagers up
         p.put("pullWorkersToDefend",        0,     0,      0,     0);    // town bell: OFF - RON 1.5.1b and 1.5.1c duplicate villagers on call-to-arms, the AI must not exploit it
         p.put("focusFire",                  0,     0,      1,     1);
-        p.put("spreadFire",                 0,     0,      0,     0);   // focus fire without overkill: enough damage on a target already -> the next one
+        p.put("spreadFire",                 0,     0,      1,     1);   // focus fire without overkill: enough damage on a target already -> the next one
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);
         p.put("targetWeakest",              0,     0,      1,     1);    // in FFA / 1vN pick the most profitable enemy, not the nearest
