@@ -80,7 +80,7 @@ final class TeamPlan {
         double len = d.length();
         double back = Math.min(55, len * 0.5);
         BlockPos a = len < 1 ? targetPos : BlockPos.containing(to.subtract(d.scale(back / len)));
-        a = com.solegendary.reignofnether.util.MiscUtil.getHighestNonAirBlock(bot.level, new BlockPos(a.getX(), 0, a.getZ())).above();
+        a = BotManager.standAt(bot.level, a.getX(), a.getZ());
         TeamPlan p = new TeamPlan(key(mates), target, targetPos, a, bot.now);
         PLANS.put(p.team, p);
         bot.log("team plan: " + target + " assemble at " + a.toShortString() + " (" + mates.size() + " allies)");

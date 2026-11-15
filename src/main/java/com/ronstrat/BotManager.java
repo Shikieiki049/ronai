@@ -170,7 +170,7 @@ public final class BotManager {
                 Entity e = level.getEntity(id);
                 if (e == null) continue;
                 BlockPos at = out.offset(k % 3 - 1, 0, k / 3);
-                BlockPos ground = MiscUtil.getHighestNonAirBlock(level, new BlockPos(at.getX(), 0, at.getZ())).above();
+                BlockPos ground = standAt(level, at.getX(), at.getZ());
                 e.teleportTo(ground.getX() + 0.5, ground.getY(), ground.getZ() + 0.5);
                 k++;
             }
@@ -216,11 +216,22 @@ public final class BotManager {
      * A spot about 11 blocks from a future town centre site, on dry ground at about the same height,
      * clear of the building's footprint.
      */
+    /**
+     * The block a unit stands in at x, z: the first free block above the highest solid one (leaves don't count).
+     * Not RON's MiscUtil.getHighestNonAirBlock(..).above(): that returns one block below the top block, so
+     * .above() put the feet inside the ground - mostly pushed back up, but on maps with a hollow under a one
+     * block thick floor (Summoner's Rift) the start workers were squeezed into the gap below, alive and busy
+     * "building" a town centre they could never reach: the capitol never went up.
+     */
+    static BlockPos standAt(net.minecraft.world.level.Level level, int x, int z) {
+        return new BlockPos(x, level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z), z);
+    }
+
     static BlockPos beside(ServerLevel level, BlockPos pos) {
         int[][] dirs = { { 11, 0 }, { -11, 0 }, { 0, 11 }, { 0, -11 }, { 9, 9 }, { -9, 9 }, { 9, -9 }, { -9, -9 } };
         for (int[] d : dirs) {
             int x = pos.getX() + d[0], z = pos.getZ() + d[1];
-            BlockPos top = MiscUtil.getHighestNonAirBlock(level, new BlockPos(x, 0, z));
+            BlockPos top = standAt(level, x, z).below();
             if (Math.abs(top.getY() - pos.getY()) > 3) continue;
             if (!level.getFluidState(top).isEmpty() || !level.getFluidState(top.above()).isEmpty()) continue;
             return new BlockPos(x, pos.getY(), z);
@@ -232,7 +243,7 @@ public final class BotManager {
         if (type == null) return;
         Entity e = type.create(level);
         if (!(e instanceof Unit u)) return;
-        BlockPos ground = MiscUtil.getHighestNonAirBlock(level, new BlockPos(at.getX(), 0, at.getZ())).above().above();
+        BlockPos ground = standAt(level, at.getX(), at.getZ());
         u.setOwnerName(owner);
         e.moveTo(ground, 0, 0);
         level.addFreshEntity(e);
