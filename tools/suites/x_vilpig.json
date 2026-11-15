@@ -1,0 +1,45 @@
+{
+ "description": "cross-faction: our villagers vs our piglins",
+ "items": [
+  {
+   "name": "villagers first",
+   "spec": "expert vs expert#piglins readied nohandicap",
+   "us": 0,
+   "pair": "villagerspiglins",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "piglins first",
+   "spec": "expert#piglins vs expert readied nohandicap",
+   "us": 1,
+   "pair": "villagerspiglins",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}
