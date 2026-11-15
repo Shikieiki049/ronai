@@ -5,6 +5,7 @@ import com.solegendary.reignofnether.ability.HeroAbility;
 import com.solegendary.reignofnether.unit.UnitAction;
 import com.solegendary.reignofnether.unit.interfaces.HeroUnit;
 import com.solegendary.reignofnether.unit.interfaces.Unit;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 
@@ -102,8 +103,20 @@ final class Casters {
             bot.log("hero status: " + m.getType().toShortString() + " level " + h.getHeroLevel() + " exp " + h.getExperience()
                     + " points " + h.getSkillPoints() + " hp " + (int) m.getHealth() + "/" + (int) m.getMaxHealth() + " at " + m.blockPosition().toShortString());
         }
-        List<LivingEntity> foes = enemiesNear(in, m, 12);
-        for (LivingEntity n : in.neutrals) if (n.distanceToSqr(m) < 12 * 12) foes.add(n);
+        // a cast under way: done once the skill is on cooldown (it went off) - then the army may order it again
+        HeroAbility pend = pending.get(m.getId());
+        if (pend != null) {
+            if (!pend.isOffCooldown(h) || !Orders.isCasting(m.getId())) {
+                boolean went = !pend.isOffCooldown(h);
+                if (went) castsDone++; else castsLost++;
+                if (bot.verbose) bot.log("hero " + m.getType().toShortString() + " " + pend.getClass().getSimpleName() + (went ? " went off" : " did not go off (3 s)")
+                        + " - " + castsDone + " cast, " + castsLost + " lost");
+                pending.remove(m.getId()); Orders.release(m.getId());
+            }
+            else return;
+        }
+        List<LivingEntity> foes = enemiesNear(in, m, 14);
+        for (LivingEntity n : in.neutrals) if (n.distanceToSqr(m) < 14 * 14) foes.add(n);
         if (foes.isEmpty() || bot.now - lastCast.getOrDefault(m.getId(), -1000L) < 20) return;
         LivingEntity near = null;
         for (LivingEntity e : foes) if (near == null || e.distanceToSqr(m) < near.distanceToSqr(m)) near = e;
@@ -113,16 +126,31 @@ final class Casters {
             if (n.contains("Passive")) continue;
             // the big one (a one-rank ultimate) only for a real fight
             if (a.maxRank <= 1 && foes.size() < 4 && m.getHealth() > 0.5 * m.getMaxHealth()) continue;
-            if (a.canTargetEntities) {
-                if (a.range > 0 && near.distanceToSqr(m) > (a.range + 1) * (a.range + 1)) continue;
-                Orders.ability(bot.name, a.action, near.getId(), List.of(m), near.blockPosition());
-            } else {
-                Orders.ability(bot.name, a.action, -1, List.of(m), near.blockPosition());
-            }
+            // out of reach: not now (walking in under fire got it turned round or killed); a point skill aims
+            // at the thick of the enemies, not just the nearest one
+            if (a.range > 0 && near.distanceToSqr(m) > (a.range + 1) * (a.range + 1)) continue;
+            BlockPos aim = a.canTargetEntities ? near.blockPosition() : thickest(foes, near);
+            Orders.cast(bot.name, a.action, a.canTargetEntities ? near.getId() : -1, m, aim, 3000);
+            pending.put(m.getId(), a);
             lastCast.put(m.getId(), bot.now);
             if (bot.verbose) bot.log("hero " + m.getType().toShortString() + " casts " + n + " (" + foes.size() + " foes)");
             break;
         }
+    }
+
+    private final Map<Integer, HeroAbility> pending = new HashMap<>();
+    int castsDone, castsLost;
+
+    /** the enemy with the most others within 4 blocks (where an area skill does most) */
+    private static BlockPos thickest(List<LivingEntity> foes, LivingEntity fallback) {
+        LivingEntity best = fallback;
+        int bestN = -1;
+        for (LivingEntity e : foes) {
+            int n = 0;
+            for (LivingEntity o : foes) if (o.distanceToSqr(e) <= 16) n++;
+            if (n > bestN) { bestN = n; best = e; }
+        }
+        return best.blockPosition();
     }
 
     /** spend skill points: the one-rank ultimate first when the level allows, then the lowest-ranked skill */

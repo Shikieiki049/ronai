@@ -34,7 +34,32 @@ public final class Orders {
         return b.toString();
     }
 
+    /**
+     * Units in the middle of casting (a hero skill): until the time here (ms) no other order reaches them - the
+     * army's micro re-ordered every soldier every 0.3 s and a hero walking into range or winding up a skill was
+     * turned round again and again, so it kept trying and never cast (the user saw it).
+     */
+    static final java.util.Map<Integer, Long> casting = new java.util.concurrent.ConcurrentHashMap<>();
+
+    static void protect(int id, long ms) { casting.put(id, System.currentTimeMillis() + ms); }
+    static void release(int id) { casting.remove(id); }
+    static boolean isCasting(int id) { Long u = casting.get(id); return u != null && u > System.currentTimeMillis(); }
+
+    private static int[] withoutCasting(int[] ids) {
+        if (casting.isEmpty()) return ids;
+        long now = System.currentTimeMillis();
+        casting.values().removeIf(u -> u <= now);
+        int n = 0;
+        for (int id : ids) if (!casting.containsKey(id)) n++;
+        if (n == ids.length) return ids;
+        int[] r = new int[n];
+        int k = 0;
+        for (int id : ids) if (!casting.containsKey(id)) r[k++] = id;
+        return r;
+    }
+
     private static void act(String owner, UnitAction a, int targetId, int[] ids, BlockPos pos, BlockPos building) {
+        ids = withoutCasting(ids);
         if (ids.length == 0) return;
         issued.computeIfAbsent(owner, k -> new int[UnitAction.values().length])[a.ordinal()] += ids.length;
         UnitServerEvents.addActionItem(owner, a, targetId, ids, pos, building == null ? BlockPos.ZERO : building);
@@ -43,6 +68,15 @@ public final class Orders {
     /** a unit ability (potions, hero skills, autocast switches): the same command a player's click sends */
     public static void ability(String owner, UnitAction a, int targetId, Collection<? extends Entity> units, BlockPos pos) {
         act(owner, a, targetId, ids(units), pos, null);
+    }
+
+    /** a hero skill: the hero is left alone for up to ms while it walks into range and casts */
+    public static void cast(String owner, UnitAction a, int targetId, Entity caster, BlockPos pos, long ms) {
+        release(caster.getId());
+        int[] id = { caster.getId() };
+        issued.computeIfAbsent(owner, k -> new int[UnitAction.values().length])[a.ordinal()]++;
+        UnitServerEvents.addActionItem(owner, a, targetId, id, pos, BlockPos.ZERO);
+        protect(caster.getId(), ms);
     }
 
     public static void move(String owner, Collection<? extends Entity> units, BlockPos pos) {
