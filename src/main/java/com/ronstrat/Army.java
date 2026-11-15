@@ -202,7 +202,7 @@ public final class Army {
         // clearly enough take them on, the rest goes on as if the base were quiet (a monster game: 31-45
         // soldiers stood home all night for 2-3 enemy zombies, and the game ran out the clock 64 vs 21)
         boolean smallRaid = false;
-        if (underAttack && mode != Mode.ATTACK && p.b("bigArmyGo") && in.army.size() >= 20) {
+        if (underAttack && mode != Mode.ATTACK && p.b("bigArmyGo") && bot.plan.villagers && in.army.size() >= 20) {
             List<LivingEntity> fighters = new ArrayList<>();
             for (LivingEntity t : threats) if (!UnitEval.isWorker(t)) fighters.add(t);
             double ts = UnitEval.strength(fighters), os = UnitEval.strength(in.army);
@@ -244,7 +244,7 @@ public final class Army {
         // monster camps next to the base first: they kill villagers and block the resources around them
         // bigArmyGo: by night a big monster army goes out first - the night is the only time it may, and
         // hunting the wild monsters the night spawns used it all up
-        boolean attackFirst = p.b("bigArmyGo") && in.army.size() >= 20 && bot.night.on() && !bot.night.day();
+        boolean attackFirst = false; // (bigArmyGo by night for the monsters: M7bag -11.9% - off)
         if (mode == Mode.GATHER && !attackFirst && clearNeutrals(in)) { whyNot(in, "clearing neutral monsters"); return; }
         if (attackFirst && !shouldAttack(in)) { if (mode == Mode.GATHER && clearNeutrals(in)) whyNot(in, "clearing neutral monsters"); return; }
         if (attackFirst || shouldAttack(in)) {

@@ -169,7 +169,7 @@ public final class BotParams {
         p.put("monsterOpenFields",          4,     4,      4,     4);
         p.put("creeperMicro",               0,     0,      0,     0);   // creepers walk at the thickest knot of enemies and blow up when creeperBlast are in reach
         p.put("creeperBlast",               3,     3,      3,     3);
-        p.put("bigArmyGo",                  0,     0,      0,     0);   // 20+ soldiers: a weak raid gets a detachment, the rest still attacks; monsters attack first by night
+        p.put("bigArmyGo",                  0,     0,      0,     1);   // 20+ soldiers: a weak raid gets a detachment, the rest still attacks; monsters attack first by night
         p.put("expandOut",                  0,     0,      1,     1);   // catalysts and piglin portals fan out expandDist from home: more ground (the user)
         p.put("expandDist",                 24,    24,     24,    24);
         p.put("piglinMix",                  1,     1,      1,     1);   // piglins: brutes + magma cubes + headhunters (+ ghasts), from the arena
