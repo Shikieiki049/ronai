@@ -711,6 +711,13 @@ public final class Economy {
         // for want of food (M7ron3). Until the first fields stand, most hands cut wood.
         if (!bot.plan.villagers && p.get("monsterOpenWood") > 0 && in.built(bot.plan.farm) < p.i("monsterOpenFields"))
             food = Math.min(food, Math.max(0.2, 1 - p.get("monsterOpenWood") - ore));
+        // monsters (monsterCounter): wraiths are 70 food + 70 ore and creepers 120 ore - with the miners at 0-5%
+        // the dungeon stood and the army was 40 zombies, 12 skeletons, 2 wraiths. Ore for them once it stands
+        if (bot.plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS && p.b("monsterCounter")
+                && in.total(com.solegendary.reignofnether.building.Buildings.DUNGEON) > 0 && in.ore < 400) {
+            double want = p.get("monsterOre");
+            if (ore < want) { food = Math.max(0.2, food - (want - ore) * 0.6); ore = want; }
+        }
         return new double[] { food, Math.max(0.1, 1 - food - ore), ore };
     }
 
