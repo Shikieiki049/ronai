@@ -539,8 +539,40 @@ public final class Builder {
      * placed haunted houses all game (the user found it): never again, whatever a plan or rule asks for.
      */
     static boolean playerBuildable(Building b) {
+        // the same for the piglins: civilian, military, transport and pocket portals have no key either - a
+        // player gets them only by transforming a basic portal with a research on it (transformPortals)
         return b != com.solegendary.reignofnether.building.Buildings.HAUNTED_HOUSE
-                && b != com.solegendary.reignofnether.building.Buildings.BEACON;
+                && b != com.solegendary.reignofnether.building.Buildings.BEACON
+                && b != com.solegendary.reignofnether.building.Buildings.PORTAL_POCKET
+                && b != com.solegendary.reignofnether.building.Buildings.PORTAL_CIVILIAN
+                && b != com.solegendary.reignofnether.building.Buildings.PORTAL_MILITARY
+                && b != com.solegendary.reignofnether.building.Buildings.PORTAL_TRANSPORT;
+    }
+
+    /** buildings that widen our ground: a sculk catalyst (its night, +12 pop) and every piglin portal (its nether) */
+    private boolean territory(Building b) {
+        return b == com.solegendary.reignofnether.building.Buildings.SCULK_CATALYST
+                || (bot.plan.portals && b == com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC);
+    }
+
+    /**
+     * expandOut (the user: catalysts and portals go further out - they widen the ground): the k-th territory
+     * building stands expandDist from home, the first toward the enemy, each next one turned by the golden
+     * angle so they fan out round the base instead of piling on one spot (their night / nether barely overlaps).
+     */
+    private BlockPos expandSpot(Intel in, Building b) {
+        int k = 0;
+        for (BuildingPlacement o : in.own) if (territory(o.getBuilding()) || (bot.plan.portals && o.getBuilding() instanceof com.solegendary.reignofnether.building.buildings.piglins.AbstractPortal)) k++;
+        BlockPos home = in.home(), f = bot.army.frontAnchor(in);
+        double base = Math.atan2(f.getZ() - home.getZ(), f.getX() - home.getX());
+        double dist = bot.params.get("expandDist");
+        for (int t = 0; t < 4; t++) {
+            double ang = base + (k + t) * 2.39996;
+            BlockPos at = new BlockPos((int) Math.round(home.getX() + Math.cos(ang) * dist), home.getY(), (int) Math.round(home.getZ() + Math.sin(ang) * dist));
+            BlockPos spot = findSpot(b, at, 0, 8, 1, 6);
+            if (spot != null) return spot;
+        }
+        return null;
     }
 
     private boolean place(Intel in, Request r) {
@@ -551,7 +583,9 @@ public final class Builder {
         BlockPos origin = null;
         BotParams p = bot.params;
         boolean ring = p.b("farmRing");
-        if (ring && b == bot.plan.farm) {
+        if (p.b("expandOut") && territory(b) && r.priority < 113) origin = expandSpot(in, b);
+        if (origin != null) { /* spread out: placed */ }
+        else if (ring && b == bot.plan.farm) {
             // fields hug the drop sites, the town centre first, then the stockpiles nearest home: every
             // harvest walks a few blocks instead of 10-30 (a friend's report; a player rings the town centre)
             List<BlockPos> sites = new ArrayList<>(bot.economy.dropSites(in));
