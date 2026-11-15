@@ -75,10 +75,14 @@ public final class FactionPlan {
     public final List<TechStep> tech = new ArrayList<>();
     public final List<ResearchStep> research = new ArrayList<>();
 
-    private static FactionPlan villagersPlan, monstersPlan;
+    /** piglins: houses, drop sites and barracks are basic portals transformed by a research on the portal */
+    public boolean portals;
+
+    private static FactionPlan villagersPlan, monstersPlan, piglinsPlan;
 
     public static FactionPlan forFaction(Faction f) {
         if (f == Factions.MONSTERS) return monsters();
+        if (f == Factions.PIGLINS) return piglins();
         return villagers();
     }
 
@@ -131,6 +135,63 @@ public final class FactionPlan {
         p.research.add(new ResearchStep(ProductionItems.RESEARCH_POISON_SPIDERS, Buildings.LABORATORY, 3));
         p.research.add(new ResearchStep(ProductionItems.RESEARCH_STRAYS, Buildings.LABORATORY, 3));     // skeletons become strays
         monstersPlan = p;
+        return p;
+    }
+
+    /**
+     * The piglins, read from RON 1.5.1c/d (buildings/piglins/*.java, the build and production buttons'
+     * hasFinishedBuilding checks, ReignOfNetherCommonConfigs for the costs):
+     * central portal 350w 250o +10 pop (capitol, drop site, makes grunts); basic portal 75w, no nether ground
+     * needed, spreads the nether 3 -> 20 blocks; transformed on the portal itself by a research into a civilian
+     * portal (+75w: +15 pop, drop site), a military portal (+100w: the army) or a transport portal (+175w).
+     * Every other piglin building needs 80% nether blocks under it (the central portal's nether grows 6 -> 30
+     * blocks in about a minute). Netherwart farm 150w; bastion 175w 150o (after a portal); hoglin stables
+     * 150w 50o; flame sanctuary / wither shrine / basalt springs 150w 200o; fortress 400w 300o; infernal
+     * portal 125w 50o (heroes). Units: grunt 50f; brute 120f pop 2; headhunter 90f 60w pop 2; hoglin 140f 70o
+     * pop 3 (stables); blaze 40f 40w 100o pop 2 (sanctuary); wither skeleton 200f 125o pop 4 (shrine);
+     * marauder 175f 75w 75o pop 4 (bastion); magma cube 40/40/40 pop 2 (springs); ghast 100f 100w 250o pop 6
+     * (fortress). Our build order and numbers are our own (tests), not RON's bot.
+     */
+    public static synchronized FactionPlan piglins() {
+        if (piglinsPlan != null) return piglinsPlan;
+        FactionPlan p = new FactionPlan();
+        p.faction = Factions.PIGLINS;
+        p.villagers = false;
+        p.portals = true;
+        p.capitol = Buildings.CENTRAL_PORTAL;
+        p.house = Buildings.PORTAL_CIVILIAN;
+        p.farm = Buildings.NETHERWART_FARM;
+        p.stockpile = Buildings.PORTAL_CIVILIAN;
+        p.barracks = Buildings.PORTAL_MILITARY;
+        p.market = Buildings.PIGLIN_MARKET;
+        p.marketUpgrade = ProductionItems.RESEARCH_MARKET_UPGRADE_PIGLINS;
+        p.worker = ProductionItems.GRUNT;
+        p.scout = ProductionItems.BABY_HOGLIN;
+        p.heroBuilding = Buildings.INFERNAL_PORTAL;
+        p.heroes = List.of(ProductionItems.WILDFIRE, ProductionItems.PIGLIN_MERCHANT, ProductionItems.WILDFIRE_REVIVE, ProductionItems.PIGLIN_MERCHANT_REVIVE);
+
+        p.units.add(new UnitOption(ProductionItems.BRUTE, Role.MELEE, Buildings.PORTAL_MILITARY, 0));
+        p.units.add(new UnitOption(ProductionItems.HEADHUNTER, Role.RANGED, Buildings.PORTAL_MILITARY, 0));
+        p.units.add(new UnitOption(ProductionItems.HOGLIN, Role.TANK, Buildings.PORTAL_MILITARY, 14, Buildings.HOGLIN_STABLES));
+        p.units.add(new UnitOption(ProductionItems.BLAZE, Role.CASTER, Buildings.PORTAL_MILITARY, 18, Buildings.FLAME_SANCTUARY));
+        p.units.add(new UnitOption(ProductionItems.MARAUDER, Role.SIEGE, Buildings.PORTAL_MILITARY, 20, Buildings.BASTION));
+        p.units.add(new UnitOption(ProductionItems.WITHER_SKELETON, Role.TANK, Buildings.PORTAL_MILITARY, 26, Buildings.WITHER_SHRINE));
+        p.units.add(new UnitOption(ProductionItems.MAGMA_CUBE, Role.SUPPORT, Buildings.PORTAL_MILITARY, 26, Buildings.BASALT_SPRINGS));
+        p.units.add(new UnitOption(ProductionItems.GHAST, Role.SIEGE, Buildings.PORTAL_MILITARY, 34, Buildings.FORTRESS));
+
+        p.tech.add(new TechStep(Buildings.HOGLIN_STABLES, 16, 1, Buildings.PORTAL_BASIC));
+        p.tech.add(new TechStep(Buildings.BASTION, 20, 2, Buildings.PORTAL_BASIC));
+        p.tech.add(new TechStep(Buildings.FLAME_SANCTUARY, 22, 3, Buildings.HOGLIN_STABLES));
+        p.tech.add(new TechStep(Buildings.WITHER_SHRINE, 26, 4, Buildings.BASTION));
+        p.tech.add(new TechStep(Buildings.BASALT_SPRINGS, 30, 5, Buildings.BASTION));
+        p.tech.add(new TechStep(Buildings.FORTRESS, 36, 6, Buildings.BASALT_SPRINGS, Buildings.FLAME_SANCTUARY, Buildings.WITHER_SHRINE));
+
+        p.research.add(new ResearchStep(ProductionItems.RESEARCH_RESOURCE_CAPACITY, Buildings.PORTAL_CIVILIAN, 1));
+        p.research.add(new ResearchStep(ProductionItems.RESEARCH_BRUTE_SHIELDS, Buildings.BASTION, 2));
+        p.research.add(new ResearchStep(ProductionItems.RESEARCH_HOGLIN_CAVALRY, Buildings.HOGLIN_STABLES, 2));
+        p.research.add(new ResearchStep(ProductionItems.RESEARCH_MARKET_UPGRADE_PIGLINS, Buildings.PIGLIN_MARKET, 2));
+        p.research.add(new ResearchStep(ProductionItems.RESEARCH_BLAZE_FIREWALL, Buildings.FLAME_SANCTUARY, 3));
+        piglinsPlan = p;
         return p;
     }
 

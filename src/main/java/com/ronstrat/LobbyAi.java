@@ -86,18 +86,16 @@ public final class LobbyAi {
 
     /**
      * the host picks a computer seat's faction (RON's own faction icons on that row: 0 villagers, 1 monsters,
-     * 2 piglins, 3 random). The AI plays villagers and monsters; piglins are not ours yet, random is one of the two.
+     * 2 piglins, 3 random). Random is one of the three.
      */
     public static void setFaction(BlockPos pos, int which, net.minecraft.server.level.ServerPlayer by) {
         if (PlayerServerEvents.isGameActive()) return;
         com.solegendary.reignofnether.faction.Faction f;
         if (which == 0) f = Factions.VILLAGERS;
         else if (which == 1) f = Factions.MONSTERS;
-        else if (which == 3) f = Math.random() < 0.5 ? Factions.VILLAGERS : Factions.MONSTERS;
-        else {
-            if (by != null) by.sendSystemMessage(net.minecraft.network.chat.Component.literal("[RON Strategist] 电脑暂时只会玩村民和亡灵"));
-            return;
-        }
+        else if (which == 2) f = Factions.PIGLINS;
+        else if (which == 3) { double r = Math.random(); f = r < 1 / 3.0 ? Factions.VILLAGERS : r < 2 / 3.0 ? Factions.MONSTERS : Factions.PIGLINS; }
+        else return;
         for (StartPos sp : StartPosServerEvents.startPoses) {
             if (!sp.pos.equals(pos) || !SEATS.containsKey(sp.playerName)) continue;
             Seat old = SEATS.get(sp.playerName);

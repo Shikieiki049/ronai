@@ -187,6 +187,17 @@ public final class Intel {
             own.add(b);
             total.merge(b.getBuilding(), 1, Integer::sum);
             if (b.isBuilt) built.merge(b.getBuilding(), 1, Integer::sum);
+            // piglins: every portal counts as a basic portal (RON's AbstractPortal.isTypeOf, the unlock rules),
+            // and a basic portal placed to become a house or barracks counts as one already
+            if (b.getBuilding() instanceof com.solegendary.reignofnether.building.buildings.piglins.AbstractPortal
+                    && b.getBuilding() != com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC) {
+                total.merge(com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC, 1, Integer::sum);
+                if (b.isBuilt) built.merge(com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC, 1, Integer::sum);
+            }
+            if (bot.plan.portals && b.getBuilding() == com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC) {
+                Building want = bot.builder.portalIntentOf(b.originPos);
+                if (want != null) total.merge(want, 1, Integer::sum);
+            }
             // home is the first capitol (the oldest built one), not whichever expansion finished last
             if (b.isCapitol && (capitol == null || (!capitol.isBuilt && b.isBuilt))) capitol = b;
             int r = b.getSightRange();

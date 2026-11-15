@@ -341,6 +341,14 @@ public final class Builder {
             }
         }
         BuildOrder.shape(bot, in, reqs, home);
+        // LOCKED opening rule (the user's, every faction): after the capitol the first building is the
+        // population building and the second the hero building - heroes level up and only get stronger, a
+        // hero that does not pay off means its play is wrong, not the rule. Only emergencies (priority 113+:
+        // no drop site, a dead economy) go ahead of them.
+        if (in.built(plan.capitol) > 0 && plan.heroBuilding != null) {
+            if (in.total(plan.house) == 0) reqs.add(new Request(plan.house, 112, home, 8, 30));
+            else if (in.total(plan.heroBuilding) == 0 && p.b("heroes")) reqs.add(new Request(plan.heroBuilding, 111, home, 10, 30));
+        }
         // stall protection: no field standing or going up, the bank empty of food and the hunt gone -
         // the town centre is dead until a field grows, so the first field outranks everything
         if (p.b("stallFarm") && in.built(plan.capitol) > 0 && in.total(plan.farm) - in.built(plan.farm) == 0
@@ -351,7 +359,8 @@ public final class Builder {
                 if (!stallLogged) { stallLogged = true; bot.stalls++; bot.log("stall: no food, " + in.built(plan.farm) + " fields - a field first"); }
             }
         } else { stallSince = -1; stallLogged = false; }
-        if (!plan.villagers) monsterRules(in, reqs, workers, home);
+        if (plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS) monsterRules(in, reqs, workers, home);
+        reqs.removeIf(r -> r.building == null); // a building this faction does not have (piglins: no tower)
         reqs.sort((a, b) -> Double.compare(b.priority, a.priority));
         reserved = null;
         note = reqs.isEmpty() ? "nothing wanted" : "";
@@ -413,6 +422,44 @@ public final class Builder {
         }
         if (woodWait) { if (woodWaitSince < 0) woodWaitSince = bot.now; } else woodWaitSince = -1;
         keepBuildersOnSites(in);
+        if (plan.portals) transformPortals(in);
+    }
+
+    // ---- piglins: a house, drop site or barracks is a basic portal transformed by a research on the portal
+    private final Map<BlockPos, Building> portalIntent = new HashMap<>();
+
+    /** what a basic portal of ours was placed to become (null: not decided) */
+    Building portalIntentOf(BlockPos origin) { return portalIntent.get(origin); }
+
+    static boolean isPortalType(Building b) {
+        return b == com.solegendary.reignofnether.building.Buildings.PORTAL_CIVILIAN || b == com.solegendary.reignofnether.building.Buildings.PORTAL_MILITARY
+                || b == com.solegendary.reignofnether.building.Buildings.PORTAL_TRANSPORT;
+    }
+
+    private static com.solegendary.reignofnether.building.production.ProductionItem portalResearch(Building b) {
+        if (b == com.solegendary.reignofnether.building.Buildings.PORTAL_MILITARY) return com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_PORTAL_FOR_MILITARY;
+        if (b == com.solegendary.reignofnether.building.Buildings.PORTAL_TRANSPORT) return com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_PORTAL_FOR_TRANSPORT;
+        return com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_PORTAL_FOR_CIVILIAN;
+    }
+
+    /** every finished basic portal of ours gets the research that turns it into what it was placed for */
+    private void transformPortals(Intel in) {
+        for (BuildingPlacement b : in.own) {
+            if (!(b instanceof com.solegendary.reignofnether.building.buildings.placements.PortalPlacement pp) || !b.isBuilt) continue;
+            if (pp.getPortalType() != com.solegendary.reignofnether.building.buildings.placements.PortalPlacement.PortalType.BASIC) { portalIntent.remove(b.originPos); continue; }
+            if (!pp.productionQueue.isEmpty()) continue;
+            Building want = portalIntent.get(b.originPos);
+            // not recorded (a resumed game): a house when the population is close to the cap, else barracks
+            if (want == null) want = in.popCap - in.pop <= 6 || in.built(bot.plan.barracks) > 0 ? bot.plan.house : bot.plan.barracks;
+            var item = portalResearch(want);
+            var c = Production.cost(item);
+            if (c == null || !in.canAfford(c.food, c.wood, c.ore)) continue;
+            if (pp.startProductionItem(item)) {
+                bot.ledger.spent(c.food, c.wood, c.ore);
+                in.food -= c.food; in.wood -= c.wood; in.ore -= c.ore;
+                bot.log("portal at " + b.originPos.toShortString() + " -> " + name(want));
+            }
+        }
     }
 
     private long stallSince = -1;
@@ -498,6 +545,8 @@ public final class Builder {
 
     private boolean place(Intel in, Request r) {
         Building b = r.building;
+        Building intent = null;
+        if (bot.plan.portals && isPortalType(b)) { intent = b; b = com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC; }
         if (!playerBuildable(b)) return false;
         BlockPos origin = null;
         BotParams p = bot.params;
@@ -532,7 +581,8 @@ public final class Builder {
             for (Mob m : builders) bot.economy.setJob(m, Economy.Job.IDLE);
             return false;
         }
-        bot.log("build " + name(b) + " at " + origin.toShortString() + " with " + builders.size());
+        if (intent != null) portalIntent.put(placed.originPos, intent);
+        bot.log("build " + name(b) + (intent != null ? " (to be " + name(intent) + ")" : "") + " at " + origin.toShortString() + " with " + builders.size());
         return true;
     }
 

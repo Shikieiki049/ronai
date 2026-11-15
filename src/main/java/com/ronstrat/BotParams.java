@@ -291,8 +291,8 @@ public final class BotParams {
         p.put("resourceFitWeight",          0,     0.2,    0.4,   0.7);  // prefer units made of the resource that is piling up
         p.put("golemShare",                 0,     0.1,    0.2,   0.4);
         p.put("casterShare",                0,     0,      0.1,   0.15);
-        p.put("buildTowers",                0,     0,      1,     1);
-        p.put("towers",                     0,     0,      0,     3);    // planned garrisoned watchtowers
+        p.put("buildTowers",                0,     0,      0,     0);   // no towers (the user: do not build towers)
+        p.put("towers",                     0,     0,      0,     0);    // planned garrisoned watchtowers - off (the user: no towers)
         p.put("bridges",                    0,     0,      0,     1);    // bridge water/lava that blocks the army
         p.put("bridgeMinWater",             6,     6,      6,     6);    // narrower water is swum, not bridged
         p.put("turtleWorkers",              99,    99,     18,    45);   // villager cap while outnumbered (1vN)

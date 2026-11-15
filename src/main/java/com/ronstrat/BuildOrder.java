@@ -58,7 +58,7 @@ final class BuildOrder {
         int stockWanted = (int) Math.floor(at(STOCKPILES, m) + 0.01);
         reqs.removeIf(r -> {
             Building b = r.building();
-            if (r.priority() >= 105 || b == plan.capitol || b == plan.house) return false;
+            if (r.priority() >= 105 || b == plan.capitol || b == plan.house || b == plan.heroBuilding) return false;
             if (b == plan.farm) return true; // re-added below to the curve
             if (b == com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY && (bot.params.b("shrineEarly") || (bot.params.b("shrineMid") && minutes() >= bot.params.get("shrineMinute")))) return false;
             if (b == com.solegendary.reignofnether.building.Buildings.WITCH_HUT && Strategy.witches(bot)) return false;
