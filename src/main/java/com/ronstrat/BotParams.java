@@ -165,6 +165,10 @@ public final class BotParams {
         p.put("fightIdle",                  0,     0,      0,     0);   // a soldier standing without a target near enemies: the nearest one at once
         p.put("nightPlan",                  0,     0,      0,     1);   // monsters: attack by night, home before dawn, burning units inside the night by day
         p.put("huskRush",                   0,     0,      0,     0);   // monsters: the laboratory early, husks from the bank
+        p.put("monsterMix",                 0,     0,      0,     0);   // monsters: zombies tank, skeletons damage, creepers strike (shares below)
+        p.put("mixZombie",               0.45,  0.45,   0.45,  0.45);  // share of army population: zombies / husks in front
+        p.put("mixSkeleton",             0.35,  0.35,   0.35,  0.35);  // skeletons / strays behind them
+        p.put("mixCreeper",              0.20,  0.20,   0.20,  0.20);  // creepers (dungeon): the strongest blow
         p.put("huskWorkers",                18,    18,     18,    18);
         p.put("catalystHouse",              0,     0,      0,     0);   // monsters: the first houses are sculk catalysts toward the enemy
         p.put("catalystMax",                2,     2,      2,     2);

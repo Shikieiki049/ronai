@@ -339,6 +339,16 @@ public final class Production {
         BotParams p = bot.params;
         if (bot.plan.villagers && p.b("composition") && bot.difficulty == Difficulty.EXPERT) return bot.composition.roleMix(in);
         Map<FactionPlan.Role, Double> m = new EnumMap<>(FactionPlan.Role.class);
+        // monsters: zombies take the hits, skeletons deal the damage behind them, creepers are the strongest
+        // blow - the army is built to that ratio (a creeper the dungeon cannot make yet goes to the other two)
+        if (!bot.plan.villagers && p.b("monsterMix")) {
+            double z = p.get("mixZombie"), s = p.get("mixSkeleton"), c = p.get("mixCreeper");
+            if (in.built(com.solegendary.reignofnether.building.Buildings.DUNGEON) == 0) { double t = Math.max(1e-6, z + s); z /= t; s /= t; c = 0; }
+            m.put(FactionPlan.Role.MELEE, z);
+            m.put(FactionPlan.Role.RANGED, s);
+            m.put(FactionPlan.Role.SIEGE, c);
+            return m;
+        }
         double golem = p.get("golemShare"), caster = p.get("casterShare");
         if (bot.outnumbered() && golem >= 0.3 && in.ore > 500) golem = 0.6; // ore-fed army when food is the war
         // even game, ore idle while food is short: golems cost no food
