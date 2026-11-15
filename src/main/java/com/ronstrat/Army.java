@@ -2146,6 +2146,18 @@ public final class Army {
         boolean focus = p.b("focusFire"), kite = p.b("kiting"), save = p.b("retreatWounded");
         if (!focus && !kite && !save && !p.b("fightIdle") && !p.b("creeperMicro")) return;
         Vec3 home = Vec3.atCenterOf(in.home());
+        // spreadFire: who is already being hit and how hard - every soldier picking the same "best" target left
+        // a dozen on one enemy (overkill, then all of them walking to the next) while the rest hit us freely
+        boolean spread = p.b("spreadFire");
+        Map<LivingEntity, double[]> load = new HashMap<>(); // target -> {dps on it, melee on it}
+        if (spread) for (Mob a : in.army) {
+            if (!(a instanceof Unit au)) continue;
+            LivingEntity t = au.getTargetGoal().getTarget();
+            if (t == null || !t.isAlive()) continue;
+            double[] l = load.computeIfAbsent(t, k -> new double[2]);
+            l[0] += UnitEval.dps(a);
+            if (!UnitEval.isRanged(a)) l[1]++;
+        }
         for (Mob u : in.army) {
             if (bot.now - lastOrder.getOrDefault(u.getId(), -1000L) < 6) continue;
             List<LivingEntity> near = in.enemiesNear(u.position(), 14);
@@ -2239,21 +2251,45 @@ public final class Army {
                 double d = Math.sqrt(e.distanceToSqr(u));
                 if (ranged ? d > range + 1.5 : d > 8) continue;
                 // kill fast what hurts most: low effective hp, high damage, prefer ranged/casters
+                // spreadFire: an enemy that already takes enough to die in about 1.5 s, or has three melee on it,
+                // is left to them - the next best one gets this soldier
+                if (spread && e != cur) {
+                    double[] l = load.get(e);
+                    if (l != null && (l[0] >= UnitEval.effectiveHp(e) / 1.5 || (!ranged && l[1] >= 3))) continue;
+                }
                 double score = UnitEval.effectiveHp(e) / Math.max(0.5, UnitEval.dps(e));
                 if (UnitEval.isRanged(e)) score *= 0.7;
                 if (UnitEval.isWorker(e)) score *= 3;
                 score += d * 0.3;
+                // spreadFire: our current target dies anyway from the others' hits - better spent on the next
+                if (spread && e == cur && curOverkill(load, cur, u, ranged)) score *= 4;
                 if (score < bestScore) { bestScore = score; best = e; }
             }
             if (best == null || best == cur) continue;
-            if (cur != null && cur.isAlive() && cur.getHealth() < cur.getMaxHealth() * 0.3) continue; // finish it
+            if (cur != null && cur.isAlive() && cur.getHealth() < cur.getMaxHealth() * 0.3
+                    && !(spread && curOverkill(load, cur, u, ranged))) continue; // finish it
             if (!(u instanceof AttackerUnit)) continue;
             LivingEntity tgt = best;
+            if (spread) {
+                double dd = UnitEval.dps(u);
+                if (cur != null) { double[] l = load.get(cur); if (l != null) { l[0] -= dd; if (!ranged) l[1]--; } }
+                double[] l = load.computeIfAbsent(tgt, k -> new double[2]);
+                l[0] += dd; if (!ranged) l[1]++;
+                spreadSwitches++;
+            }
             order(u, () -> Orders.attack(bot.name, List.of(u), tgt));
         }
     }
 
-    int fightIdles, creeperBlasts;
+    int fightIdles, creeperBlasts, spreadSwitches;
+
+    /** the others on this target already deal enough to kill it in about 1.5 s (or three melee besides us) */
+    private static boolean curOverkill(Map<LivingEntity, double[]> load, LivingEntity cur, Mob u, boolean ranged) {
+        double[] l = load.get(cur);
+        if (l == null) return false;
+        double others = l[0] - UnitEval.dps(u);
+        return others >= UnitEval.effectiveHp(cur) / 1.5 || (!ranged && l[1] - 1 >= 3);
+    }
     private final Map<Integer, Long> reattackAt = new HashMap<>();
 
     /** where to step back to: away from the attacker, leaning toward home, on walkable ground */
