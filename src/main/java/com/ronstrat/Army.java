@@ -198,7 +198,31 @@ public final class Army {
             return;
         }
 
-        if (underAttack) {
+        // bigArmyGo: a big army is not held at home by a handful of raiders - the nearest soldiers that are
+        // clearly enough take them on, the rest goes on as if the base were quiet (a monster game: 31-45
+        // soldiers stood home all night for 2-3 enemy zombies, and the game ran out the clock 64 vs 21)
+        boolean smallRaid = false;
+        if (underAttack && mode != Mode.ATTACK && p.b("bigArmyGo") && in.army.size() >= 20) {
+            List<LivingEntity> fighters = new ArrayList<>();
+            for (LivingEntity t : threats) if (!UnitEval.isWorker(t)) fighters.add(t);
+            double ts = UnitEval.strength(fighters), os = UnitEval.strength(in.army);
+            if (!fighters.isEmpty() && ts * 4 < os) {
+                smallRaid = true;
+                Vec3 c = Vec3.ZERO;
+                for (LivingEntity t : fighters) c = c.add(t.position());
+                Vec3 at = c.scale(1.0 / fighters.size());
+                List<Mob> byDist = new ArrayList<>(in.army);
+                byDist.sort(Comparator.comparingDouble(m -> m.distanceToSqr(at)));
+                List<Mob> det = new ArrayList<>();
+                for (Mob m : byDist) { det.add(m); if (UnitEval.strength(det) >= 2 * ts && det.size() >= 3) break; }
+                if (bot.now - lastDetach > 100) {
+                    lastDetach = bot.now;
+                    Orders.attackMove(bot.name, det, BlockPos.containing(at));
+                }
+            }
+        }
+        if (underAttack && !smallRaid) {
+            whyNot(in, "defending: " + threats.size() + " threats near home");
             if (defend(in, threats)) runAttack(in);
             return;
         }
@@ -218,8 +242,12 @@ public final class Army {
         campSquad.clear(); campSquadAt = null;
 
         // monster camps next to the base first: they kill villagers and block the resources around them
-        if (mode == Mode.GATHER && clearNeutrals(in)) return;
-        if (shouldAttack(in)) {
+        // bigArmyGo: by night a big monster army goes out first - the night is the only time it may, and
+        // hunting the wild monsters the night spawns used it all up
+        boolean attackFirst = p.b("bigArmyGo") && in.army.size() >= 20 && bot.night.on() && !bot.night.day();
+        if (mode == Mode.GATHER && !attackFirst && clearNeutrals(in)) { whyNot(in, "clearing neutral monsters"); return; }
+        if (attackFirst && !shouldAttack(in)) { if (mode == Mode.GATHER && clearNeutrals(in)) whyNot(in, "clearing neutral monsters"); return; }
+        if (attackFirst || shouldAttack(in)) {
             mode = Mode.ATTACK;
             attacksLaunched++;
             trackedTarget = null; // fresh progress clock for this attack
@@ -630,7 +658,10 @@ public final class Army {
                 BlockPos b = em.alive ? em.anyBuilding() : null;
                 if (b != null) near = Math.min(near, Math.sqrt(b.distSqr(in.home())));
             }
-            if (near < 1e9 && !bot.night.attackWindow(attackForce(in), near)) return false;
+            if (near < 1e9 && !bot.night.attackWindow(attackForce(in), near)) {
+                whyNot(in, "night window: " + (bot.night.day() ? "day" : (bot.night.nightLeft() / 20) + " s of night left") + ", burning " + String.format("%.2f", NightPlan.burnShare(attackForce(in))) + ", enemy " + (int) near + " blocks");
+                return false;
+            }
         }
         double armyPop = 0;
         for (Mob m : in.army) armyPop += UnitEval.popValue(m);
@@ -748,9 +779,10 @@ public final class Army {
         double minPop = p.get("attackMinArmyPop") * (bot.outnumbered() ? 1.8 : 1.0);
         // even game: go as one real wave (a human pushes back a dozen units with a few more from four barracks)
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered()) minPop = Math.max(minPop, 45);
-        if (armyPop < minPop && !maxed) return false;
+        if (armyPop < minPop && !maxed) { whyNot(in, "army pop " + (int) armyPop + " < " + (int) minPop); return false; }
         String t = chooseTarget(in);
         if (t == null) {
+            whyNot(in, "no target");
             // nobody found yet: the lower tiers just march toward where the scout went; the expert waits for intel
             return false;
         }
@@ -766,7 +798,16 @@ public final class Army {
             // i.e. only go with a clearly larger force than the minimum (unknown = dangerous)
             if (armyPop < p.get("attackMinArmyPop") * 1.5 && !maxed) return false;
         }
+        if (own < adv * enemy) whyNot(in, "too weak: ours " + (int) own + " vs " + String.format("%.1f", adv) + " x " + (int) enemy);
         return own >= adv * enemy;
+    }
+
+    private long lastWhyNot = -100000, lastDetach = -1000;
+    /** verbose: once a minute, why a sizeable army is not out attacking */
+    private void whyNot(Intel in, String why) {
+        if (!bot.verbose || bot.now - lastWhyNot < 1200 || in.army.size() < 10) return;
+        lastWhyNot = bot.now;
+        bot.log("no attack (army " + in.army.size() + "): " + why);
     }
 
     /**
