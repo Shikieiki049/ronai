@@ -164,7 +164,7 @@ public final class BotParams {
         p.put("monsterLean",                0,     0,      0,     0);   // monsters: only catalysts, fields, graveyards, altar, laboratory until the bank floats
         p.put("fightIdle",                  0,     0,      0,     0);   // a soldier standing without a target near enemies: the nearest one at once
         p.put("nightPlan",                  0,     0,      0,     1);   // monsters: attack by night, home before dawn, burning units inside the night by day
-        p.put("huskRush",                   0,     0,      0,     0);   // monsters: the laboratory early, husks from the bank
+        p.put("huskRush",                   0,     0,      0,     1);   // monsters: the laboratory early, husks from the bank
         p.put("monsterOpenWood",            0,     0,      0,     0);   // monsters: this share of workers on wood until monsterOpenFields fields stand
         p.put("monsterOpenFields",          4,     4,      4,     4);
         p.put("creeperMicro",               0,     0,      0,     0);   // creepers walk at the thickest knot of enemies and blow up when creeperBlast are in reach
