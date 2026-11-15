@@ -42,6 +42,9 @@ public final class BotManager {
 
     public static Agent get(String name) { return BOTS.get(name); }
 
+    /** a computer player of ours */
+    public static boolean isBot(String name) { return BOTS.containsKey(name); }
+
     public static boolean isRtsName(String name) {
         synchronized (PlayerServerEvents.rtsPlayers) {
             for (RTSPlayer p : PlayerServerEvents.rtsPlayers) if (p.name.equalsIgnoreCase(name)) return true;
