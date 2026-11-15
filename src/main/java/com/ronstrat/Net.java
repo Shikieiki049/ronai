@@ -21,7 +21,11 @@ public final class Net {
 
     private static final String V = "2";
     public static final SimpleChannel CH = NetworkRegistry.newSimpleChannel(
-            new ResourceLocation(RonStrategist.MODID, "main"), () -> V, V::equals, V::equals);
+            // the other side may not have this mod: a client joins any server (the match recorder works there,
+            // the lobby buttons just stay unused), and a server with it accepts clients without it
+            new ResourceLocation(RonStrategist.MODID, "main"), () -> V,
+            v -> V.equals(v) || NetworkRegistry.ABSENT.version().equals(v) || NetworkRegistry.ACCEPTVANILLA.equals(v),
+            v -> V.equals(v) || NetworkRegistry.ABSENT.version().equals(v) || NetworkRegistry.ACCEPTVANILLA.equals(v));
 
     public static void register() {
         CH.registerMessage(0, AddBots.class, AddBots::write, AddBots::read, AddBots::handle);

@@ -101,9 +101,15 @@ public final class LobbyOverlay {
         } catch (IllegalAccessException e) { return null; }
     }
 
+    /** the server has this mod (someone else's server does not: no computer seats there) */
+    private static boolean serverHasUs() {
+        var conn = Minecraft.getInstance().getConnection();
+        return conn != null && Net.CH.isRemotePresent(conn.getConnection());
+    }
+
     @SubscribeEvent
     public static void render(ScreenEvent.Render.Post evt) {
-        if (!(evt.getScreen() instanceof MatchStartScreen s)) return;
+        if (!(evt.getScreen() instanceof MatchStartScreen s) || !serverHasUs()) return;
         GuiGraphics g = evt.getGuiGraphics();
         Font font = Minecraft.getInstance().font;
         int mx = evt.getMouseX(), my = evt.getMouseY();
@@ -141,7 +147,7 @@ public final class LobbyOverlay {
 
     @SubscribeEvent
     public static void click(ScreenEvent.MouseButtonPressed.Pre evt) {
-        if (evt.getButton() != 0 || !(evt.getScreen() instanceof MatchStartScreen s)) return;
+        if (evt.getButton() != 0 || !(evt.getScreen() instanceof MatchStartScreen s) || !serverHasUs()) return;
         double mx = evt.getMouseX(), my = evt.getMouseY();
         int[] st = settingsAt(s);
         if (st != null && mx >= st[0] && mx <= st[0] + SET_W && my >= st[1] && my <= st[1] + SET_H) {

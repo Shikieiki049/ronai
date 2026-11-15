@@ -37,7 +37,9 @@ public final class ClientSetup {
             if (e.phase != TickEvent.Phase.END) return;
             while (OPEN.consumeClick()) {
                 Minecraft mc = Minecraft.getInstance();
-                if (mc.screen == null && mc.player != null) mc.setScreen(new Panel());
+                // someone else's server without this mod: no computer players there
+                boolean ours = mc.getConnection() != null && Net.CH.isRemotePresent(mc.getConnection().getConnection());
+                if (mc.screen == null && mc.player != null && ours) mc.setScreen(new Panel());
             }
         }
     }
