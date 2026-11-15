@@ -2103,7 +2103,7 @@ public final class Army {
     void micro(Intel in) {
         BotParams p = bot.params;
         boolean focus = p.b("focusFire"), kite = p.b("kiting"), save = p.b("retreatWounded");
-        if (!focus && !kite && !save && !p.b("fightIdle")) return;
+        if (!focus && !kite && !save && !p.b("fightIdle") && !p.b("creeperMicro")) return;
         Vec3 home = Vec3.atCenterOf(in.home());
         for (Mob u : in.army) {
             if (bot.now - lastOrder.getOrDefault(u.getId(), -1000L) < 6) continue;
@@ -2120,6 +2120,33 @@ public final class Army {
                 if (d < nmd) { nmd = d; nearestMelee = e; }
             }
 
+            // creeperMicro: a creeper blows up once (radius 3) - into the thickest knot of enemies, not the first
+            // soldier it meets. Enough of them within the blast: explode now; else walk at the enemy with the
+            // most others around it.
+            if (p.b("creeperMicro") && u instanceof com.solegendary.reignofnether.unit.units.monsters.CreeperUnit) {
+                int inBlast = 0;
+                for (LivingEntity e : near) if (!(e instanceof Unit eu && eu.isFlyingUnit()) && e.distanceToSqr(u) <= 3.2 * 3.2) inBlast++;
+                if (inBlast >= p.i("creeperBlast")) {
+                    creeperBlasts++;
+                    order(u, () -> Orders.ability(bot.name, com.solegendary.reignofnether.unit.UnitAction.EXPLODE, -1, List.of(u), u.blockPosition()));
+                    continue;
+                }
+                LivingEntity best = null;
+                double bestV = -1;
+                for (LivingEntity e : near) {
+                    if (e instanceof Unit eu && eu.isFlyingUnit()) continue;
+                    int around = 0;
+                    for (LivingEntity o : near) if (o.distanceToSqr(e) <= 3.0 * 3.0) around++;
+                    double v = around - Math.sqrt(e.distanceToSqr(u)) * 0.08 - (UnitEval.isWorker(e) ? 0.5 : 0);
+                    if (v > bestV) { bestV = v; best = e; }
+                }
+                LivingEntity cur = ((Unit) u).getTargetGoal().getTarget();
+                if (best != null && best != cur && u instanceof AttackerUnit) {
+                    LivingEntity tgt = best;
+                    order(u, () -> Orders.attack(bot.name, List.of(u), tgt));
+                }
+                continue;
+            }
             if (save && u.getHealth() < u.getMaxHealth() * 0.25 && UnitEval.popValue(u) >= 3 && nearestMelee != null && nmd < 16) {
                 Vec3 d = home.subtract(u.position()).normalize().scale(10);
                 order(u, () -> Orders.move(bot.name, List.of(u), BlockPos.containing(u.position().add(d))));
@@ -2185,7 +2212,7 @@ public final class Army {
         }
     }
 
-    int fightIdles;
+    int fightIdles, creeperBlasts;
     private final Map<Integer, Long> reattackAt = new HashMap<>();
 
     /** where to step back to: away from the attacker, leaning toward home, on walkable ground */

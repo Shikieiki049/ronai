@@ -167,6 +167,8 @@ public final class BotParams {
         p.put("huskRush",                   0,     0,      0,     0);   // monsters: the laboratory early, husks from the bank
         p.put("monsterOpenWood",            0,     0,      0,     0);   // monsters: this share of workers on wood until monsterOpenFields fields stand
         p.put("monsterOpenFields",          4,     4,      4,     4);
+        p.put("creeperMicro",               0,     0,      0,     0);   // creepers walk at the thickest knot of enemies and blow up when creeperBlast are in reach
+        p.put("creeperBlast",               3,     3,      3,     3);
         p.put("monsterMix",                 0,     0,      0,     0);   // monsters: zombies tank, skeletons damage, creepers strike (shares below)
         p.put("mixZombie",               0.45,  0.45,   0.45,  0.45);  // share of army population: zombies / husks in front
         p.put("mixSkeleton",             0.35,  0.35,   0.35,  0.35);  // skeletons / strays behind them
