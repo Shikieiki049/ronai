@@ -38,10 +38,11 @@ def measures(r, minutes):
     return m
 
 
-def run(profiles, maps, seeds, minutes, parallel, label, dev=False, global_max=None):
+def run(profiles, maps, seeds, minutes, parallel, label, dev=False, global_max=None, faction=""):
     plan = []
     for p in profiles:
-        spec = ("expert" if p == "base" else f"expert:{p}") + " solo readied nohandicap"
+        fx = f"#{faction}" if faction else ""
+        spec = (f"expert{fx}" if p == "base" else f"expert{fx}:{p}") + " solo readied nohandicap" + (" night" if faction == "monsters" else "")
         for m in maps:
             for s in seeds:
                 plan.append({"spec": spec, "seed": s, "map": str(ROOT / "tmp" / "maps" / m), "extra": f"-Dronstrat.stopAt={minutes * 60}"})
@@ -92,12 +93,13 @@ def main():
     ap.add_argument("--label", default="SOLO")
     ap.add_argument("--dev", action="store_true", help="dev server with the compiled classes (no testJar needed)")
     ap.add_argument("--global-max", type=int, default=None, help="cap on all test servers of the machine (default: --parallel)")
+    ap.add_argument("--faction", default="", help="monsters: play the monsters (day/night on)")
     ap.add_argument("--report", action="store_true", help="only print the table of an earlier run with this label")
     a = ap.parse_args()
     maps = TUNE if a.set == "tune" else VAL if a.set == "val" else TUNE + VAL
     out = ROOT / "results" / f"{a.label}.jsonl"
     if not a.report:
-        out = run(a.profiles, maps, a.seeds, a.minutes, a.parallel, a.label, a.dev, a.global_max)
+        out = run(a.profiles, maps, a.seeds, a.minutes, a.parallel, a.label, a.dev, a.global_max, a.faction)
     table(out, a.profiles, a.minutes)
 
 

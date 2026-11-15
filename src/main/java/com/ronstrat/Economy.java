@@ -706,6 +706,11 @@ public final class Economy {
             if (food > cap) food = Math.max(0.15, cap);
             if (in.ore >= 250) ore = 0;
         }
+        // monsters (monsterOpenWood): pumpkin farms cost 200 wood and the catalyst 125 - with four of five
+        // workers hunting the first field came at minute 2-5 and the mausoleum stood idle 40-64% of the game
+        // for want of food (M7ron3). Until the first fields stand, most hands cut wood.
+        if (!bot.plan.villagers && p.get("monsterOpenWood") > 0 && in.built(bot.plan.farm) < p.i("monsterOpenFields"))
+            food = Math.min(food, Math.max(0.2, 1 - p.get("monsterOpenWood") - ore));
         return new double[] { food, Math.max(0.1, 1 - food - ore), ore };
     }
 

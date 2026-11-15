@@ -8,6 +8,7 @@ tmp/queue.txt, one suite per line (blank lines and # comments skipped):
     <suite> <label> [ron|prod|full] ...      e.g.  ron7lgs R7lgs ron        duellgs P_duellgs prod
   ron  = RON's own bot (-AltRon, dev server, every game)    prod = production server
   full = play every game (no early stop)    tNN = games end at NN minutes (screening)
+  vs:LABEL = also compare game by game with that earlier run (tools/paired.py)
 A line is done once tmp/queue_done.txt lists its label; results go to tmp/queue_results.txt
 (the suite report's TOTAL / sequential lines and the loss_report summary for RON runs).
 Up to two batches run side by side under a global cap of 16 servers (selfplay.ps1 -GlobalMax), so the
@@ -65,6 +66,12 @@ def run(parts):
         lr = subprocess.run(["py", "tools/loss_report.py", f"results/{label}.jsonl"], cwd=ROOT, capture_output=True, text=True,
                             encoding="utf-8", errors="replace").stdout.splitlines()
         lines += [l for l in lr if l.startswith("  ") and l.strip()[:1] in "WABCDE" and "(" in l]
+    # vs:BASE - the same games compared one by one with a baseline run (tools/paired.py)
+    for fl in flags:
+        if fl.startswith("vs:"):
+            pr = subprocess.run(["py", "tools/paired.py", fl[3:], label], cwd=ROOT, capture_output=True, text=True,
+                                encoding="utf-8", errors="replace").stdout.splitlines()
+            lines += [f"  paired vs {fl[3:]}: " + pr[0]] + ["  " + l.strip() for l in pr[1:]]
     with OUT.open("a", encoding="utf-8") as f:
         f.write(f"== {suite} {label} ({int(time.time() - t0) // 60} min)\n" + "\n".join(lines) + "\n")
     with DONE.open("a", encoding="utf-8") as f:
