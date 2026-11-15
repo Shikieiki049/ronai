@@ -194,6 +194,7 @@ public final class Economy {
         Map<Job, List<Mob>> byJob = new EnumMap<>(Job.class);
         for (Job j : Job.values()) byJob.put(j, new ArrayList<>());
         unstickFromTrees(in);
+        if (p.b("fillFields")) fillFields(in);
         // a monster closing in on villagers: they run before the first one dies, not after (camps that
         // wander into the wood line killed 3-4 villagers per game in the first ten minutes)
         List<LivingEntity> chasers = new ArrayList<>();
@@ -315,6 +316,13 @@ public final class Economy {
             // retarget (parameter retarget): a woodcutter or miner whose gather goal found no next block stands
             // there with the goal still set - not idle to RON, so nobody gave it work (70-90% of the woodcutters'
             // standing time, a quarter of their day by minute 10; in a 2v2 the user won, half of it)
+            // chainCut: the same lost woodcutter, at once - the next log or leaf next to it, the way a player
+            // clicks the next tree. (retarget waited 40 ticks, as long as RON's own search cycle, and sent the
+            // worker back to the drop sites' trees: no gain.)
+            // farmChain: a farmer that harvested its block waits for RON's farm search (its cooldown runs down 10 per
+            // 20 ticks from 40: about 4 s) while ripe crops stand on its own field - the next one now
+            if (p.b("farmChain") && farmChain(w)) continue;
+            if (p.b("chainCut") && (seen == Job.WOOD || recorded == Job.WOOD) && chainCut(in, w)) continue;
             if (p.b("retarget") && (seen == Job.WOOD || seen == Job.ORE || recorded == Job.WOOD || recorded == Job.ORE)) {
                 GatherResourcesGoal rgG = ((WorkerUnit) w).getGatherResourceGoal();
                 var rgR = ((Unit) w).getReturnResourcesGoal();
@@ -848,7 +856,53 @@ public final class Economy {
                 && p != com.solegendary.reignofnether.unit.units.villagers.VillagerUnitProfession.FARMER;
     }
 
+    int fieldsFilled;
+    private long fillCheck;
+    private final Map<BlockPos, long[]> fillPending = new HashMap<>();   // field -> {worker id, until}
+
+    /**
+     * fillFields: every built field has its farmer. A field is the steadiest food per worker there is, yet it got
+     * one only when the job shares happened to send someone to food: 11 fields and 9 farmers for two minutes
+     * while ripe wheat piled up (84 blocks) and the bank sat at no food. A hunter goes first (its game runs out),
+     * then the nearest woodcutter.
+     */
+    private void fillFields(Intel in) {
+        if (bot.now - fillCheck < 20) return;
+        fillCheck = bot.now;
+        for (BuildingPlacement b : in.own) {
+            if (!(b instanceof FarmPlacement) || !b.isBuilt || farmTaken(in, b)) continue;
+            long[] pend = fillPending.get(b.centrePos);
+            if (pend != null && bot.now < pend[1]) continue;   // someone is on the way
+            net.minecraft.world.phys.Vec3 c = net.minecraft.world.phys.Vec3.atCenterOf(b.centrePos);
+            Mob pick = null;
+            double pd = 1e18;
+            for (Mob o : in.workers) {
+                if (TEST_HOLD.contains(o.getId())) continue;
+                Job j = job(o);
+                boolean hunter = j == Job.FOOD && ((Unit) o).getTargetGoal().getTarget() instanceof Animal;
+                if (!hunter && j != Job.WOOD && j != Job.IDLE) continue;
+                GatherResourcesGoal g = ((WorkerUnit) o).getGatherResourceGoal();
+                if (g != null && g.getTargetFarm() != null) continue;
+                boolean sent = false;
+                for (long[] q : fillPending.values()) if (q[0] == o.getId() && bot.now < q[1]) sent = true;
+                if (sent) continue;
+                if (WorkerUnit.isIdle((WorkerUnit) o) == false && j == Job.IDLE) continue;
+                double d = o.distanceToSqr(c) * (hunter ? 0.5 : 1);
+                if (d < pd) { pd = d; pick = o; }
+            }
+            if (pick == null) return;
+            Orders.farm(bot.name, List.of(pick), b.centrePos);
+            setJob(pick, Job.FOOD);
+            assignedAt.put(pick.getId(), bot.now);
+            fillPending.put(b.centrePos, new long[] { pick.getId(), bot.now + 400 });
+            fieldsFilled++;
+        }
+    }
+
     private boolean farmTaken(Intel in, BuildingPlacement farm) {
+        // a farmer sent by fillFields and still on its way counts (its goal names the field only on arrival)
+        long[] pend = fillPending.get(farm.centrePos);
+        if (pend != null && bot.now < pend[1]) for (Mob o : in.workers) if (o.getId() == pend[0] && job(o) == Job.FOOD) return true;
         for (Mob o : in.workers) {
             GatherResourcesGoal g = ((WorkerUnit) o).getGatherResourceGoal();
             if (g != null && g.getTargetFarm() == farm) return true;
@@ -869,6 +923,60 @@ public final class Economy {
             if (Math.abs(q.getX() - p.getX()) <= 3 && Math.abs(q.getZ() - p.getZ()) <= 3) n++;
         }
         return n;
+    }
+
+    int farmChains;
+
+    /** a farmer standing on its field with no block picked: the next ripe crop or bare farmland of that field. True when ordered. */
+    private boolean farmChain(Mob w) {
+        GatherResourcesGoal g = ((WorkerUnit) w).getGatherResourceGoal();
+        if (g == null || g.getTargetFarm() == null || g.getGatherTarget() != null || g.isGathering() || w.getNavigation().isInProgress()) return false;
+        var rg = ((Unit) w).getReturnResourcesGoal();
+        if ((rg != null && rg.getBuildingTarget() != null) || Unit.atMaxResources((Unit) w)) return false;
+        if (bot.now - assignedAt.getOrDefault(w.getId(), -10000L) < 30) return false;
+        boolean ready = false;
+        for (var b : g.getTargetFarm().getBlocks())
+            if (RonCompat.canGather(g, bot.level, b.getBlockPos(), ResourceName.FOOD)) { ready = true; break; }
+        if (!ready) return false;
+        // the player's way: click its own field again - RON resets the goal and searches at once
+        // (a click on the crop block itself took the farmer off its field: food 2763 -> 693)
+        // (a click on the field alone keeps RON's search cooldown; stop first clears it, as a player's stop + click)
+        BlockPos farmAt = g.getTargetFarm().centrePos;
+        Orders.stop(bot.name, List.of(w));
+        Orders.farm(bot.name, List.of(w), farmAt);
+        assignedAt.put(w.getId(), bot.now);
+        farmChains++;
+        return true;
+    }
+
+    int chainCuts;
+    private final Map<Integer, Long> chainLostSince = new HashMap<>();
+
+    /** a woodcutter whose gather goal lost its block: the nearest gatherable wood around it, now. True when ordered. */
+    private boolean chainCut(Intel in, Mob w) {
+        GatherResourcesGoal g = ((WorkerUnit) w).getGatherResourceGoal();
+        var rg = ((Unit) w).getReturnResourcesGoal();
+        boolean lost = g != null && g.getTargetFarm() == null && g.getGatherTarget() == null && !g.isGathering()
+                && !w.getNavigation().isInProgress() && (rg == null || rg.getBuildingTarget() == null) && !Unit.atMaxResources((Unit) w);
+        if (!lost) { chainLostSince.remove(w.getId()); return false; }
+        long since = bot.now - chainLostSince.computeIfAbsent(w.getId(), k -> bot.now);
+        if (since < bot.params.i("chainCutTicks") || bot.now - assignedAt.getOrDefault(w.getId(), -10000L) < 10) return false;
+        BlockPos at = w.blockPosition();
+        for (int range : new int[] { 6, 12, 20 }) {
+            Optional<BlockPos> bp = ResourceIndex.get(bot.level).findClosest(bot.level, at, range, ResourceName.WOOD,
+                    pos -> Math.abs(pos.getY() - at.getY()) <= 6 && RonCompat.canGather(g, bot.level, pos, ResourceName.WOOD)
+                            && !in.dangerous(pos, 16) && !unreachableSpot(pos) && crowd(pos, w) < 2);
+            if (bp.isPresent()) {
+                Orders.gather(bot.name, List.of(w), bp.get());
+                assignedPos.put(w.getId(), bp.get());
+                assignedAt.put(w.getId(), bot.now);
+                loadChangedAt.put(w.getId(), bot.now);
+                chainLostSince.remove(w.getId());
+                chainCuts++;
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean assignBlock(Intel in, Mob w, ResourceName type, Job j) {
@@ -1027,7 +1135,7 @@ public final class Economy {
     private final Map<BlockPos, Integer> farmWorker = new HashMap<>();
     /** verbose time budget, per job (wood, farm): samples working / walking to the block / carrying home / standing */
     private final int[][] timeBudget = new int[2][4];
-    private int leafSamples, logSamples;
+    private int leafSamples, logSamples, farmStandSamples, farmStandReady;
 
     private void sampleTime(Intel in) {
         for (Mob w : in.workers) {
@@ -1039,6 +1147,13 @@ public final class Economy {
             boolean returning = rg != null && rg.getBuildingTarget() != null;
             int st = returning ? 2 : g.isGathering() ? 0 : w.getNavigation().isInProgress() ? 1 : 3;
             timeBudget[k][st]++;
+            if (k == 1 && st == 3 && bot.verbose && g.getGatherTarget() == null) {
+                // why a farmer stands: blocks of its own field it could take right now (0 = the crops are growing)
+                int n = 0;
+                for (var b : g.getTargetFarm().getBlocks()) if (RonCompat.canGather(g, bot.level, b.getBlockPos(), ResourceName.FOOD)) n++;
+                farmStandSamples++;
+                if (n > 0) farmStandReady++;
+            }
             if (k == 0 && st == 3) {
                 // why a woodcutter stands: no tree picked / a tree picked but out of reach / a full pack
                 if (g.getGatherTarget() == null) standWhy[0]++;
@@ -1057,7 +1172,7 @@ public final class Economy {
 
     private String standText() {
         int n = Math.max(1, standWhy[0] + standWhy[1] + standWhy[2]);
-        String r = " (stand: no tree " + 100 * standWhy[0] / n + "% tree " + 100 * standWhy[1] / n + "% full " + 100 * standWhy[2] / n + "%)";
+        String r = " (fields filled " + fieldsFilled + ", farm stand with work ready " + farmStandReady + "/" + farmStandSamples + ", chain " + chainCuts + " farmChain " + farmChains + ", stand: no tree " + 100 * standWhy[0] / n + "% tree " + 100 * standWhy[1] / n + "% full " + 100 * standWhy[2] / n + "%)";
         java.util.Arrays.fill(standWhy, 0);
         return r;
     }

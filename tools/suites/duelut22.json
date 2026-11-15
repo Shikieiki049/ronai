@@ -1,0 +1,51 @@
+{
+ "description": "upgrade tier 22 ut22 vs current expert",
+ "items": [
+  {
+   "name": "n14 first",
+   "spec": "expert:ut22 vs expert readied nohandicap",
+   "us": 0,
+   "pair": "comp",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105
+   ]
+  },
+  {
+   "name": "n14 second",
+   "spec": "expert vs expert:ut22 readied nohandicap",
+   "us": 1,
+   "pair": "comp",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Crossings",
+    "Industrial_Strength"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105
+   ]
+  }
+ ]
+}

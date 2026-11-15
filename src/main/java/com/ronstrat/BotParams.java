@@ -156,7 +156,18 @@ public final class BotParams {
         p.put("simV2",                      0,     0,      0,     0);   // the fight forecast calibrated on the arena (flyers, per-type damage)
         p.put("retarget",                   0,     0,      0,     0);   // woodcutters/miners with no next block picked get a new one
         p.put("retargetTicks",              40,    40,     40,    40);
+        p.put("chainCut",                   0,     0,      0,     0);   // a woodcutter that lost its block: the next one next to it at once
+        p.put("chainCutTicks",              5,     5,      5,     5);
+        p.put("farmChain",                  0,     0,      0,     0);   // a farmer with no block picked: the next ripe crop of its field at once
+        p.put("fillFields",                 0,     0,      0,     0);   // every built field gets its farmer at once (a hunter first, then a woodcutter)
+        p.put("guardWorkers",               0,     0,      0,     0);   // enemy fighters on our workers out at the trees: a raid, the army goes
+        p.put("fightIdle",                  0,     0,      0,     0);   // a soldier standing without a target near enemies: the nearest one at once
         p.put("nightPlan",                  0,     0,      0,     1);   // monsters: attack by night, home before dawn, burning units inside the night by day
+        p.put("huskRush",                   0,     0,      0,     0);   // monsters: the laboratory early, husks from the bank
+        p.put("huskWorkers",                18,    18,     18,    18);
+        p.put("catalystHouse",              0,     0,      0,     0);   // monsters: the first houses are sculk catalysts toward the enemy
+        p.put("catalystMax",                2,     2,      2,     2);
+        p.put("catalystDist",               28,    28,     28,    28);
         p.put("nightSunSafeShare",          0.25,  0.25,   0.25,  0.25); // a force with at most this share burning ignores the clock
         p.put("nightFightTicks",            1800,  1800,   1800,  1800); // night kept for the fight itself
         p.put("nightDawnMargin",            400,   400,    400,   400);  // start home this much before the walk back would meet the dawn

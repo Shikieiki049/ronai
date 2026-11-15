@@ -34,7 +34,8 @@ public final class LobbyOverlay {
 
     private static final int CHIP_W = 26, CHIP_H = 16;
 
-    private record Chip(StartPos sp, int x, int y) {}
+    /** fx, fy: the first of RON's four faction tiles on this row (22 apart: villagers, monsters, piglins, random) */
+    private record Chip(StartPos sp, int x, int y, int fx, int fy) {}
 
     private static Field fx1, fy1, fx2, fy2, fScroll;
     private static boolean broken;
@@ -68,7 +69,7 @@ public final class LobbyOverlay {
                     int cx = factionStartX - 6 - 4 - CHIP_W, cy = tileY + 3;
                     boolean free = sp.playerName.isBlank() && !com.ronstrat.RonCompat.hidden(sp);
                     if ((free || aiAt(sp) != null) && cy >= contentTop && cy + CHIP_H <= viewBottom)
-                        out.add(new Chip(sp, cx, cy));
+                        out.add(new Chip(sp, cx, cy, factionStartX - 6, tileY));
                     y += 26;
                 }
                 y += 4;
@@ -149,6 +150,13 @@ public final class LobbyOverlay {
             return;
         }
         for (Chip c : chips(s)) {
+            // a computer seat's faction: RON greys these icons out (not our seat), the host picks for the AI
+            if (aiAt(c.sp()) != null && my >= c.fy() && my < c.fy() + 22 && mx >= c.fx() && mx < c.fx() + 4 * 22) {
+                int which = (int) ((mx - c.fx()) / 22);
+                Net.CH.sendToServer(new Net.LobbyFaction(c.sp().pos, which));
+                evt.setCanceled(true);
+                return;
+            }
             if (mx < c.x() || mx > c.x() + CHIP_W || my < c.y() || my > c.y() + CHIP_H) continue;
             Difficulty d = aiAt(c.sp());
             int next = d == null ? 0 : d.ordinal() + 1;

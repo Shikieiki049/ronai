@@ -351,6 +351,7 @@ public final class Builder {
                 if (!stallLogged) { stallLogged = true; bot.stalls++; bot.log("stall: no food, " + in.built(plan.farm) + " fields - a field first"); }
             }
         } else { stallSince = -1; stallLogged = false; }
+        if (!plan.villagers) monsterRules(in, reqs, workers, home);
         reqs.sort((a, b) -> Double.compare(b.priority, a.priority));
         reserved = null;
         note = reqs.isEmpty() ? "nothing wanted" : "";
@@ -366,7 +367,9 @@ public final class Builder {
             Building b = r.building;
             if (bot.now - lastFail.getOrDefault(b, -100000L) < 200) { if (note.isEmpty()) note = "no spot for " + name(b); continue; } // no spot found recently
             boolean dropSiteEmergency = b == plan.stockpile && (bot.economy.dropSites(in).isEmpty() || (bot.now - bot.economy.deliveryTrouble < 2400 && r.priority >= 110));
-            int woodReserve = dropSiteEmergency ? 0 : p.i("buildWoodReserve");
+            // the reserve is replant wood (1 per crop); zombie villagers replant for free (GatherResourcesGoal.getReplantWoodCost):
+            // a monster start (150 wood) never afforded its first catalyst (125 + reserve) and sat at 8/10 population
+            int woodReserve = dropSiteEmergency || !plan.villagers ? 0 : p.i("buildWoodReserve");
             Ledger L = bot.ledger;
             boolean affordable = L.on()
                     ? in.food - L.fundFood >= b.cost.food && in.wood - L.fundWood >= b.cost.wood + woodReserve && in.ore - L.fundOre >= b.cost.ore
@@ -405,7 +408,7 @@ public final class Builder {
         boolean woodWait = false;
         if (reserved != null && reserved.priority >= 60) {
             Building rb = reserved.building;
-            int wr = p.i("buildWoodReserve");
+            int wr = plan.villagers ? p.i("buildWoodReserve") : 0;
             woodWait = in.wood < rb.cost.wood + wr && in.food >= rb.cost.food && in.ore >= rb.cost.ore;
         }
         if (woodWait) { if (woodWaitSince < 0) woodWaitSince = bot.now; } else woodWaitSince = -1;
@@ -433,8 +436,56 @@ public final class Builder {
         return (a.cost.wood > 0 && b.cost.wood > 0) || (a.cost.ore > 0 && b.cost.ore > 0) || (a.cost.food > 0 && b.cost.food > 0);
     }
 
+    /**
+     * Our own monster rules (M7ron: the laboratory came at minute 21 in 24 of 42 games, no catalyst ever).
+     * huskRush: zombies that do not burn are an army that may leave the night by day - the laboratory early
+     * (the husks themselves are paid from the bank, Production). catalystHouse: a sculk catalyst holds 12
+     * population for 125 wood, a haunted house 10 for 100 - the same price per head, and the catalyst brings
+     * its own night (30 blocks): the first ones replace houses, placed toward the enemy at the mausoleum's
+     * night edge, so the two nights overlap little and the army's way out stays dark.
+     */
+    private void monsterRules(Intel in, List<Request> reqs, int workers, BlockPos home) {
+        FactionPlan plan = bot.plan;
+        BotParams p = bot.params;
+        Building lab = com.solegendary.reignofnether.building.Buildings.LABORATORY;
+        Building cat = com.solegendary.reignofnether.building.Buildings.SCULK_CATALYST;
+        if (p.b("huskRush") && in.total(lab) == 0 && in.built(plan.barracks) >= 1 && workers >= p.i("huskWorkers")
+                && !com.solegendary.reignofnether.research.ResearchServerEvents.playerHasResearch(bot.name,
+                        com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HUSKS))
+            reqs.add(new Request(lab, 90, home, 10, 26));
+        if (p.b("catalystHouse") && in.total(cat) < p.i("catalystMax")) {
+            for (int i = 0; i < reqs.size(); i++) {
+                Request r = reqs.get(i);
+                if (r.building() != plan.house) continue;
+                int k = in.total(cat);
+                BlockPos f = bot.army.frontAnchor(in);   // 8 blocks from home toward the enemy
+                double dx = f.getX() - home.getX(), dz = f.getZ() - home.getZ();
+                double len = Math.max(1, Math.sqrt(dx * dx + dz * dz));
+                // the k-th catalyst: along the front, the second one turned 50 degrees to a side
+                double ang = k == 0 ? 0 : (k % 2 == 1 ? 0.87 : -0.87);
+                double cx = dx / len, cz = dz / len;
+                double rx = cx * Math.cos(ang) - cz * Math.sin(ang), rz = cx * Math.sin(ang) + cz * Math.cos(ang);
+                double dist = p.get("catalystDist");
+                BlockPos at = new BlockPos((int) Math.round(home.getX() + rx * dist), home.getY(), (int) Math.round(home.getZ() + rz * dist));
+                reqs.set(i, new Request(cat, r.priority(), at, 0, 12));
+                break;
+            }
+        }
+    }
+
+    /**
+     * Only what a human player can build: RON registers a few buildings without a build-menu key (Factions.
+     * registerBuildings(faction, building) - the haunted house, the beacon), so no player can place them. The AI
+     * placed haunted houses all game (the user found it): never again, whatever a plan or rule asks for.
+     */
+    static boolean playerBuildable(Building b) {
+        return b != com.solegendary.reignofnether.building.Buildings.HAUNTED_HOUSE
+                && b != com.solegendary.reignofnether.building.Buildings.BEACON;
+    }
+
     private boolean place(Intel in, Request r) {
         Building b = r.building;
+        if (!playerBuildable(b)) return false;
         BlockPos origin = null;
         BotParams p = bot.params;
         boolean ring = p.b("farmRing");

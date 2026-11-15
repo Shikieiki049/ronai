@@ -49,7 +49,7 @@ public final class Production {
         FactionPlan plan = bot.plan;
         int[] escrow = bot.builder.reservedCost();
         // always keep a little wood: farms need it to replant, and without farms the whole economy dies
-        int f = in.food - escrow[0], w = in.wood - escrow[1] - WOOD_RESERVE, o = in.ore - escrow[2];
+        int f = in.food - escrow[0], w = in.wood - escrow[1] - (bot.plan.villagers ? WOOD_RESERVE : 0), o = in.ore - escrow[2];   // zombie villagers replant free
         Ledger L = bot.ledger;
         if (L.on()) { f -= (int) L.fundFood; w -= (int) L.fundWood; o -= (int) L.fundOre; }
         queuedFoodUnits = 0;
@@ -163,6 +163,9 @@ public final class Production {
             boolean potions = r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HEALING_POTIONS
                     && Strategy.witches(bot) && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore;
             if (potions) bags = true;
+            // huskRush (monsters): zombies that do not burn are the day army - from the bank, first in line
+            if (p.b("huskRush") && r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HUSKS
+                    && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore) bags = true;
             if (tier && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore) bags = true;
             if (!bags && (f < c.food + margin || w < c.wood + margin || o < c.ore + margin / 2)) continue;
             for (BuildingPlacement b : in.own) {

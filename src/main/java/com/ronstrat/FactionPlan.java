@@ -87,7 +87,7 @@ public final class FactionPlan {
      * build buttons' hasFinishedBuilding checks). The worker counts and levels are only starting points for
      * our own tests (tools/solo.py), not a build order copied from anyone.
      * Costs (measured, -Dronstrat.dumpCosts): zombie 75f pop 1, skeleton 50f 45w pop 1, spider 80f 20w 20o pop 2,
-     * creeper 40f 120o pop 2, warden 275f 125o pop 5; pumpkin farm 200w, haunted house 100w +10 pop, sculk
+     * creeper 40f 120o pop 2, warden 275f 125o pop 5; pumpkin farm 200w, (haunted house: not in the build menu), sculk
      * catalyst 125w +12 pop and night 30-50 blocks, graveyard 150w, laboratory 250w 150o.
      */
     public static synchronized FactionPlan monsters() {
@@ -96,7 +96,9 @@ public final class FactionPlan {
         p.faction = Factions.MONSTERS;
         p.villagers = false;
         p.capitol = Buildings.MAUSOLEUM;
-        p.house = Buildings.HAUNTED_HOUSE;
+        // the haunted house is not in the player's build menu (RON registers it without a key): the
+        // sculk catalyst is the monsters' house - 12 population, and its own night
+        p.house = Buildings.SCULK_CATALYST;
         p.farm = Buildings.PUMPKIN_FARM;
         p.stockpile = Buildings.SPRUCE_STOCKPILE;
         p.barracks = Buildings.GRAVEYARD;

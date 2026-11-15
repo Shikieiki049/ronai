@@ -24,7 +24,7 @@ public final class LobbyAi {
     /** prefix every lobby bot name carries, so the client can recognise AI seats */
     public static final String PREFIX = "电脑";
 
-    record Seat(Difficulty difficulty, BlockPos pos, int colorId) {}
+    record Seat(Difficulty difficulty, BlockPos pos, int colorId, com.solegendary.reignofnether.faction.Faction faction) {}
 
     private static final Map<String, Seat> SEATS = new LinkedHashMap<>();
     private static boolean wasStarting;
@@ -70,7 +70,7 @@ public final class LobbyAi {
                 // not ready yet: seating the last free seat would otherwise start the countdown at once,
                 // before the host can pick this seat's difficulty. Ready up after a few quiet seconds.
                 sp.ready = false;
-                SEATS.put(name, new Seat(d, sp.pos, sp.colorId));
+                SEATS.put(name, new Seat(d, sp.pos, sp.colorId, Factions.VILLAGERS));
             }
             RonCompat.syncStartPositions();
             broadcast();
@@ -80,6 +80,35 @@ public final class LobbyAi {
                 if (SEATS.containsKey(o.playerName) && o.ready) StartPosServerEvents.setPlayerReady(o.playerName, false);
             if (d == null) for (StartPos o : StartPosServerEvents.startPoses)
                 if (!o.playerName.isBlank()) { StartPosServerEvents.setPlayerReady(o.playerName, o.ready); break; }
+            return;
+        }
+    }
+
+    /**
+     * the host picks a computer seat's faction (RON's own faction icons on that row: 0 villagers, 1 monsters,
+     * 2 piglins, 3 random). The AI plays villagers and monsters; piglins are not ours yet, random is one of the two.
+     */
+    public static void setFaction(BlockPos pos, int which, net.minecraft.server.level.ServerPlayer by) {
+        if (PlayerServerEvents.isGameActive()) return;
+        com.solegendary.reignofnether.faction.Faction f;
+        if (which == 0) f = Factions.VILLAGERS;
+        else if (which == 1) f = Factions.MONSTERS;
+        else if (which == 3) f = Math.random() < 0.5 ? Factions.VILLAGERS : Factions.MONSTERS;
+        else {
+            if (by != null) by.sendSystemMessage(net.minecraft.network.chat.Component.literal("[RON Strategist] 电脑暂时只会玩村民和亡灵"));
+            return;
+        }
+        for (StartPos sp : StartPosServerEvents.startPoses) {
+            if (!sp.pos.equals(pos) || !SEATS.containsKey(sp.playerName)) continue;
+            Seat old = SEATS.get(sp.playerName);
+            SEATS.put(sp.playerName, new Seat(old.difficulty(), old.pos(), old.colorId(), f));
+            sp.faction = f;
+            RonCompat.syncStartPositions();
+            broadcast();
+            // a change un-readies the computer seats (cancels a countdown), they ready up again shortly
+            readyAt = ticks + READY_DELAY;
+            for (StartPos o : StartPosServerEvents.startPoses)
+                if (SEATS.containsKey(o.playerName) && o.ready) StartPosServerEvents.setPlayerReady(o.playerName, false);
             return;
         }
     }
@@ -107,7 +136,7 @@ public final class LobbyAi {
                     try {
                         // the start block itself, as RON does for a human (startRTS gets startPos.pos): .above() put the
                         // AI's town centre one block above the ground, on stilts
-                        BotManager.startReadied(level, e.getKey(), s.difficulty(), s.pos(), s.colorId());
+                        BotManager.startReadied(level, e.getKey(), s.difficulty(), s.pos(), s.colorId(), "", "", s.faction());
                     } catch (Exception ex) {
                         RonStrategist.LOG.error("RON Strategist: could not start lobby bot {}", e.getKey(), ex);
                     }

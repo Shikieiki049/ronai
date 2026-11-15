@@ -16,7 +16,7 @@ second fills the slots the first leaves while its last games finish.
 import pathlib, subprocess, time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-GLOBAL_MAX = 16      # test servers on the machine, all batches together
+GLOBAL_MAX = 24      # test servers on the machine, all batches together
 SIDE_BY_SIDE = 2     # batches running at once: the next one fills the slots the last games of the first leave
 Q, DONE, OUT = ROOT / "tmp/queue.txt", ROOT / "tmp/queue_done.txt", ROOT / "tmp/queue_results.txt"
 

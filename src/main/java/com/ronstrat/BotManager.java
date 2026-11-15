@@ -89,6 +89,7 @@ public final class BotManager {
 
     public static Agent start(ServerLevel level, String name, Difficulty d, BlockPos pos, String brain, String profile, Faction faction) {
         if (isRtsName(name)) throw new IllegalStateException(name + " is already playing");
+        if (!AutoTest.enabled()) keepMapLoaded(level, pos);
         synchronized (PlayerServerEvents.rtsPlayers) {
             PlayerServerEvents.rtsPlayers.add(RTSPlayer.getNewBot(name, faction));
         }
@@ -129,6 +130,7 @@ public final class BotManager {
 
     public static Agent startReadied(ServerLevel level, String name, Difficulty d, BlockPos pos, int colorId, String brain, String profile, Faction faction) {
         if (isRtsName(name)) throw new IllegalStateException(name + " is already playing");
+        if (!AutoTest.enabled()) keepMapLoaded(level, pos);
         RTSPlayer rp = RTSPlayer.getNewBot(name, faction);
         rp.startPosColorId = colorId;
         synchronized (PlayerServerEvents.rtsPlayers) { PlayerServerEvents.rtsPlayers.add(rp); }
@@ -243,6 +245,48 @@ public final class BotManager {
     public static void remove(String name) {
         BOTS.remove(name);
         if (server != null) save(server);
+        if (BOTS.isEmpty()) releaseMap();
+    }
+
+    // ------------------------------------------------------------------ the map stays loaded
+
+    /**
+     * A computer player's base far from the human sits outside the client's simulation distance: there its
+     * units do not tick at all. In a lobby game on Summoner's Rift four of five computer players never finished
+     * their town centre (workers frozen at the foundation) - only the one next to the human did. The test
+     * harness had always force-loaded the map (Match), which hid it. So any game with a computer player keeps
+     * the playable map loaded (the whole world border when it is at most 4096 chunks, else the bases), and lets
+     * go once the computer players are gone or the server stops - forced chunks are saved with the world.
+     */
+    private static final java.util.Set<Long> FORCED = new java.util.HashSet<>();
+
+    static void keepMapLoaded(ServerLevel level, BlockPos pos) {
+        var border = level.getWorldBorder();
+        int x0 = (int) Math.floor(border.getMinX()) >> 4, x1 = (int) Math.floor(border.getMaxX()) >> 4;
+        int z0 = (int) Math.floor(border.getMinZ()) >> 4, z1 = (int) Math.floor(border.getMaxZ()) >> 4;
+        int before = FORCED.size();
+        if ((long) (x1 - x0 + 1) * (z1 - z0 + 1) <= 4096) {
+            for (int cx = x0; cx <= x1; cx++) for (int cz = z0; cz <= z1; cz++) force(level, cx, cz);
+        } else {
+            for (int dx = -10; dx <= 10; dx++) for (int dz = -10; dz <= 10; dz++) force(level, (pos.getX() >> 4) + dx, (pos.getZ() >> 4) + dz);
+        }
+        if (FORCED.size() > before) RonStrategist.LOG.info("RON Strategist: keeping {} chunks loaded for the computer players", FORCED.size());
+    }
+
+    private static void force(ServerLevel level, int cx, int cz) {
+        long k = net.minecraft.world.level.ChunkPos.asLong(cx, cz);
+        // a chunk the map itself keeps loaded stays the map's: never ours to release
+        if (FORCED.contains(k) || level.getForcedChunks().contains(k)) return;
+        level.setChunkForced(cx, cz, true);
+        FORCED.add(k);
+    }
+
+    static void releaseMap() {
+        if (FORCED.isEmpty() || server == null) { FORCED.clear(); return; }
+        ServerLevel level = server.overworld();
+        for (long k : FORCED) level.setChunkForced(net.minecraft.world.level.ChunkPos.getX(k), net.minecraft.world.level.ChunkPos.getZ(k), false);
+        RonStrategist.LOG.info("RON Strategist: released {} chunks", FORCED.size());
+        FORCED.clear();
     }
 
     // ------------------------------------------------------------------ ticking
@@ -285,6 +329,7 @@ public final class BotManager {
             BOTS.remove(g);
         }
         if (!gone.isEmpty() && server != null) save(server);
+        if (!gone.isEmpty() && BOTS.isEmpty()) releaseMap();
         if (serverTicks % 10 == 0) {
             try { discardConverted(); } catch (Exception ex) { RonStrategist.LOG.error("RON Strategist: conversion cleanup failed", ex); }
         }
@@ -315,7 +360,11 @@ public final class BotManager {
         for (Data.Entry e : data.entries) {
             if (!isRtsName(e.name)) continue; // the game was reset meanwhile
             try {
-                BOTS.put(e.name, create(e.brain, e.profile, e.name, e.difficulty, Factions.VILLAGERS, e.pos, level));
+                // its own faction (a monster player resumed as villagers before)
+                RTSPlayer rp = PlayerServerEvents.getRTSPlayer(e.name);
+                Faction f = rp != null && rp.faction != null ? rp.faction : Factions.VILLAGERS;
+                BOTS.put(e.name, create(e.brain, e.profile, e.name, e.difficulty, f, e.pos, level));
+                if (!AutoTest.enabled()) keepMapLoaded(level, e.pos);
             } catch (IllegalStateException ex) {
                 RonStrategist.LOG.warn("RON Strategist: {} not resumed: {}", e.name, ex.getMessage());
             }
@@ -326,6 +375,7 @@ public final class BotManager {
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent evt) {
         save(evt.getServer());
+        releaseMap();
         BOTS.clear();
         server = null;
     }

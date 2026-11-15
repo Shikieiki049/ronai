@@ -374,6 +374,16 @@ public final class Army {
                 if (e.distanceToSqr(Vec3.atCenterOf(b.centrePos)) <= d) { out.add(e); break; }
             }
         }
+        // guardWorkers: fighters on our woodcutters and miners out at the trees are a raid too - the user's husks
+        // hunted at the wood line, every woodcutter ran home and the wood stopped for six minutes (5190 -> 5205)
+        // while the army stood in the base. Within 70 blocks of home: further out it is the economy's call.
+        if (bot.params.b("guardWorkers")) {
+            Vec3 h = Vec3.atCenterOf(in.home());
+            for (LivingEntity e : in.visibleEnemies) {
+                if (out.contains(e) || UnitEval.isWorker(e) || UnitEval.isScout(e) || e.distanceToSqr(h) > 70 * 70) continue;
+                for (Mob w : in.workers) if (w.distanceToSqr(e) <= 12 * 12) { out.add(e); break; }
+            }
+        }
         // enemy workers wandering by are not a raid unless they are building next to us
         out.removeIf(e -> UnitEval.isWorker(e) && e.distanceToSqr(Vec3.atCenterOf(in.home())) > 20 * 20);
         // a scout looking around is not a raid either; the army should not chase dogs around the base
@@ -2093,7 +2103,7 @@ public final class Army {
     void micro(Intel in) {
         BotParams p = bot.params;
         boolean focus = p.b("focusFire"), kite = p.b("kiting"), save = p.b("retreatWounded");
-        if (!focus && !kite && !save) return;
+        if (!focus && !kite && !save && !p.b("fightIdle")) return;
         Vec3 home = Vec3.atCenterOf(in.home());
         for (Mob u : in.army) {
             if (bot.now - lastOrder.getOrDefault(u.getId(), -1000L) < 6) continue;
@@ -2134,6 +2144,25 @@ public final class Army {
                     continue;
                 }
             }
+            // fightIdle: a soldier with enemies within 14 blocks but no target, standing - the nearest one now
+            // (the focus pick below only looks within reach, so a unit whose target died stood until RON's
+            // own search found it the next)
+            if (p.b("fightIdle") && u instanceof AttackerUnit && ((Unit) u).getTargetGoal().getTarget() == null
+                    && !u.getNavigation().isInProgress()) {
+                LivingEntity t = null;
+                double td = 1e9;
+                for (LivingEntity e : near) {
+                    if (!ranged && e instanceof Unit eu && eu.isFlyingUnit()) continue;
+                    double d = e.distanceToSqr(u) * (UnitEval.isWorker(e) ? 2 : 1);
+                    if (d < td) { td = d; t = e; }
+                }
+                if (t != null) {
+                    LivingEntity tt = t;
+                    fightIdles++;
+                    order(u, () -> Orders.attack(bot.name, List.of(u), tt));
+                    continue;
+                }
+            }
             if (!focus) continue;
             LivingEntity cur = ((Unit) u).getTargetGoal().getTarget();
             LivingEntity best = null;
@@ -2156,6 +2185,7 @@ public final class Army {
         }
     }
 
+    int fightIdles;
     private final Map<Integer, Long> reattackAt = new HashMap<>();
 
     /** where to step back to: away from the attacker, leaning toward home, on walkable ground */

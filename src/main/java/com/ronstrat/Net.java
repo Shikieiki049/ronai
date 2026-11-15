@@ -31,6 +31,27 @@ public final class Net {
         CH.registerMessage(3, LobbyConfig.class, LobbyConfig::write, LobbyConfig::read, LobbyConfig::handle);
         CH.registerMessage(4, LobbySettingsSync.class, LobbySettingsSync::write, LobbySettingsSync::read, LobbySettingsSync::handle,
                 java.util.Optional.of(net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT));
+        CH.registerMessage(5, LobbyFaction.class, LobbyFaction::write, LobbyFaction::read, LobbyFaction::handle);
+    }
+
+    /** lobby, client -> server: the host picks a computer seat's faction (0 villagers 1 monsters 2 piglins 3 random) */
+    public record LobbyFaction(BlockPos pos, int which) {
+        void write(FriendlyByteBuf b) { b.writeBlockPos(pos); b.writeVarInt(which); }
+
+        static LobbyFaction read(FriendlyByteBuf b) { return new LobbyFaction(b.readBlockPos(), b.readVarInt()); }
+
+        void handle(Supplier<NetworkEvent.Context> ctx) {
+            ServerPlayer sp = ctx.get().getSender();
+            ctx.get().enqueueWork(() -> {
+                if (sp == null) return;
+                if (!sp.hasPermissions(2) && !sp.server.isSingleplayerOwner(sp.getGameProfile())) {
+                    sp.sendSystemMessage(Component.literal("[RON Strategist] only the host can set computer players"));
+                    return;
+                }
+                LobbyAi.setFaction(pos, which, sp);
+            });
+            ctx.get().setPacketHandled(true);
+        }
     }
 
     /** lobby, client -> server: the host sets a seat's team (0 = by colour) and handicap level */
