@@ -110,12 +110,15 @@ public final class Builder {
                 reqs.add(new Request(plan.stockpile, workers >= 24 ? 92 : 80, home, 8, 26));
             }
             // no drop site left at all (capitols and stockpiles destroyed): nothing can be delivered
-            if (bot.economy.dropSites(in).isEmpty() && in.total(plan.stockpile) - in.built(plan.stockpile) == 0) {
+            // (not while the start capitol is still going up: it is the drop site - a stockpile went up before the
+            // locked first house)
+            boolean capitolUp = in.built(plan.capitol) > 0;
+            if (capitolUp && bot.economy.dropSites(in).isEmpty() && in.total(plan.stockpile) - in.built(plan.stockpile) == 0) {
                 reqs.add(new Request(plan.stockpile, 110, home, 2, 20));
             }
             // drop site
             if (bot.economy.stockpileWanted != null && p.b("stockpileCooldown") && recentlyCancelled(bot.economy.stockpileWanted)) bot.economy.stockpileWanted = null;
-            if (bot.economy.stockpileWanted != null && in.total(plan.stockpile) - in.built(plan.stockpile) == 0
+            if (capitolUp && bot.economy.stockpileWanted != null && in.total(plan.stockpile) - in.built(plan.stockpile) == 0
                     && workers >= 4 && !dropSiteNear(in, bot.economy.stockpileWanted, 12)) {
                 // villagers walking around with full packs they cannot drop anywhere: nothing else matters
                 // (not right after one was abandoned: wolves chasing the builders make that a wood sink)
@@ -357,8 +360,10 @@ public final class Builder {
         // hero that does not pay off means its play is wrong, not the rule. Only emergencies (priority 113+:
         // no drop site, a dead economy) go ahead of them.
         if (in.built(plan.capitol) > 0 && plan.heroBuilding != null) {
-            if (in.total(plan.house) == 0) reqs.add(new Request(plan.house, 112, home, 8, 30));
-            else if (in.total(plan.heroBuilding) == 0 && p.b("heroes")) reqs.add(new Request(plan.heroBuilding, 111, home, 10, 30));
+            // a wide ring: a crowded start (a city map) has no room for a house within 30 blocks
+            if (in.total(plan.house) == 0) reqs.add(new Request(plan.house, 112, home, 6, 48));
+            else if (in.total(plan.heroBuilding) == 0 && p.b("heroes")) reqs.add(new Request(plan.heroBuilding, 111, home, 8, 48));
+            else lockedSince = -1;
         }
         // stall protection: no field standing or going up, the bank empty of food and the hunt gone -
         // the town centre is dead until a field grows, so the first field outranks everything
@@ -390,7 +395,15 @@ public final class Builder {
         }
         for (Request r : reqs) {
             Building b = r.building;
-            if (bot.now - lastFail.getOrDefault(b, -100000L) < 200) { if (note.isEmpty()) note = "no spot for " + name(b); continue; } // no spot found recently
+            // the locked opening (population building, then the hero building) waits for its spot: nothing else
+            // takes the wood meanwhile - on a crowded city map the house found no spot at first and a stockpile
+            // went up first (the user saw it). After two minutes of no spot the rest may go on.
+            boolean locked = r.priority >= 111 && r.priority < 113 && (b == plan.house || b == plan.heroBuilding);
+            if (locked && bot.now - lastFail.getOrDefault(b, -100000L) < 40) {
+                if (lockedSince < 0) lockedSince = bot.now;
+                if (bot.now - lockedSince < 2400) { if (note.isEmpty()) note = "looking for a spot for " + name(b); break; }
+            }
+            if (!locked && bot.now - lastFail.getOrDefault(b, -100000L) < 200) { if (note.isEmpty()) note = "no spot for " + name(b); continue; } // no spot found recently
             boolean dropSiteEmergency = b == plan.stockpile && (bot.economy.dropSites(in).isEmpty() || (bot.now - bot.economy.deliveryTrouble < 2400 && r.priority >= 110));
             // the reserve is replant wood (1 per crop); zombie villagers replant for free (GatherResourcesGoal.getReplantWoodCost):
             // a monster start (150 wood) never afforded its first catalyst (125 + reserve) and sat at 8/10 population
@@ -444,7 +457,7 @@ public final class Builder {
 
     // ---- piglins: a house, drop site or barracks is a basic portal transformed by a research on the portal
     private final Map<BlockPos, Building> portalIntent = new HashMap<>();
-    private long groundShortAt = -100000;
+    private long groundShortAt = -100000, lockedSince = -1;
 
     /** what a basic portal of ours was placed to become (null: not decided) */
     Building portalIntentOf(BlockPos origin) { return portalIntent.get(origin); }
