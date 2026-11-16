@@ -26,6 +26,12 @@ public final class LobbyAi {
 
     record Seat(Difficulty difficulty, BlockPos pos, int colorId, com.solegendary.reignofnether.faction.Faction faction) {}
 
+    /** the current colour of the start position this seat stands on (the stored one if it is gone) */
+    static int colorAt(Seat s) {
+        for (StartPos sp : StartPosServerEvents.startPoses) if (sp.pos.equals(s.pos())) return sp.colorId;
+        return s.colorId();
+    }
+
     private static final Map<String, Seat> SEATS = new LinkedHashMap<>();
     private static boolean wasStarting;
     private static int nameCounter;
@@ -134,7 +140,10 @@ public final class LobbyAi {
                     try {
                         // the start block itself, as RON does for a human (startRTS gets startPos.pos): .above() put the
                         // AI's town centre one block above the ground, on stilts
-                        BotManager.startReadied(level, e.getKey(), s.difficulty(), s.pos(), s.colorId(), "", "", s.faction());
+                        // the seat's team colour as it is NOW: the map's mode (3v3, 2v2v2...) or a team change after the seat
+                        // was taken recolours the start positions, and the colour taken then put allies on different
+                        // teams - they showed in other colours and fought each other (the user's 3v3 game)
+                        BotManager.startReadied(level, e.getKey(), s.difficulty(), s.pos(), colorAt(s), "", "", s.faction());
                     } catch (Exception ex) {
                         RonStrategist.LOG.error("RON Strategist: could not start lobby bot {}", e.getKey(), ex);
                     }
