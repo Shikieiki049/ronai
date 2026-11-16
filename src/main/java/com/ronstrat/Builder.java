@@ -585,6 +585,14 @@ public final class Builder {
                 && b != com.solegendary.reignofnether.building.Buildings.PORTAL_TRANSPORT;
     }
 
+    /** a piglin building that must stand on nether blocks (all but the central, basic and pocket portals) */
+    private boolean needsNether(Building b) {
+        return bot.plan.portals && b.getFaction() == com.solegendary.reignofnether.faction.Factions.PIGLINS
+                && !(b instanceof com.solegendary.reignofnether.building.buildings.piglins.CentralPortal)
+                && b != com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC
+                && b != com.solegendary.reignofnether.building.Buildings.PORTAL_POCKET;
+    }
+
     /** buildings that widen our ground: a sculk catalyst (its night, +12 pop) and every piglin portal (its nether) */
     private boolean territory(Building b) {
         return b == com.solegendary.reignofnether.building.Buildings.SCULK_CATALYST
@@ -637,6 +645,19 @@ public final class Builder {
             // the ring next to the town centre is kept for fields: other buildings go further out
             int rMin = Math.max(r.rMin, p.i("farmRingKeep"));
             origin = findSpot(in, b, r.anchor, rMin, Math.max(r.rMax, rMin + 16));
+        }
+        // piglins: a building that needs nether ground is looked for around every portal of ours (the nether
+        // spreads from them), nearest to the wanted anchor first
+        if (origin == null && needsNether(b)) {
+            List<BuildingPlacement> portals = new ArrayList<>();
+            for (BuildingPlacement o : in.own)
+                if (o.isBuilt && o.getBuilding() instanceof com.solegendary.reignofnether.building.buildings.piglins.AbstractPortal) portals.add(o);
+            BlockPos an = r.anchor;
+            portals.sort(java.util.Comparator.comparingDouble(o -> o.centrePos.distSqr(an)));
+            for (BuildingPlacement o : portals) {
+                origin = findSpot(b, o.centrePos, 0, o.isCapitol ? 32 : 22, 1, 8);
+                if (origin != null) break;
+            }
         }
         if (origin == null) origin = findSpot(in, b, r.anchor, r.rMin, r.rMax);
         if (origin == null) return false;
@@ -783,6 +804,7 @@ public final class Builder {
         // farmRing: fields pack tight - one block between fields, two to a drop site (a player's ring of
         // fields round the town centre); crops do not block a walk, so the walkways stay open
         boolean tightFarm = b == bot.plan.farm && bot.params.b("farmRing");
+        boolean netherOnly = needsNether(b);
         int checks = 0;
         // a deterministic spiral of candidate centres, nearest ring first
         for (int r = rMin; r <= rMax; r += 2) {
@@ -804,6 +826,13 @@ public final class Builder {
                 // within reach of any monster seen or any monster kill (one went up 21 blocks from a camp)
                 if (bot.difficulty == Difficulty.EXPERT && b == bot.plan.capitol && bot.intel.nearestDanger(new BlockPos(cx, y, cz), 32) != null) continue;
                 if (!flatEnough(ox, oz, sx, sz, y, flatTol)) continue;
+                // piglin buildings stand on nether ground (80% of the blocks under them): only spots whose centre
+                // already is nether go to RON's check - on a concrete city map the 500 checks were spent on
+                // concrete before the patches of nether were reached (the user: "the nether is right there")
+                if (netherOnly && !com.solegendary.reignofnether.nether.NetherBlocks.isNetherBlock(bot.level, new BlockPos(cx, y - 1, cz))) continue;
+                // never on top of resources: logs, ore, berries under or inside the footprint are buried for good
+                // (the user saw buildings put on wood piles and ore in all three factions)
+                if (b != bot.plan.capitol && coversResources(ox, oz, sx, sz, y)) continue;
                 for (int dy : flatTol > 1 ? new int[] { 0, -1, 1 } : new int[] { 0, -1 }) {
                     BlockPos origin = new BlockPos(ox, y + dy, oz);
                     if (++checks > 500) return null;
@@ -840,6 +869,31 @@ public final class Builder {
             return false;
         }
         return true;
+    }
+
+    /**
+     * More than two valuable resource blocks under or inside this footprint (sampled every other block, 2 below to
+     * 5 above): logs, ore (anything "_ore", ancient debris), berry bushes. Not plain stone or dirt - RON counts
+     * stone as an ore source, which would rule out every rocky spot.
+     */
+    private boolean coversResources(int ox, int oz, int sx, int sz, int y) {
+        int n = 0;
+        BlockPos.MutableBlockPos q = new BlockPos.MutableBlockPos();
+        for (int x = ox - 1; x <= ox + sx; x += 2)
+            for (int z = oz - 1; z <= oz + sz; z += 2)
+                for (int yy = y - 2; yy <= y + 5; yy++) {
+                    q.set(x, yy, z);
+                    var bs = bot.level.getBlockState(q);
+                    if (bs.isAir()) continue;
+                    boolean value = bs.is(net.minecraft.tags.BlockTags.LOGS) || bs.is(net.minecraft.world.level.block.Blocks.SWEET_BERRY_BUSH)
+                            || bs.is(net.minecraft.world.level.block.Blocks.ANCIENT_DEBRIS);
+                    if (!value) {
+                        String id = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(bs.getBlock()).getPath();
+                        value = id.endsWith("_ore");
+                    }
+                    if (value && ++n > 2) return true;
+                }
+        return false;
     }
 
     private boolean flatEnough(int ox, int oz, int sx, int sz, int y, int tol) {

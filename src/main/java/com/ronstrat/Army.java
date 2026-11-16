@@ -231,6 +231,17 @@ public final class Army {
         // heroes level from the moment they are out (the user): pulled monsters one at a time, whatever the
         // rest of the army does - not in an attack and not by day for the monsters
         if (mode != Mode.ATTACK && !(bot.night.on() && bot.night.day())) heroPull(in);
+        // monsters by day: a hero still out comes back into the dark (it burns out there)
+        else if (mode != Mode.ATTACK) {
+            creeping.clear();
+            Vec3 hv = Vec3.atCenterOf(in.home());
+            for (Mob m : in.army)
+                if (m instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit
+                        && !com.solegendary.reignofnether.time.NightUtils.isInRangeOfNightSource(m.position(), false)) {
+                    if (bot.now - lastHeroHome >= 60) { lastHeroHome = bot.now; Orders.move(bot.name, List.of(m), rally(in)); }
+                    creeping.add(m.getId());
+                }
+        }
 
         if (mode == Mode.RETREAT) {
             if (bot.now < retreatUntil) { gather(in); return; }
@@ -1928,8 +1939,10 @@ public final class Army {
         if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("heroCreep")) return;
         Vec3 home = Vec3.atCenterOf(in.home());
         for (Mob m : in.army) {
-            if (!(m instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit hu) || hu.getHeroLevel() >= 5) continue;
+            if (!(m instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit hu)) continue;
             if (Orders.isCasting(m.getId())) { creeping.add(m.getId()); continue; }
+            // level 5: monsters give no more experience - an idle hero out there comes home
+            if (hu.getHeroLevel() >= 5) { heroHome(in, m, home); continue; }
             double mine = UnitEval.strength(List.of(m));
             // who is after the hero right now
             List<LivingEntity> onUs = new ArrayList<>();
@@ -1984,7 +1997,8 @@ public final class Army {
                 }
                 if (target != null) break;
             }
-            if (target == null) continue;
+            // nothing left to pull: home, not standing about out there (the user)
+            if (target == null) { heroHome(in, m, home); continue; }
             creeping.add(m.getId());
             // cannot get to it (a pit, a ledge) for 30 s: the next one
             if (creepTarget == null || creepTarget.getId() != target.getId()) { creepTarget = target; creepBest = Math.sqrt(m.distanceToSqr(target)); creepProgressAt = bot.now; }
@@ -2005,7 +2019,16 @@ public final class Army {
             }
         }
     }
-    private long lastPullLog = -1000;
+    private long lastPullLog = -1000, lastHeroHome = -1000;
+
+    /** a hero with nothing to do away from home walks back (not into a fight: enemies near - leave it) */
+    private void heroHome(Intel in, Mob m, Vec3 home) {
+        if (m.position().distanceToSqr(home) < 18 * 18 || !((Unit) m).isIdle() || !in.enemiesNear(m.position(), 12).isEmpty()) return;
+        if (bot.now - lastHeroHome < 60) return;
+        lastHeroHome = bot.now;
+        creeping.add(m.getId());
+        Orders.move(bot.name, List.of(m), rally(in));
+    }
     private final java.util.Set<Integer> resting = new java.util.HashSet<>();
 
     private void heroCreep(Intel in) {
