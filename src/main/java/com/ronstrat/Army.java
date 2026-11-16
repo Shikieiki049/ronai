@@ -228,6 +228,9 @@ public final class Army {
         }
         raidSquad.clear();
         if (mode == Mode.DEFEND) mode = Mode.GATHER;
+        // heroes level from the moment they are out (the user): pulled monsters one at a time, whatever the
+        // rest of the army does - not in an attack and not by day for the monsters
+        if (mode != Mode.ATTACK && !(bot.night.on() && bot.night.day())) heroPull(in);
 
         if (mode == Mode.RETREAT) {
             if (bot.now < retreatUntil) { gather(in); return; }
@@ -1908,6 +1911,102 @@ public final class Army {
      * around (parameter heroCreep). Only camps it clearly outmatches, within 80 blocks of home; a hurt
      * hero comes home. The army's attack or a defence takes the hero back (gather() is not called then).
      */
+    /** per hero: when it got the current pull's monster on its tail (it steps back first, then fights) */
+    private final Map<Integer, Long> pullSince = new HashMap<>();
+    private long lastPullOrder = -1000;
+
+    /**
+     * Hero levelling by pulling (the user: as soon as it is out it goes for weak monsters, luring one at a time and
+     * killing it alone). The hero walks to the edge of a camp until one monster comes for it, steps back so that
+     * one follows away from the rest, then kills it; then the next. Judged by the one it pulls, not the whole camp
+     * (the old rule wanted the whole camp under 0.6x the hero, so a level-1 hero never went anywhere). Too many
+     * coming at once, or below 45% health: home. Monsters give experience up to level 5 (RON).
+     */
+    private void heroPull(Intel in) {
+        creeping.clear();
+        if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("heroCreep")) return;
+        Vec3 home = Vec3.atCenterOf(in.home());
+        for (Mob m : in.army) {
+            if (!(m instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit hu) || hu.getHeroLevel() >= 5) continue;
+            if (Orders.isCasting(m.getId())) { creeping.add(m.getId()); continue; }
+            double mine = UnitEval.strength(List.of(m));
+            // who is after the hero right now
+            List<LivingEntity> onUs = new ArrayList<>();
+            for (LivingEntity n : in.neutrals)
+                if (n instanceof Mob nm && nm.getTarget() == m && n.distanceToSqr(m) < 20 * 20) onUs.add(n);
+            boolean order = bot.now - lastPullOrder > 20;
+            // hurt: home until healed again (a level-1 guard went on at 46% and came back with 5 of 125)
+            boolean healing = resting.contains(m.getId());
+            if (m.getHealth() < 0.6 * m.getMaxHealth()) { resting.add(m.getId()); healing = true; }
+            else if (m.getHealth() >= 0.9 * m.getMaxHealth()) { resting.remove(m.getId()); healing = false; }
+            if (healing || UnitEval.strength(onUs) > 1.0 * mine) {
+                // hurt, or a crowd came: back home (the monsters give up the chase)
+                creeping.add(m.getId());
+                pullSince.remove(m.getId());
+                if (m.position().distanceToSqr(home) > 16 * 16 && order) { lastPullOrder = bot.now; Orders.move(bot.name, List.of(m), in.home()); Orders.protect(m.getId(), 1500); }
+                continue;
+            }
+            if (!onUs.isEmpty()) {
+                creeping.add(m.getId());
+                long since = pullSince.computeIfAbsent(m.getId(), k -> bot.now);
+                LivingEntity first = onUs.get(0);
+                for (LivingEntity n : onUs) if (n.distanceToSqr(m) < first.distanceToSqr(m)) first = n;
+                // step back toward home for two seconds: the one that saw us follows, the camp stays
+                if (bot.now - since < 40 && first.distanceToSqr(m) > 3 * 3) {
+                    if (order) {
+                        Vec3 away = home.subtract(m.position());
+                        away = away.lengthSqr() < 1 ? new Vec3(1, 0, 0) : away.normalize().scale(8);
+                        lastPullOrder = bot.now;
+                        Orders.move(bot.name, List.of(m), BlockPos.containing(m.position().add(away)));
+                        Orders.protect(m.getId(), 1500);
+                    }
+                } else if (order) {
+                    LivingEntity t = first;
+                    lastPullOrder = bot.now;
+                    Orders.attack(bot.name, List.of(m), t);
+                    Orders.protect(m.getId(), 1500);
+                }
+                continue;
+            }
+            pullSince.remove(m.getId());
+            // the next one to pull: a monster the hero beats alone, near home, its camp not hopeless
+            LivingEntity target = null;
+            for (int range : new int[] { 90, 130 }) {
+                for (LivingEntity n : in.neutrals) {
+                    if (creepBlacklist.contains(n.getId()) || n.position().distanceToSqr(home) > (double) range * range) continue;
+                    // one the hero clearly beats alone (a brute took a level-1 guard to 5 hp)
+                    if (UnitEval.strength(List.of(n)) > 0.6 * mine) continue;
+                    List<LivingEntity> camp = new ArrayList<>();
+                    for (LivingEntity o : in.neutrals) if (o.distanceToSqr(n) < 12 * 12) camp.add(o);
+                    if (UnitEval.strength(camp) > 2.5 * mine) continue;
+                    if (target == null || n.distanceToSqr(m) < target.distanceToSqr(m)) target = n;
+                }
+                if (target != null) break;
+            }
+            if (target == null) continue;
+            creeping.add(m.getId());
+            // cannot get to it (a pit, a ledge) for 30 s: the next one
+            if (creepTarget == null || creepTarget.getId() != target.getId()) { creepTarget = target; creepBest = Math.sqrt(m.distanceToSqr(target)); creepProgressAt = bot.now; }
+            else {
+                double d = Math.sqrt(m.distanceToSqr(target));
+                if (d < creepBest - 2) { creepBest = d; creepProgressAt = bot.now; }
+                else if (bot.now - creepProgressAt > 600) { creepBlacklist.add(target.getId()); creepTarget = null; continue; }
+            }
+            if (order) {
+                // to the edge of its reach on our side, so it alone notices the hero
+                Vec3 dir = m.position().subtract(target.position());
+                dir = dir.lengthSqr() < 1 ? new Vec3(1, 0, 0) : dir.normalize();
+                BlockPos edge = BlockPos.containing(target.position().add(dir.scale(7)));
+                lastPullOrder = bot.now;
+                Orders.move(bot.name, List.of(m), edge);
+                Orders.protect(m.getId(), 1500);
+                if (bot.verbose && bot.now - lastPullLog > 600) { lastPullLog = bot.now; bot.log("hero (level " + hu.getHeroLevel() + ") pulling " + target.getType().toShortString() + " at " + target.blockPosition().toShortString()); }
+            }
+        }
+    }
+    private long lastPullLog = -1000;
+    private final java.util.Set<Integer> resting = new java.util.HashSet<>();
+
     private void heroCreep(Intel in) {
         creeping.clear();
         if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("heroCreep")) return;
@@ -2027,8 +2126,7 @@ public final class Army {
         // no hero levelling, no guard post out by the woodcutters
         boolean sunUp = bot.night.on() && bot.night.day(); // by day the whole army waits in the dark at home
         if (!sunUp && clearNeutrals(in)) return;
-        if (!(bot.night.on() && bot.night.day())) heroCreep(in);
-        else creeping.clear();
+        // (the heroes level by themselves: heroPull, called from think)
         harass(in);
         BlockPos r = !sunUp && bot.difficulty == Difficulty.EXPERT && bot.params.b("rallyGuard") ? guardPoint(in) : rally(in);
         java.util.Set<Integer> visiting = upgradeVisits;

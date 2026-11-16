@@ -158,6 +158,16 @@ final class Casters {
         int guard = 0;
         while (h.getSkillPoints() > 0 && guard++ < 10) {
             HeroAbility pick = null;
+            // the royal guard: Battle Rage first - its health regeneration is the only way it heals without
+            // witches (the user); a guard without it stood at 5-28 of 125 health for the rest of the game
+            for (HeroAbility a : h.getHeroAbilities())
+                if (a.getClass().getSimpleName().equals("BattleRagePassive") && a.getRank(h) == 0
+                        && h.getHeroLevel() >= a.getLevelRequirement(h)) pick = a;
+            if (pick != null) {
+                if (!pick.rankUp(h)) break;
+                if (bot.verbose) bot.log("hero learns BattleRagePassive first (health regeneration)");
+                continue;
+            }
             for (HeroAbility a : h.getHeroAbilities()) {
                 if (a.getRank(h) >= a.maxRank || h.getHeroLevel() < a.getLevelRequirement(h)) continue;
                 if (pick == null) { pick = a; continue; }
