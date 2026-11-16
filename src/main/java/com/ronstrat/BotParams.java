@@ -167,7 +167,7 @@ public final class BotParams {
         p.put("huskRush",                   0,     0,      0,     1);   // monsters: the laboratory early, husks from the bank
         p.put("monsterOpenWood",            0,     0,      0,     0);   // monsters: this share of workers on wood until monsterOpenFields fields stand
         p.put("monsterOpenFields",          4,     4,      4,     4);
-        p.put("creeperMicro",               0,     0,      0,     0);   // creepers walk at the thickest knot of enemies and blow up when creeperBlast are in reach
+        p.put("creeperMicro",               0,     0,      1,     1);   // creepers walk at the thickest knot of enemies and blow up when creeperBlast are in reach
         p.put("creeperBlast",               3,     3,      3,     3);
         p.put("bigArmyGo",                  0,     0,      0,     1);   // 20+ soldiers: a weak raid gets a detachment, the rest still attacks; monsters attack first by night
         p.put("expandOut",                  0,     0,      1,     1);   // catalysts and piglin portals fan out expandDist from home: more ground (the user)
@@ -178,6 +178,8 @@ public final class BotParams {
         p.put("pigGhast",                   0.3,   0.3,    0.3,   0.3);
         p.put("monsterCounter",             1,     1,      1,     1);   // monsters: wraith core + zombies/skeletons, countered to the enemy's army (the user's rules)
         p.put("monsterOre",                 0.2,   0.2,    0.2,   0.2);   // monsters: miners share once the dungeon stands (wraiths, creepers cost ore)
+        p.put("darkPath",                   0,     0,      1,     1);   // monsters: catalysts along the way to allies and the enemy (the user)
+        p.put("darkPathMax",                8,     8,      8,     8);
         p.put("monsterMix",                 0,     0,      0,     0);   // monsters: zombies tank, skeletons damage, creepers strike (shares below)
         p.put("mixZombie",               0.45,  0.45,   0.45,  0.45);  // share of army population: zombies / husks in front
         p.put("mixSkeleton",             0.35,  0.35,   0.35,  0.35);  // skeletons / strays behind them
@@ -328,6 +330,7 @@ public final class BotParams {
         p.put("noStage",                    0,     0,      1,     1);   // no gathering spot before an attack (the user)
         p.put("unstick",                    0,     0,      1,     1);   // a stuck soldier or hero is led round by our own route (the user)
         p.put("avoidResources",             1,     1,      1,     1);   // no building on top of logs, ore, mushrooms, hay... (the user)
+        p.put("unitSkills",                 0,     0,      1,     1);   // soldiers use their own skills: shields, clouds, fear, firewall, webs, mounts (the user)
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);
         p.put("targetWeakest",              0,     0,      1,     1);    // in FFA / 1vN pick the most profitable enemy, not the nearest

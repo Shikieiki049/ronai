@@ -381,6 +381,7 @@ public final class Builder {
         if (plan.portals && bot.now - groundShortAt < 600 && in.total(com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC)
                 - in.built(com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC) == 0 && workers >= 8)
             reqs.add(new Request(plan.house, 99, home, 8, 30));
+        if (plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS && p.b("darkPath")) darkPath(in, reqs, workers, home);
         reqs.removeIf(r -> r.building == null); // a building this faction does not have (piglins: no tower)
         reqs.sort((a, b) -> Double.compare(b.priority, a.priority));
         reserved = null;
@@ -497,6 +498,44 @@ public final class Builder {
             }
         }
     }
+
+    private long lastDarkPath = -100000;
+    int darkPathCatalysts;
+
+    /**
+     * Monsters (the user): the night has to reach where the army goes. Two monster allies whose darkness did not
+     * meet could not help each other by day - the soldiers burned on the way - and the army had no dark road
+     * to the enemy. Along our surface route to every ally's capitol and to the nearest enemy building, the
+     * first point outside any night source gets a sculk catalyst (night 30 blocks, +12 population); one at a
+     * time, at most darkPathMax of them, once the economy stands (workers 20, a graveyard).
+     */
+    private void darkPath(Intel in, List<Request> reqs, int workers, BlockPos home) {
+        if (workers < 20 || in.built(bot.plan.barracks) == 0 || bot.now - lastDarkPath < 600) return;
+        Building cat = com.solegendary.reignofnether.building.Buildings.SCULK_CATALYST;
+        if (in.total(cat) - in.built(cat) > 0 || darkPathCatalysts >= bot.params.i("darkPathMax")) return;
+        List<BlockPos> goals = new ArrayList<>();
+        for (BuildingPlacement b : BuildingServerEvents.getBuildings())
+            if (b.isCapitol && b.ownerName != null && in.allies.contains(b.ownerName) && !b.ownerName.equals(bot.name)) goals.add(b.centrePos);
+        BlockPos enemy = null;
+        for (Intel.EnemyMemory em : in.enemies.values()) {
+            BlockPos eb = em.alive ? em.anyBuilding() : null;
+            if (eb != null && (enemy == null || eb.distSqr(home) < enemy.distSqr(home))) enemy = eb;
+        }
+        if (enemy != null) goals.add(enemy);
+        for (BlockPos g : goals) {
+            List<BlockPos> r = Terrain.route(bot.level, home, g, bot.now);
+            if (r == null || r.size() < 2) continue;
+            for (BlockPos q : r) {
+                if (q.distSqr(g) < 30 * 30) break; // the far end is theirs
+                if (com.solegendary.reignofnether.time.NightUtils.isInRangeOfNightSource(net.minecraft.world.phys.Vec3.atCenterOf(q), false)) continue;
+                lastDarkPath = bot.now;
+                reqs.add(new Request(cat, 88, q, 0, 10));
+                darkPathPending = q;
+                return;
+            }
+        }
+    }
+    private BlockPos darkPathPending;
 
     private long stallSince = -1;
     private boolean stallLogged;
@@ -631,7 +670,7 @@ public final class Builder {
         boolean ring = p.b("farmRing");
         // (not the locked first house: it goes up next to home - one sent 24 blocks out met a monster camp, its builder
         // died and the piglins sat at 10/10 population for eight minutes)
-        if (p.b("expandOut") && territory(b) && r.priority < 111) origin = expandSpot(in, b);
+        if (p.b("expandOut") && territory(b) && r.priority < 111 && !r.anchor.equals(darkPathPending)) origin = expandSpot(in, b);
         if (origin != null) { /* spread out: placed */ }
         else if (ring && b == bot.plan.farm) {
             // fields hug the drop sites, the town centre first, then the stockpiles nearest home: every
@@ -677,6 +716,7 @@ public final class Builder {
             return false;
         }
         if (intent != null) portalIntent.put(placed.originPos, intent);
+        if (darkPathPending != null && b == com.solegendary.reignofnether.building.Buildings.SCULK_CATALYST && r.anchor.equals(darkPathPending)) { darkPathCatalysts++; darkPathPending = null; }
         bot.log("build " + name(b) + (intent != null ? " (to be " + name(intent) + ")" : "") + " at " + origin.toShortString() + " with " + builders.size());
         return true;
     }

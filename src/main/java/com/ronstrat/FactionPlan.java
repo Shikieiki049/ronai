@@ -64,6 +64,8 @@ public final class FactionPlan {
     /** the villagers' own rules (blacksmith armour, library enchants, witches, golems) apply only to them */
     public boolean villagers;
     public Building capitol, house, farm, stockpile, barracks, tower, market;
+    /** this faction's own bridge (oak / spruce / blackstone) */
+    public Building bridge = Buildings.OAK_BRIDGE;
     /** heroes: the building that makes them and the heroes / revives, best first */
     public Building heroBuilding;
     public List<ProductionItem> heroes = List.of();
@@ -100,6 +102,7 @@ public final class FactionPlan {
         p.faction = Factions.MONSTERS;
         p.villagers = false;
         p.capitol = Buildings.MAUSOLEUM;
+        p.bridge = Buildings.SPRUCE_BRIDGE;
         // the haunted house is not in the player's build menu (RON registers it without a key): the
         // sculk catalyst is the monsters' house - 12 population, and its own night
         p.house = Buildings.SCULK_CATALYST;
@@ -161,6 +164,7 @@ public final class FactionPlan {
         p.villagers = false;
         p.portals = true;
         p.capitol = Buildings.CENTRAL_PORTAL;
+        p.bridge = Buildings.BLACKSTONE_BRIDGE;
         p.house = Buildings.PORTAL_CIVILIAN;
         p.farm = Buildings.NETHERWART_FARM;
         p.stockpile = Buildings.PORTAL_CIVILIAN;
@@ -179,8 +183,9 @@ public final class FactionPlan {
         p.units.add(new UnitOption(ProductionItems.HEADHUNTER, Role.RANGED, Buildings.PORTAL_MILITARY, 0));
         p.units.add(new UnitOption(ProductionItems.MAGMA_CUBE, Role.SUPPORT, Buildings.PORTAL_MILITARY, 18, Buildings.BASALT_SPRINGS));
         p.units.add(new UnitOption(ProductionItems.GHAST, Role.SIEGE, Buildings.PORTAL_MILITARY, 30, Buildings.FORTRESS));
-        p.units.add(new UnitOption(ProductionItems.HOGLIN, Role.TANK, Buildings.PORTAL_MILITARY, 99, Buildings.HOGLIN_STABLES));
-        p.units.add(new UnitOption(ProductionItems.BLAZE, Role.CASTER, Buildings.PORTAL_MILITARY, 99, Buildings.FLAME_SANCTUARY));
+        p.units.add(new UnitOption(ProductionItems.HOGLIN, Role.TANK, Buildings.PORTAL_MILITARY, 24, Buildings.HOGLIN_STABLES));
+        p.units.add(new UnitOption(ProductionItems.BLAZE, Role.CASTER, Buildings.PORTAL_MILITARY, 28, Buildings.FLAME_SANCTUARY));
+        p.units.add(new UnitOption(ProductionItems.WITHER_SKELETON, Role.TANK, Buildings.PORTAL_MILITARY, 28, Buildings.WITHER_SHRINE));
 
         // tech toward the magma cubes (basalt springs, after a bastion) and then the fortress (ghasts) - the
         // fortress needs the sanctuary (after the stables) and the shrine too

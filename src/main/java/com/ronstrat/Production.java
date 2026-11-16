@@ -132,6 +132,7 @@ public final class Production {
                 }
         }
         // ---- research
+        techSave = null;
         int level = p.i("researchLevel");
         for (FactionPlan.ResearchStep r : plan.research) {
             if (r.level > level) continue;
@@ -163,6 +164,18 @@ public final class Production {
             boolean potions = r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HEALING_POTIONS
                     && Strategy.witches(bot) && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore;
             if (potions) bags = true;
+            // monsters and piglins (the user: no husks or other unit upgrades, or too late): a unit upgrade is paid
+            // from the bank once the army is forming (8 soldiers or minute 12), not from leftovers
+            boolean unitTech = !plan.villagers && bot.difficulty == Difficulty.EXPERT && r.item != plan.marketUpgrade
+                    && r.item != com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_RESOURCE_CAPACITY
+                    && (in.army.size() >= 8 || BuildOrder.minutes() >= 12) && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore;
+            if (unitTech) bags = true;
+            // ...and when it cannot be paid yet, the army leaves its price in the bank until it can (the army spent
+            // every coin and the laboratory never got its husks in a 20-minute game)
+            boolean techWanted = !plan.villagers && bot.difficulty == Difficulty.EXPERT && r.item != plan.marketUpgrade
+                    && r.item != com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_RESOURCE_CAPACITY
+                    && (in.army.size() >= 8 || BuildOrder.minutes() >= 12) && in.built(r.at) > 0 && !unitTech && techSave == null;
+            if (techWanted) techSave = c;
             // huskRush (monsters): zombies that do not burn are the day army - from the bank, first in line
             if (p.b("huskRush") && r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HUSKS
                     && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore) bags = true;
@@ -206,6 +219,7 @@ public final class Production {
             }
         }
 
+        if (techSave != null) { f -= techSave.food; w -= techSave.wood; o -= techSave.ore; if (bot.verbose && bot.now % 1200 < 5) bot.log("army leaves " + techSave.food + "/" + techSave.wood + "/" + techSave.ore + " for a unit upgrade"); }
         // ---- army: what is left after villagers and escrow, or the army fund if that is more
         if (L.on()) {
             f = Math.max(f + (int) L.fundFood, (int) L.fundFood);
@@ -384,8 +398,11 @@ public final class Production {
         if (!why.equals(counterWhy)) { counterWhy = why; bot.log("army mix vs " + why + ": zombies " + Math.round(z * 100) + "% skeletons " + Math.round(sk * 100)
                 + "% wraiths " + Math.round(w * 100) + "% creepers " + Math.round(c * 100) + "% slimes " + Math.round(sl * 100) + "%"); }
         Map<FactionPlan.Role, Double> m = new java.util.EnumMap<>(FactionPlan.Role.class);
+        // later game (the user): spiders as mounts for the skeletons (spider jockeys) once the lair stands
+        double sp = BuildOrder.minutes() >= 15 && in.built(com.solegendary.reignofnether.building.Buildings.SPIDER_LAIR) > 0 ? 0.12 : 0;
+        z = Math.max(0.08, z - sp);
         m.put(FactionPlan.Role.MELEE, z); m.put(FactionPlan.Role.RANGED, sk); m.put(FactionPlan.Role.CASTER, w);
-        m.put(FactionPlan.Role.SIEGE, c); m.put(FactionPlan.Role.SUPPORT, sl);
+        m.put(FactionPlan.Role.SIEGE, c); m.put(FactionPlan.Role.SUPPORT, sl); m.put(FactionPlan.Role.TANK, sp);
         return m;
     }
     private String counterWhy = "";
@@ -393,16 +410,41 @@ public final class Production {
     /** the enemy's mix calls for slimes: they eat each other to grow - every slime of ours gets the autocast */
     boolean slimesWanted(Intel in) { return bot.params.b("monsterCounter") && (enemyEvokers(in) || "crossbows".equals(counterWhy)); }
 
-    private final java.util.Set<Integer> slimesAutocast = new java.util.HashSet<>();
-    /** every slime and magma cube of ours eats the smaller ones by itself (RON's consume autocast) */
+    private long lastConsume = -1000;
+    private ResourceCost techSave;
+
+    /**
+     * Slimes and magma cubes grow by eating each other (RON's Consume: the eater, not at full size 6 or hurt,
+     * takes a friendly one of its own size or smaller and gains half its health and damage). The autocast
+     * switch did nothing for a computer player (the user saw none grow): every 5 s, out of a fight, the
+     * biggest ones are told to eat the nearest smaller one.
+     */
     void slimeAutocast(Intel in) {
-        java.util.List<Mob> fresh = new java.util.ArrayList<>();
+        if (bot.now - lastConsume < 100) return;
+        lastConsume = bot.now;
+        java.util.List<com.solegendary.reignofnether.unit.units.monsters.SlimeUnit> slimes = new java.util.ArrayList<>();
         for (Mob m : in.army)
-            if (m instanceof com.solegendary.reignofnether.unit.units.monsters.SlimeUnit && slimesAutocast.add(m.getId())) fresh.add(m);
-        if (!fresh.isEmpty()) {
-            Orders.ability(bot.name, com.solegendary.reignofnether.unit.UnitAction.CONSUME_SLIME_AUTOCAST_ENABLE, -1, fresh, fresh.get(0).blockPosition());
-            bot.log("consume autocast on for " + fresh.size() + " slimes");
+            if (m instanceof com.solegendary.reignofnether.unit.units.monsters.SlimeUnit su && m.isAlive() && in.enemiesNear(m.position(), 14).isEmpty()) slimes.add(su);
+        if (slimes.size() < 2) return;
+        slimes.sort((a, b) -> Integer.compare(b.getSize(), a.getSize()));
+        java.util.Set<Integer> used = new java.util.HashSet<>();
+        int orders = 0;
+        for (var eater : slimes) {
+            if (used.contains(eater.getId()) || (eater.getSize() >= 6 && eater.getHealth() >= eater.getMaxHealth())) continue;
+            com.solegendary.reignofnether.unit.units.monsters.SlimeUnit food = null;
+            for (var o : slimes) {
+                if (o == eater || used.contains(o.getId()) || o.getSize() > eater.getSize()) continue;
+                // a slime eats slimes, a magma cube magma cubes (the same kind)
+                if ((o instanceof com.solegendary.reignofnether.unit.units.piglins.MagmaCubeUnit) != (eater instanceof com.solegendary.reignofnether.unit.units.piglins.MagmaCubeUnit)) continue;
+                if (o.distanceToSqr(eater) > 24 * 24) continue;
+                if (food == null || o.distanceToSqr(eater) < food.distanceToSqr(eater)) food = o;
+            }
+            if (food == null) continue;
+            used.add(eater.getId()); used.add(food.getId());
+            Orders.ability(bot.name, com.solegendary.reignofnether.unit.UnitAction.CONSUME_SLIME, food.getId(), java.util.List.of(eater), food.blockPosition());
+            orders++;
         }
+        if (orders > 0 && bot.verbose) bot.log("slimes: " + orders + " told to consume a smaller one");
     }
 
     /** any evoker in the enemy armies we have seen */
@@ -427,10 +469,18 @@ public final class Production {
             boolean springs = in.built(com.solegendary.reignofnether.building.Buildings.BASALT_SPRINGS) > 0;
             boolean fortress = in.built(com.solegendary.reignofnether.building.Buildings.FORTRESS) > 0;
             double ghast = fortress ? p.get("pigGhast") : 0, magma = springs ? p.get("pigMagma") : 0, head = p.get("pigHead");
+            // later game (the user): hoglins as mounts for the headhunters, wither skeletons and blazes (they use
+            // their skills now) - small shares once their buildings stand
+            double mins = BuildOrder.minutes();
+            double hog = mins >= 15 && in.built(com.solegendary.reignofnether.building.Buildings.HOGLIN_STABLES) > 0 ? 0.10 : 0;
+            double wither = mins >= 18 && in.built(com.solegendary.reignofnether.building.Buildings.WITHER_SHRINE) > 0 ? 0.08 : 0;
+            double blaze = mins >= 18 && in.built(com.solegendary.reignofnether.building.Buildings.FLAME_SANCTUARY) > 0 ? 0.08 : 0;
             m.put(FactionPlan.Role.SIEGE, ghast);
             m.put(FactionPlan.Role.SUPPORT, magma);
             m.put(FactionPlan.Role.RANGED, head);
-            m.put(FactionPlan.Role.MELEE, Math.max(0.2, 1 - ghast - magma - head));
+            m.put(FactionPlan.Role.TANK, hog + wither);
+            m.put(FactionPlan.Role.CASTER, blaze);
+            m.put(FactionPlan.Role.MELEE, Math.max(0.2, 1 - ghast - magma - head - hog - wither - blaze));
             return m;
         }
         if (!bot.plan.villagers && p.b("monsterMix")) {

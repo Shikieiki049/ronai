@@ -711,6 +711,14 @@ public final class Economy {
         // for want of food (M7ron3). Until the first fields stand, most hands cut wood.
         if (!bot.plan.villagers && p.get("monsterOpenWood") > 0 && in.built(bot.plan.farm) < p.i("monsterOpenFields"))
             food = Math.min(food, Math.max(0.2, 1 - p.get("monsterOpenWood") - ore));
+        // rebuilding after a raid (the user: a beaten computer never recovered): the fields are gone and there is
+        // no wood to put them back - most hands on wood until the fields stand again (a piglin with 21 workers on
+        // hunting and 0-8 on wood kept 6 buildings and no wood for eight minutes)
+        if (com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks > 9600 && n >= 5
+                && in.built(bot.plan.farm) < 3 && in.wood < 300) {
+            food = Math.min(food, 0.3);
+            ore = Math.min(ore, 0.05);
+        }
         // monsters (monsterCounter): wraiths are 70 food + 70 ore and creepers 120 ore - with the miners at 0-5%
         // the dungeon stood and the army was 40 zombies, 12 skeletons, 2 wraiths. Ore for them once it stands
         if (bot.plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS && p.b("monsterCounter")

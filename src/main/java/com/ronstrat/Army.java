@@ -231,6 +231,7 @@ public final class Army {
         // heroes level from the moment they are out (the user): pulled monsters one at a time, whatever the
         // rest of the army does - not in an attack; by day too, monsters included: they heal at home, in the dark
         if (mode != Mode.ATTACK) heroPull(in);
+        if (mode != Mode.ATTACK) creeperRaid(in);
 
         if (mode == Mode.RETREAT) {
             if (bot.now < retreatUntil) { gather(in); return; }
@@ -2341,7 +2342,9 @@ public final class Army {
             if (p.b("creeperMicro") && u instanceof com.solegendary.reignofnether.unit.units.monsters.CreeperUnit) {
                 int inBlast = 0;
                 for (LivingEntity e : near) if (!(e instanceof Unit eu && eu.isFlyingUnit()) && e.distanceToSqr(u) <= 3.2 * 3.2) inBlast++;
-                if (inBlast >= p.i("creeperBlast")) {
+                // never into our own (the user: creepers blew up friends and buildings): friends in the blast hold it
+                int friends = friendsNear(in, u.position(), 3.6, u);
+                if (inBlast >= p.i("creeperBlast") && friends * 2 < inBlast && !ownBuildingNear(in, u.position(), 4)) {
                     creeperBlasts++;
                     order(u, () -> Orders.ability(bot.name, com.solegendary.reignofnether.unit.UnitAction.EXPLODE, -1, List.of(u), u.blockPosition()));
                     continue;
@@ -2352,7 +2355,8 @@ public final class Army {
                     if (e instanceof Unit eu && eu.isFlyingUnit()) continue;
                     int around = 0;
                     for (LivingEntity o : near) if (o.distanceToSqr(e) <= 3.0 * 3.0) around++;
-                    double v = around - Math.sqrt(e.distanceToSqr(u)) * 0.08 - (UnitEval.isWorker(e) ? 0.5 : 0);
+                    double v = around - Math.sqrt(e.distanceToSqr(u)) * 0.08 - (UnitEval.isWorker(e) ? 0.5 : 0)
+                            - 1.5 * friendsNear(in, e.position(), 3.5, u) - (ownBuildingNear(in, e.position(), 4) ? 5 : 0);
                     if (v > bestV) { bestV = v; best = e; }
                 }
                 LivingEntity cur = ((Unit) u).getTargetGoal().getTarget();
@@ -2444,6 +2448,48 @@ public final class Army {
     }
 
     int fightIdles, creeperBlasts, spreadSwitches, returnFires;
+
+    /** our own soldiers and workers (and allies') within r of p, not counting one */
+    private int friendsNear(Intel in, Vec3 p, double r, Mob not) {
+        int n = 0;
+        for (Mob m : in.army) if (m != not && m.position().distanceToSqr(p) <= r * r) n++;
+        for (Mob m : in.workers) if (m.position().distanceToSqr(p) <= r * r) n++;
+        return n;
+    }
+
+    private boolean ownBuildingNear(Intel in, Vec3 p, double r) {
+        for (BuildingPlacement b : in.own) {
+            if (p.x >= b.minCorner.getX() - r && p.x <= b.maxCorner.getX() + r && p.z >= b.minCorner.getZ() - r && p.z <= b.maxCorner.getZ() + r) return true;
+        }
+        return false;
+    }
+
+    private long lastCreeperRaid = -100000;
+
+    /**
+     * Creepers go alone (the user): with three or more idle at home, one at a time walks to the nearest enemy
+     * building (300% damage to buildings) or a knot of their workers and blows up there - every minute.
+     */
+    private void creeperRaid(Intel in) {
+        if (!bot.params.b("creeperMicro") || bot.now - lastCreeperRaid < 1200) return;
+        List<Mob> idle = new ArrayList<>();
+        for (Mob m : in.army)
+            if (m instanceof com.solegendary.reignofnether.unit.units.monsters.CreeperUnit && ((Unit) m).isIdle() && !creeping.contains(m.getId())) idle.add(m);
+        if (idle.size() < 3) return;
+        Mob c = idle.get(0);
+        BlockPos best = null;
+        double bd = 1e18;
+        for (Intel.EnemyMemory em : in.enemies.values()) {
+            if (!em.alive) continue;
+            BlockPos b = em.anyBuilding();
+            if (b != null && b.distSqr(c.blockPosition()) < bd) { bd = b.distSqr(c.blockPosition()); best = b; }
+        }
+        if (best == null) return;
+        lastCreeperRaid = bot.now;
+        creeping.add(c.getId());
+        Orders.attackBuilding(bot.name, List.of(c), best);
+        if (bot.verbose) bot.log("creeper raid: one creeper alone to the enemy building at " + best.toShortString());
+    }
 
     /** the others on this target already deal enough to kill it in about 1.5 s (or three melee besides us) */
     private static boolean curOverkill(Map<LivingEntity, double[]> load, LivingEntity cur, Mob u, boolean ranged) {

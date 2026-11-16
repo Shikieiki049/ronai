@@ -38,6 +38,7 @@ final class Casters {
         boolean witches = bot.params.b("witchMicro"), heroes = bot.params.b("heroSkills");
         if (!witches && !heroes) return;
         autocastSet.removeIf(id -> in.army.stream().noneMatch(m -> m.getId() == id));
+        if (bot.params.b("unitSkills")) try { unitSkills(in); } catch (Throwable t) { if (bot.now > nextRankLog) { bot.log("unit skill error: " + t); nextRankLog = bot.now + 6000; } }
         for (Mob u : in.army) {
             try {
                 if (witches && isWitch(u)) witch(in, u);
@@ -45,6 +46,96 @@ final class Casters {
             } catch (Throwable t) {
                 if (bot.now > nextRankLog) { bot.log("caster error: " + t); nextRankLog = bot.now + 6000; }
             }
+        }
+    }
+
+    // ------------------------------------------------------------------ the soldiers' own skills (the user)
+
+    private final Map<Integer, Long> rangedHitAt = new HashMap<>();
+    private final Map<Integer, Long> skillAt = new HashMap<>();
+    private long lastMountCheck = -1000;
+
+    /** our soldiers within r of p, not counting one */
+    private static int friends(Intel in, net.minecraft.world.phys.Vec3 p, double r, Mob not) {
+        int n = 0;
+        for (Mob m : in.army) if (m != not && m.position().distanceToSqr(p) <= r * r) n++;
+        for (Mob m : in.workers) if (m.position().distanceToSqr(p) <= r * r) n++;
+        return n;
+    }
+
+    private void cast(Mob u, Ability a, LivingEntity target, BlockPos at) {
+        Orders.ability(bot.name, a.action, target == null ? -1 : target.getId(), List.of(u), at);
+        skillAt.put(u.getId(), bot.now);
+    }
+
+    /**
+     * Brutes raise their shields under arrows (66% less ranged damage, half the speed) and lower them again
+     * 6 s after the last arrow; wither skeletons let off their cloud in a crowd of enemies with few friends
+     * close; wraiths fear the strongest enemy fighter on one of ours; blazes put their firewall and spiders
+     * their webs where the enemies stand thick and none of ours do; skeletons mount idle spiders and
+     * headhunters idle hoglins (spider jockeys, hoglin riders).
+     */
+    private void unitSkills(Intel in) {
+        for (Mob u : in.army) {
+            if (!(u instanceof Unit un) || Orders.isCasting(u.getId())) continue;
+            LivingEntity by = u.getLastHurtByMob();
+            if (by != null && UnitEval.isRanged(by) && u.tickCount - u.getLastHurtByMobTimestamp() < 10) rangedHitAt.put(u.getId(), bot.now);
+            if (u instanceof com.solegendary.reignofnether.unit.units.piglins.BruteUnit br) {
+                Ability sh = ability(un, UnitAction.TOGGLE_SHIELD_RAISE);
+                if (sh == null) continue;
+                boolean underFire = bot.now - rangedHitAt.getOrDefault(u.getId(), -100000L) < 120;
+                if (underFire != br.isHoldingUpShield() && bot.now - skillAt.getOrDefault(u.getId(), -1000L) > 20) cast(u, sh, null, u.blockPosition());
+                continue;
+            }
+            if (bot.now - skillAt.getOrDefault(u.getId(), -1000L) < 40) continue;
+            List<LivingEntity> foes = enemiesNear(in, u, 16);
+            if (foes.isEmpty()) continue;
+            for (Ability a : un.getAbilities().get()) {
+                if (!a.isOffCooldown(un)) continue;
+                if (a.action == UnitAction.WITHER_CLOUD) {
+                    int close = 0;
+                    for (LivingEntity e : foes) if (e.distanceToSqr(u) < 4 * 4) close++;
+                    if (close >= 3 && friends(in, u.position(), 4, u) <= 1) { cast(u, a, null, u.blockPosition()); break; }
+                } else if (a.action == UnitAction.FEAR) {
+                    LivingEntity best = null;
+                    for (LivingEntity e : foes) {
+                        if (e instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit || UnitEval.isWorker(e) || e.distanceToSqr(u) > (a.range + 1) * (a.range + 1)) continue;
+                        if (friends(in, e.position(), 3, u) == 0) continue; // only one that is on one of ours
+                        if (best == null || UnitEval.power(e) > UnitEval.power(best)) best = e;
+                    }
+                    if (best != null) { cast(u, a, best, best.blockPosition()); break; }
+                } else if (a.action == UnitAction.SHOOT_FIREWALL || a.action == UnitAction.SPIN_WEBS) {
+                    LivingEntity best = null;
+                    int bestN = 1;
+                    for (LivingEntity e : foes) {
+                        if (e.distanceToSqr(u) > (a.range + 1) * (a.range + 1)) continue;
+                        int n = 0;
+                        for (LivingEntity o : foes) if (o.distanceToSqr(e) < 3.5 * 3.5) n++;
+                        if (n > bestN && friends(in, e.position(), 4, u) == 0) { bestN = n; best = e; }
+                    }
+                    if (best != null) { cast(u, a, best, best.blockPosition()); break; }
+                }
+            }
+        }
+        // mounts, out of a fight: a skeleton onto an idle spider, a headhunter onto an idle hoglin
+        if (bot.now - lastMountCheck < 100) return;
+        lastMountCheck = bot.now;
+        java.util.Set<Integer> taken = new java.util.HashSet<>();
+        for (Mob u : in.army) {
+            if (!(u instanceof Unit un) || u.isPassenger() || !in.enemiesNear(u.position(), 14).isEmpty()) continue;
+            UnitAction act = null;
+            Class<?> steed = null;
+            if (u instanceof com.solegendary.reignofnether.unit.units.monsters.SkeletonUnit || u.getClass().getSimpleName().equals("StrayUnit")) { act = UnitAction.MOUNT_SPIDER; steed = com.solegendary.reignofnether.unit.units.monsters.SpiderUnit.class; }
+            else if (u instanceof com.solegendary.reignofnether.unit.units.piglins.HeadhunterUnit) { act = UnitAction.MOUNT_HOGLIN; steed = com.solegendary.reignofnether.unit.units.piglins.HoglinUnit.class; }
+            if (act == null || ability(un, act) == null) continue;
+            Mob mount = null;
+            for (Mob o : in.army) {
+                if (!steed.isInstance(o) || o.isVehicle() || taken.contains(o.getId()) || o.distanceToSqr(u) > 24 * 24) continue;
+                if (mount == null || o.distanceToSqr(u) < mount.distanceToSqr(u)) mount = o;
+            }
+            if (mount == null) continue;
+            taken.add(mount.getId());
+            Orders.ability(bot.name, act, mount.getId(), List.of(u), mount.blockPosition());
         }
     }
 

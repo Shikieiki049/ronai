@@ -154,7 +154,7 @@ public final class Bridger {
     }
 
     private ArrayList<BuildingBlock> relative(boolean diag) {
-        return ((AbstractBridge) Buildings.OAK_BRIDGE).getRelativeBlockData(bot.level, diag);
+        return ((AbstractBridge) bot.plan.bridge).getRelativeBlockData(bot.level, diag);
     }
 
     private void place(Intel in, int t0) {
@@ -176,9 +176,14 @@ public final class Bridger {
                         for (int dy = -2; dy <= 0; dy++) {
                             BlockPos o = new BlockPos((int) Math.round(c.getX() - uz * lat), c.getY() + dy, (int) Math.round(c.getZ() + ux * lat));
                             if (refused.contains(o)) continue;
-                            int score = coverage(rel, o, rot, todo);
+                            // the crossing cells it covers first; then a segment lying along the crossing (its long
+                            // side in the line's direction), on the line rather than beside it, at the banks' height
+                            // (the user: bridges at odd angles and spots) - a route-like choice, not just coverage
+                            int cov = coverage(rel, o, rot, todo);
+                            if (cov == 0) continue;
+                            int score = cov * 100 + (int) (40 * alignment(rel, o, rot)) - 12 * Math.abs(lat) - 15 * Math.abs(dy);
                             if (score <= bestScore) continue;
-                            if (!BuildingValidators.isPlacementValid(bot.level, Buildings.OAK_BRIDGE, o, bot.name, rot, diag, false, true)) continue;
+                            if (!BuildingValidators.isPlacementValid(bot.level, bot.plan.bridge, o, bot.name, rot, diag, false, true)) continue;
                             bestScore = score; bestO = o; bestR = rot; bestD = diag;
                         }
                     }
@@ -188,7 +193,7 @@ public final class Bridger {
         if (bestO == null) { give("no valid spot at step " + t0 + ": giving up"); return; }
         List<Mob> builders = bot.economy.borrow(in, bestO, 2);
         if (builders.isEmpty()) return;
-        BuildingPlacement p = BuildingServerEvents.placeBuilding(Buildings.OAK_BRIDGE, bestO, bestR, bot.name,
+        BuildingPlacement p = BuildingServerEvents.placeBuilding(bot.plan.bridge, bestO, bestR, bot.name,
                 Orders.ids(builders), false, bestD, false, true);
         if (p == null) {
             // refused (wood spent elsewhere this tick, a unit standing in the way...): try another spot soon
@@ -200,6 +205,16 @@ public final class Bridger {
         }
         current = p; currentSince = bot.now; segments++;
         bot.log("bridge segment " + segments + " at " + bestO.toShortString() + " covers " + bestScore + " of " + todo.size());
+    }
+
+    /** 0..1: how well the segment's long side follows the crossing direction */
+    private double alignment(ArrayList<BuildingBlock> rel, BlockPos o, Rotation rot) {
+        ArrayList<BuildingBlock> abs = BuildingUtils.getAbsoluteBlockData(rel, bot.level, o, rot);
+        int x0 = Integer.MAX_VALUE, x1 = Integer.MIN_VALUE, z0 = Integer.MAX_VALUE, z1 = Integer.MIN_VALUE;
+        for (BuildingBlock bb : abs) { BlockPos p = bb.getBlockPos(); x0 = Math.min(x0, p.getX()); x1 = Math.max(x1, p.getX()); z0 = Math.min(z0, p.getZ()); z1 = Math.max(z1, p.getZ()); }
+        double lx = x1 - x0 + 1, lz = z1 - z0 + 1, len = Math.sqrt(lx * lx + lz * lz);
+        if (len < 1) return 0;
+        return Math.abs(lx / len * Math.abs(ux) + lz / len * Math.abs(uz));
     }
 
     /** how many of the liquid line cells this placement's blocks would stand on */
