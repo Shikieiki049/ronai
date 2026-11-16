@@ -4,5 +4,9 @@
   "ronstrat.lobby_button": "电脑",
   "ronstrat.lobby_tip": "点击：让电脑玩家占这个位置（依次切换 简单/普通/困难/专家/取消）；占位后点右边的阵营图标选村民、亡灵或猪灵",
   "ronstrat.key.panel": "RON 电脑玩家面板",
-  "ronstrat.key.category": "RON Strategist"
+  "ronstrat.key.category": "RON Strategist",
+  "ronstrat.reset_maps": "重置所有地图",
+  "ronstrat.reset_maps.confirm": "用地图包里的干净副本覆盖 %s 张同名存档？这些地图上的进度会丢失，其他存档不受影响。",
+  "ronstrat.reset_maps.none": "没有找到地图包（游戏目录下的 ditu 文件夹）",
+  "ronstrat.reset_maps.done": "已重置 %s / %s 张地图"
 }

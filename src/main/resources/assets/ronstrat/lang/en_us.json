@@ -4,5 +4,9 @@
   "ronstrat.lobby_button": "AI",
   "ronstrat.lobby_tip": "Click: seat a computer player here (cycles Easy, Normal, Hard, Expert, off); then click a faction icon on its row (villagers, monsters or piglins)",
   "ronstrat.key.panel": "RON Strategist panel",
-  "ronstrat.key.category": "RON Strategist"
+  "ronstrat.key.category": "RON Strategist",
+  "ronstrat.reset_maps": "Reset all maps",
+  "ronstrat.reset_maps.confirm": "Copy the clean map pack over %s saved worlds of the same name? Progress on those maps is lost; other worlds are untouched.",
+  "ronstrat.reset_maps.none": "No map pack found (the ditu folder in the game directory)",
+  "ronstrat.reset_maps.done": "Reset %s of %s maps"
 }
