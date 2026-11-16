@@ -229,19 +229,8 @@ public final class Army {
         raidSquad.clear();
         if (mode == Mode.DEFEND) mode = Mode.GATHER;
         // heroes level from the moment they are out (the user): pulled monsters one at a time, whatever the
-        // rest of the army does - not in an attack and not by day for the monsters
-        if (mode != Mode.ATTACK && !(bot.night.on() && bot.night.day())) heroPull(in);
-        // monsters by day: a hero still out comes back into the dark (it burns out there)
-        else if (mode != Mode.ATTACK) {
-            creeping.clear();
-            Vec3 hv = Vec3.atCenterOf(in.home());
-            for (Mob m : in.army)
-                if (m instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit
-                        && !com.solegendary.reignofnether.time.NightUtils.isInRangeOfNightSource(m.position(), false)) {
-                    if (bot.now - lastHeroHome >= 60) { lastHeroHome = bot.now; Orders.move(bot.name, List.of(m), rally(in)); }
-                    creeping.add(m.getId());
-                }
-        }
+        // rest of the army does - not in an attack; by day too, monsters included: they heal at home, in the dark
+        if (mode != Mode.ATTACK) heroPull(in);
 
         if (mode == Mode.RETREAT) {
             if (bot.now < retreatUntil) { gather(in); return; }
@@ -1943,7 +1932,17 @@ public final class Army {
             if (Orders.isCasting(m.getId())) { creeping.add(m.getId()); continue; }
             // level 5: monsters give no more experience - an idle hero out there comes home
             if (hu.getHeroLevel() >= 5) { heroHome(in, m, home); continue; }
-            double mine = UnitEval.strength(List.of(m));
+            // a fragile hero (the necromancer: 100 health, ranged) beat nothing alone and stayed level 1 for ten
+            // minutes: up to two soldiers from home go along and fight with it
+            List<Mob> party = new ArrayList<>();
+            party.add(m);
+            List<Mob> spare = new ArrayList<>();
+            for (Mob o : in.army)
+                if (o != m && !(o instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit) && !creeping.contains(o.getId())
+                        && !resting.contains(o.getId()) && o.distanceToSqr(m) < 40 * 40) spare.add(o);
+            spare.sort(java.util.Comparator.comparingDouble(o -> o.distanceToSqr(m)));
+            for (int k = 0; k < Math.min(2, spare.size()); k++) party.add(spare.get(k));
+            double mine = UnitEval.strength(party);
             // who is after the hero right now
             List<LivingEntity> onUs = new ArrayList<>();
             for (LivingEntity n : in.neutrals)
@@ -1971,14 +1970,14 @@ public final class Army {
                         Vec3 away = home.subtract(m.position());
                         away = away.lengthSqr() < 1 ? new Vec3(1, 0, 0) : away.normalize().scale(8);
                         lastPullOrder = bot.now;
-                        Orders.move(bot.name, List.of(m), BlockPos.containing(m.position().add(away)));
-                        Orders.protect(m.getId(), 1500);
+                        Orders.move(bot.name, party, BlockPos.containing(m.position().add(away)));
+                        for (Mob q : party) { Orders.protect(q.getId(), 1500); creeping.add(q.getId()); }
                     }
                 } else if (order) {
                     LivingEntity t = first;
                     lastPullOrder = bot.now;
-                    Orders.attack(bot.name, List.of(m), t);
-                    Orders.protect(m.getId(), 1500);
+                    Orders.attack(bot.name, party, t);
+                    for (Mob q : party) { Orders.protect(q.getId(), 1500); creeping.add(q.getId()); }
                 }
                 continue;
             }
@@ -2013,8 +2012,8 @@ public final class Army {
                 dir = dir.lengthSqr() < 1 ? new Vec3(1, 0, 0) : dir.normalize();
                 BlockPos edge = BlockPos.containing(target.position().add(dir.scale(7)));
                 lastPullOrder = bot.now;
-                Orders.move(bot.name, List.of(m), edge);
-                Orders.protect(m.getId(), 1500);
+                Orders.move(bot.name, party, edge);
+                for (Mob q : party) { Orders.protect(q.getId(), 1500); creeping.add(q.getId()); }
                 if (bot.verbose && bot.now - lastPullLog > 600) { lastPullLog = bot.now; bot.log("hero (level " + hu.getHeroLevel() + ") pulling " + target.getType().toShortString() + " at " + target.blockPosition().toShortString()); }
             }
         }
