@@ -398,10 +398,15 @@ public final class Builder {
             // the locked opening (population building, then the hero building) waits for its spot: nothing else
             // takes the wood meanwhile - on a crowded city map the house found no spot at first and a stockpile
             // went up first (the user saw it). After two minutes of no spot the rest may go on.
-            boolean locked = r.priority >= 111 && r.priority < 113 && (b == plan.house || b == plan.heroBuilding);
+            // (a piglin hero portal needs nether ground: it does not hold the rest up - a portal spreads the
+            // ground first; a city map stalled the piglins at 25/25 with 2200 wood waiting for it)
+            boolean locked = r.priority >= 111 && r.priority < 113 && (b == plan.house || b == plan.heroBuilding)
+                    && !(plan.portals && b == plan.heroBuilding);
+            if (locked && lockedSince >= 0 && bot.now - lockedSince >= 2400) locked = false; // waited long enough
             if (locked && bot.now - lastFail.getOrDefault(b, -100000L) < 40) {
                 if (lockedSince < 0) lockedSince = bot.now;
-                if (bot.now - lockedSince < 2400) { if (note.isEmpty()) note = "looking for a spot for " + name(b); break; }
+                if (note.isEmpty()) note = "looking for a spot for " + name(b);
+                break;
             }
             if (!locked && bot.now - lastFail.getOrDefault(b, -100000L) < 200) { if (note.isEmpty()) note = "no spot for " + name(b); continue; } // no spot found recently
             boolean dropSiteEmergency = b == plan.stockpile && (bot.economy.dropSites(in).isEmpty() || (bot.now - bot.economy.deliveryTrouble < 2400 && r.priority >= 110));
@@ -436,7 +441,7 @@ public final class Builder {
                 if (bot.economy.stockpileWanted != null && b == plan.stockpile) bot.economy.stockpileWanted = null;
             } else {
                 lastFail.put(b, bot.now);
-                if (plan.portals && b == plan.farm) groundShortAt = bot.now; // no nether ground left for fields
+                if (plan.portals && (b == plan.farm || b == plan.heroBuilding)) groundShortAt = bot.now; // no nether ground for it
                 bot.placeFails++;
                 bot.log("no spot for " + name(b) + " near " + r.anchor.toShortString() + " r" + r.rMin + "-" + r.rMax);
             }
