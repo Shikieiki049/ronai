@@ -12,6 +12,7 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -381,7 +382,7 @@ public final class Builder {
         if (plan.portals && bot.now - groundShortAt < 600 && in.total(com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC)
                 - in.built(com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC) == 0 && workers >= 8)
             reqs.add(new Request(plan.house, 99, home, 8, 30));
-        if (plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS && p.b("darkPath")) darkPath(in, reqs, workers, home);
+        if ((plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS || plan.portals) && p.b("darkPath")) darkPath(in, reqs, workers, home);
         reqs.removeIf(r -> r.building == null); // a building this faction does not have (piglins: no tower)
         reqs.sort((a, b) -> Double.compare(b.priority, a.priority));
         reserved = null;
@@ -510,9 +511,14 @@ public final class Builder {
      * time, at most darkPathMax of them, once the economy stands (workers 20, a graveyard).
      */
     private void darkPath(Intel in, List<Request> reqs, int workers, BlockPos home) {
-        if (workers < 20 || in.built(bot.plan.barracks) == 0 || bot.now - lastDarkPath < 600) return;
+        if (workers < 20 || in.built(bot.plan.barracks) == 0 || bot.now - lastDarkPath < 300) return;
         Building cat = com.solegendary.reignofnether.building.Buildings.SCULK_CATALYST;
-        if (in.total(cat) - in.built(cat) > 0 || darkPathCatalysts >= bot.params.i("darkPathMax")) return;
+        if (darkPathCatalysts >= bot.params.i("darkPathMax") || bot.now < darkPathWait) return;
+        // the last one still going up: its night / nether is not there yet
+        if (darkPathLast != null) {
+            for (BuildingPlacement o : in.own) if (o.originPos.equals(darkPathLast) && !o.isBuilt) return;
+        }
+        lastDarkPath = bot.now;
         List<BlockPos> goals = new ArrayList<>();
         for (BuildingPlacement b : BuildingServerEvents.getBuildings())
             if (b.isCapitol && b.ownerName != null && in.allies.contains(b.ownerName) && !b.ownerName.equals(bot.name)) goals.add(b.centrePos);
@@ -522,20 +528,28 @@ public final class Builder {
             if (eb != null && (enemy == null || eb.distSqr(home) < enemy.distSqr(home))) enemy = eb;
         }
         if (enemy != null) goals.add(enemy);
+        // from a worker near home, not from the capitol's centre (inside the building: no route starts there -
+        // the dark path never found a single spot, the user saw none)
+        Mob start = null;
+        for (Mob w : in.workers) if (start == null || w.distanceToSqr(Vec3.atCenterOf(home)) < start.distanceToSqr(Vec3.atCenterOf(home))) start = w;
+        if (start == null) return;
         for (BlockPos g : goals) {
-            List<BlockPos> r = Terrain.route(bot.level, home, g, bot.now);
-            if (r == null || r.size() < 2) continue;
+            List<BlockPos> r = Terrain.route(bot.level, start.blockPosition(), g, bot.now);
+            if (r == null || r.size() < 2) { if (bot.verbose) bot.log("dark path: no route to " + g.toShortString()); continue; }
             for (BlockPos q : r) {
                 if (q.distSqr(g) < 30 * 30) break; // the far end is theirs
-                if (com.solegendary.reignofnether.time.NightUtils.isInRangeOfNightSource(net.minecraft.world.phys.Vec3.atCenterOf(q), false)) continue;
-                lastDarkPath = bot.now;
-                reqs.add(new Request(cat, 88, q, 0, 10));
+                // piglins: the nether ground (their buildings stand on it) instead of the night - a portal spreads it
+                if (bot.plan.portals ? com.solegendary.reignofnether.nether.NetherBlocks.isNetherBlock(bot.level, q.below())
+                        : com.solegendary.reignofnether.time.NightUtils.isInRangeOfNightSource(net.minecraft.world.phys.Vec3.atCenterOf(q), false)) continue;
+                reqs.add(new Request(bot.plan.portals ? bot.plan.house : cat, 101, q, 0, 12));
                 darkPathPending = q;
+                if (bot.verbose) bot.log("dark path: catalyst wanted at " + q.toShortString() + " toward " + g.toShortString() + " (" + darkPathCatalysts + " laid)");
                 return;
             }
         }
     }
-    private BlockPos darkPathPending;
+    private BlockPos darkPathPending, darkPathLast;
+    private long darkPathWait;
 
     private long stallSince = -1;
     private boolean stallLogged;
@@ -716,7 +730,9 @@ public final class Builder {
             return false;
         }
         if (intent != null) portalIntent.put(placed.originPos, intent);
-        if (darkPathPending != null && b == com.solegendary.reignofnether.building.Buildings.SCULK_CATALYST && r.anchor.equals(darkPathPending)) { darkPathCatalysts++; darkPathPending = null; }
+        if (darkPathPending != null && r.anchor.equals(darkPathPending)) { darkPathCatalysts++; darkPathPending = null; darkPathLast = placed.originPos;
+            darkPathWait = bot.now + (bot.plan.portals ? 1800 : 600); // a portal's nether takes a while to spread
+            bot.log("dark path: " + name(b) + " laid at " + placed.originPos.toShortString() + " (" + darkPathCatalysts + ")"); }
         bot.log("build " + name(b) + (intent != null ? " (to be " + name(intent) + ")" : "") + " at " + origin.toShortString() + " with " + builders.size());
         return true;
     }

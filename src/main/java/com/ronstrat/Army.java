@@ -666,6 +666,9 @@ public final class Army {
                 BlockPos b = em.alive ? em.anyBuilding() : null;
                 if (b != null) near = Math.min(near, Math.sqrt(b.distSqr(in.home())));
             }
+            // by day too when the night runs all the way there (the user: catalysts laid to their base - the army
+            // goes along the dark)
+            if (near < 1e9 && bot.night.day() && darkCorridor(in)) near = 1e9;
             if (near < 1e9 && !bot.night.attackWindow(attackForce(in), near)) {
                 whyNot(in, "night window: " + (bot.night.day() ? "day" : (bot.night.nightLeft() / 20) + " s of night left") + ", burning " + String.format("%.2f", NightPlan.burnShare(attackForce(in))) + ", enemy " + (int) near + " blocks");
                 return false;
@@ -810,7 +813,31 @@ public final class Army {
         return own >= adv * enemy;
     }
 
-    private long lastWhyNot = -100000, lastDetach = -1000;
+    private long lastWhyNot = -100000, lastDetach = -1000, darkCheckAt = -100000;
+    private boolean darkOk;
+
+    /** our surface route to the nearest enemy building lies in the night all the way (checked every 30 s) */
+    private boolean darkCorridor(Intel in) {
+        if (bot.now - darkCheckAt < 600) return darkOk;
+        darkCheckAt = bot.now;
+        darkOk = false;
+        BlockPos enemy = null;
+        Vec3 h = Vec3.atCenterOf(in.home());
+        for (Intel.EnemyMemory em : in.enemies.values()) {
+            BlockPos eb = em.alive ? em.anyBuilding() : null;
+            if (eb != null && (enemy == null || eb.distSqr(in.home()) < enemy.distSqr(in.home()))) enemy = eb;
+        }
+        Mob start = null;
+        for (Mob w : in.workers) if (start == null || w.distanceToSqr(h) < start.distanceToSqr(h)) start = w;
+        if (enemy == null || start == null) return false;
+        List<BlockPos> r = Terrain.route(bot.level, start.blockPosition(), enemy, bot.now);
+        if (r == null || !Terrain.reaches(r, enemy)) return false;
+        for (BlockPos q : r)
+            if (!com.solegendary.reignofnether.time.NightUtils.isInRangeOfNightSource(Vec3.atCenterOf(q), false)) return false;
+        darkOk = true;
+        if (bot.verbose) bot.log("dark corridor to " + enemy.toShortString() + ": the army may go by day");
+        return true;
+    }
     /** verbose: once a minute, why a sizeable army is not out attacking */
     private void whyNot(Intel in, String why) {
         if (!bot.verbose || bot.now - lastWhyNot < 1200 || in.army.size() < 10) return;
