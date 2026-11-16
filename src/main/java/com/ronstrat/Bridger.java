@@ -165,7 +165,7 @@ public final class Bridger {
             if (Terrain.liquidAt(bot.level, c) != 0) todo.add(c);
         }
         boolean diagonalLine = Math.abs(ux) > 0.38 && Math.abs(uz) > 0.38;
-        BlockPos bestO = null; Rotation bestR = null; boolean bestD = false; int bestScore = 0;
+        BlockPos bestO = null; Rotation bestR = null; boolean bestD = false; int bestScore = 0, bestCov = 0;
         Rotation[] rots = { Rotation.NONE, Rotation.CLOCKWISE_90, Rotation.CLOCKWISE_180, Rotation.COUNTERCLOCKWISE_90 };
         for (boolean diag : new boolean[] { diagonalLine, !diagonalLine }) {
             ArrayList<BuildingBlock> rel = relative(diag);
@@ -184,7 +184,7 @@ public final class Bridger {
                             int score = cov * 100 + (int) (40 * alignment(rel, o, rot)) - 12 * Math.abs(lat) - 15 * Math.abs(dy);
                             if (score <= bestScore) continue;
                             if (!BuildingValidators.isPlacementValid(bot.level, bot.plan.bridge, o, bot.name, rot, diag, false, true)) continue;
-                            bestScore = score; bestO = o; bestR = rot; bestD = diag;
+                            bestScore = score; bestCov = cov; bestO = o; bestR = rot; bestD = diag;
                         }
                     }
                 }
@@ -204,7 +204,7 @@ public final class Bridger {
             return;
         }
         current = p; currentSince = bot.now; segments++;
-        bot.log("bridge segment " + segments + " at " + bestO.toShortString() + " covers " + bestScore + " of " + todo.size());
+        bot.log("bridge segment " + segments + " at " + bestO.toShortString() + " covers " + bestCov + " of " + todo.size());
     }
 
     /** 0..1: how well the segment's long side follows the crossing direction */

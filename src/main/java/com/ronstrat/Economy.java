@@ -211,12 +211,16 @@ public final class Economy {
             Job recorded = jobs.getOrDefault(w.getId(), Job.IDLE);
             if (!chasers.isEmpty() && recorded != Job.MILITARY && !(((WorkerUnit) w).getGatherResourceGoal() != null && ((WorkerUnit) w).getGatherResourceGoal().isFarming())) {
                 boolean hunted = false;
-                for (LivingEntity c : chasers) if (c.distanceToSqr(w) < (in.neutrals.contains(c) ? 12 * 12 : 16 * 16)) { hunted = true; break; }
+                LivingEntity by = null;
+                for (LivingEntity c : chasers) if (c.distanceToSqr(w) < (in.neutrals.contains(c) ? 12 * 12 : 16 * 16)) { hunted = true; by = c; break; }
+                // where it came from is off the list for the next job (the searches skip dangerous spots)
+                if (hunted && by != null && !in.neutrals.contains(by)) in.markDanger(by.blockPosition());
                 if (hunted) {
                     if (bot.now - fleeLog > 200) { fleeLog = bot.now; bot.log("monsters or raiders closing in at " + w.blockPosition().toShortString() + ": villagers run home"); }
                     Orders.move(bot.name, List.of(w), in.home());
-                    idle.add(w); jobs.put(w.getId(), Job.IDLE);
+                    jobs.put(w.getId(), Job.IDLE);
                     assignedAt.put(w.getId(), bot.now);
+                    fledFrom.put(w.getId(), new long[] { bot.now, w.getBlockX(), w.getBlockZ() });
                     continue;
                 }
             }
@@ -518,6 +522,10 @@ public final class Economy {
         }
 
         // hand out jobs, neediest resource first
+        // a villager that just ran from a monster is not sent straight back to the same trees (the order tracer:
+        // 270 out-and-back walks a game - run home, idle, back to the wood the monster stands in, run home...)
+        idle.removeIf(w -> { long[] f = fledFrom.get(w.getId()); return f != null && bot.now - f[0] < 200; });
+        fledFrom.values().removeIf(f -> bot.now - f[0] > 1200);
         for (Mob w : idle) {
             int best = -1;
             double bestGap = -1e9;
@@ -539,6 +547,8 @@ public final class Economy {
     }
 
     private long lastNoJobLog = -1000, lastIdleLog = -1000;
+    /** villager id -> {tick it fled, x, z where it was}: no job for 10 s, and no work within 24 blocks of there for a minute */
+    private final Map<Integer, long[]> fledFrom = new HashMap<>();
     private final long[] farMissUntil = new long[3];
     /** a resource the economy would use but monsters guard (for the army), and when it was seen */
     public BlockPos blockedByDanger;

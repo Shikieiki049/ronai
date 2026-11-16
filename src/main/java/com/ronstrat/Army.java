@@ -232,6 +232,9 @@ public final class Army {
         // rest of the army does - not in an attack; by day too, monsters included: they heal at home, in the dark
         if (mode != Mode.ATTACK) heroPull(in);
         if (mode != Mode.ATTACK) creeperRaid(in);
+        bridgeAhead(in);
+        sunGuard(in);
+        if (mode != Mode.ATTACK && allyDefence(in)) return;
 
         if (mode == Mode.RETREAT) {
             if (bot.now < retreatUntil) { gather(in); return; }
@@ -257,8 +260,10 @@ public final class Army {
             trackedTarget = null; // fresh progress clock for this attack
             ledgePushes = 0;
             bot.log("attack -> " + target + " army=" + in.army.size() + " pop=" + in.pop);
-            bot.tellAllies(joinedHuman != null ? "看到你在打 " + target + "，我带 " + in.army.size() + " 个兵过来帮忙！"
-                    : "我要进攻 " + target + " 了，兵力 " + in.army.size() + "，一起上！", true);
+            // where exactly (the user: the ally never said where it was going)
+            String at = targetPos == null ? "" : "（" + targetPos.getX() + ", " + targetPos.getZ() + "）";
+            bot.tellAllies(joinedHuman != null ? "看到你在打 " + target + "，我带 " + in.army.size() + " 个兵过来帮忙，目标 " + at
+                    : "我要进攻 " + target + " 在 " + at + " 的基地，兵力 " + in.army.size() + "，一起上！", true);
             joinedHuman = null;
             lastReissue = -1000;
             if (teamOn()) {
@@ -512,6 +517,10 @@ public final class Army {
                 lastFarHome = bot.now;
                 if (++farHomeLogs % 10 == 1) bot.log("defend: " + far.size() + " units far away march home");
             }
+            // a soldier already fighting someone keeps its target (the order tracer: the attack-move every second
+            // undid the micro's pick and back again, 90 times a game)
+            close.removeIf(m -> m instanceof Unit cu && cu.getTargetGoal() != null && cu.getTargetGoal().getTarget() != null
+                    && cu.getTargetGoal().getTarget().isAlive());
             if (!close.isEmpty()) Orders.attackMove(bot.name, close, meet);
             lastDefendOrder = bot.now;
         }
@@ -1153,7 +1162,17 @@ public final class Army {
             int far = 0;
             for (Mob u : force) if (u.position().distanceToSqr(c) > rg * rg) far++;
             if (far > force.size() * 0.3) {
-                Orders.move(bot.name, force, anchor(body, c));
+                // the ones ahead wait where they are, only the ones behind come up (the order tracer: the whole
+                // force was sent back to its middle every 8 s - the leaders walked out and back, the user saw it)
+                Vec3 to = targetPos == null ? Vec3.ZERO : Vec3.atCenterOf(targetPos).subtract(c);
+                List<Mob> ahead = new ArrayList<>(), behind = new ArrayList<>();
+                for (Mob u : force) {
+                    if (u.position().distanceToSqr(c) <= rg * rg) continue;
+                    Vec3 d = u.position().subtract(c);
+                    if (d.x * to.x + d.z * to.z > 0) ahead.add(u); else behind.add(u);
+                }
+                if (!ahead.isEmpty()) Orders.stop(bot.name, ahead);
+                if (!behind.isEmpty()) Orders.move(bot.name, behind, anchor(body, c));
                 lastRegroup = bot.now;
                 lastReissue = bot.now;
                 return;
@@ -1849,6 +1868,7 @@ public final class Army {
         }
         if (bot.now - lastNeutralOrder > 100) {
             lastNeutralOrder = bot.now;
+            for (Mob u : in.army) clearingSince.put(u.getId(), bot.now);
             bot.log("clearing neutral camp at " + goal.toShortString() + " (" + what + ")");
             if (near != null) {
                 // attack-move does not pick fights with unowned monsters: name the target for each unit
@@ -1990,6 +2010,19 @@ public final class Army {
             boolean healing = resting.contains(m.getId());
             if (m.getHealth() < low * m.getMaxHealth()) { resting.add(m.getId()); healing = true; }
             else if (m.getHealth() >= back * m.getMaxHealth()) { resting.remove(m.getId()); healing = false; }
+            // chased on the way home and the chasers are beatable: turn round and fight (the user: a hero chased by
+            // monsters it could kill just ran and took the hits); run only from what it cannot beat or near death
+            if (!onUs.isEmpty() && UnitEval.strength(onUs) <= 1.2 * mine && m.getHealth() > 0.15 * m.getMaxHealth()) {
+                creeping.add(m.getId());
+                if (order) {
+                    LivingEntity t = onUs.get(0);
+                    for (LivingEntity n : onUs) if (n.distanceToSqr(m) < t.distanceToSqr(m)) t = n;
+                    lastPullOrder = bot.now;
+                    Orders.attack(bot.name, party, t);
+                    for (Mob q : party) { Orders.protect(q.getId(), 1500); creeping.add(q.getId()); }
+                }
+                continue;
+            }
             if (healing || UnitEval.strength(onUs) > 1.0 * mine) {
                 // hurt, or a crowd came: back home (the monsters give up the chase)
                 creeping.add(m.getId());
@@ -2210,6 +2243,9 @@ public final class Army {
         List<Mob> stray = new ArrayList<>();
         for (Mob u : in.army) {
             if (visiting.contains(u.getId()) || creeping.contains(u.getId()) || raiding.contains(u.getId())) continue;
+            // sent at a camp a moment ago: its target died, it is not idle for long (the order tracer: camp - rally
+            // point - camp, the soldiers walked out and back)
+            if (bot.now - clearingSince.getOrDefault(u.getId(), -100000L) < 200) continue;
             if (u.blockPosition().distSqr(r) > 10 * 10 && ((Unit) u).isIdle()) stray.add(u);
         }
         if (!stray.isEmpty()) Orders.move(bot.name, stray, r);
@@ -2338,6 +2374,9 @@ public final class Army {
         }
         for (Mob u : in.army) {
             if (bot.now - lastOrder.getOrDefault(u.getId(), -1000L) < 6) continue;
+            // by day a burning unit out in the sun is sunGuard's (home); in the dark it never goes after anything
+            // standing in the sun (the user)
+            if (!sunSafe(u, u.position())) continue;
             // returnFire (the user): hit on the way - on a move order, walking to the rally point - strike back at
             // whoever hit us if it is in reach, instead of walking on and losing health for nothing; the march
             // order is given again afterwards by the attack loop. Not while retreating, not a hero resting.
@@ -2345,7 +2384,7 @@ public final class Army {
                 LivingEntity by = u.getLastHurtByMob();
                 if (by != null && by.isAlive() && u.tickCount - u.getLastHurtByMobTimestamp() < 40
                         && (in.visibleEnemies.contains(by) || in.neutrals.contains(by))
-                        && by.distanceToSqr(u) < Math.pow(Math.max(2.5, UnitEval.range(u)) + 6, 2)
+                        && by.distanceToSqr(u) < Math.pow(Math.max(2.5, UnitEval.range(u)) + 6, 2) && sunSafe(u, by.position())
                         && ((Unit) u).getTargetGoal().getTarget() != by
                         && !(!UnitEval.isRanged(u) && by instanceof Unit bu && bu.isFlyingUnit())) {
                     LivingEntity t = by;
@@ -2354,7 +2393,8 @@ public final class Army {
                     continue;
                 }
             }
-            List<LivingEntity> near = in.enemiesNear(u.position(), 14);
+            List<LivingEntity> near = new ArrayList<>(in.enemiesNear(u.position(), 14));
+            near.removeIf(e -> !sunSafe(u, e.position()));
             if (near.isEmpty()) continue;
             double range = Math.max(2.5, UnitEval.range(u));
             boolean ranged = UnitEval.isRanged(u);
@@ -2585,6 +2625,115 @@ public final class Army {
         return out.isEmpty() ? us : out;
     }
 
+    private long lastLavaLog = -1000, lastBridgeLook = -100000, lastSunGuard = -1000, lastAllyHelp = -100000, lastAllyTell = -100000;
+
+    /**
+     * An ally's base under attack (the user: "I was attacked and it did not come to help"): enemy fighters near
+     * any of an ally's buildings, three or more, and our own base quiet - the army goes there (attack-move, so it
+     * fights on arrival) and says so. Monsters by day only when the way there is dark.
+     */
+    private boolean allyDefence(Intel in) {
+        if (in.army.size() < 4 || in.allies.isEmpty()) return false;
+        BlockPos spot = null;
+        int most = 0;
+        String who = null;
+        for (BuildingPlacement b : BuildingServerEvents.getBuildings()) {
+            if (b.ownerName == null || !in.allies.contains(b.ownerName) || b.ownerName.equals(bot.name)) continue;
+            Vec3 bc = Vec3.atCenterOf(b.centrePos);
+            int n = 0;
+            for (LivingEntity e : in.visibleEnemies) if (!UnitEval.isWorker(e) && e.position().distanceToSqr(bc) < 24 * 24) n++;
+            if (n > most) { most = n; spot = b.centrePos; who = b.ownerName; }
+        }
+        if (most < 3 || spot == null) return false;
+        if (bot.night.on() && bot.night.day() && !darkCorridor(in)) return false;
+        if (bot.now - lastAllyHelp > 100) {
+            lastAllyHelp = bot.now;
+            List<Mob> go = new ArrayList<>();
+            for (Mob u : in.army) if (!creeping.contains(u.getId())) go.add(u);
+            Orders.attackMove(bot.name, go, waypoint(centroid(go), spot));
+            if (bot.now - lastAllyTell > 1200) {
+                lastAllyTell = bot.now;
+                bot.tellAllies(who + " 被打了，我带 " + go.size() + " 个兵来帮你守（" + spot.getX() + ", " + spot.getZ() + "）！", true);
+            }
+            bot.log("ally defence: " + most + " enemies at " + who + "'s base " + spot.toShortString());
+        }
+        return true;
+    }
+    private final Map<Integer, Long> clearingSince = new HashMap<>();
+
+    /** monsters by day: may this unit be (or go) at p - it does not burn, it is night, or p is in the dark */
+    boolean sunSafe(Mob u, Vec3 p) {
+        if (!bot.night.on() || !bot.night.day() || !NightPlan.burns(u)) return true;
+        return com.solegendary.reignofnether.time.NightUtils.isInRangeOfNightSource(p, false);
+    }
+
+    /**
+     * Monsters by day (the user: never let a unit that burns walk into the sun): every burning unit out of the
+     * dark goes straight back to the dark at home - unless the army is marching along a dark corridor.
+     */
+    private final java.util.Set<Integer> autoOff = new java.util.HashSet<>();
+
+    private void sunGuard(Intel in) {
+        if (!bot.night.on() || bot.now - lastSunGuard < 20) return;
+        lastSunGuard = bot.now;
+        // RON's units chase any enemy they see on their own - out of the dark into the sun, again and again, until
+        // they burned. By day the burning units do not look for enemies themselves (our micro picks targets in the
+        // dark); at night, or marching a dark corridor, they do again.
+        boolean free = !bot.night.day() || (mode == Mode.ATTACK && darkOk);
+        if (free) {
+            if (!autoOff.isEmpty()) {
+                List<Mob> on = new ArrayList<>();
+                for (Mob u : in.army) if (autoOff.contains(u.getId())) on.add(u);
+                if (!on.isEmpty()) Orders.ability(bot.name, com.solegendary.reignofnether.unit.UnitAction.ENABLE_AUTO_FIND_ENEMIES, -1, on, in.home());
+                autoOff.clear();
+            }
+            return;
+        }
+        List<Mob> off = new ArrayList<>();
+        for (Mob u : in.army) if (NightPlan.burns(u) && autoOff.add(u.getId())) off.add(u);
+        if (!off.isEmpty()) Orders.ability(bot.name, com.solegendary.reignofnether.unit.UnitAction.DISABLE_AUTO_FIND_ENEMIES, -1, off, in.home());
+        List<Mob> out = new ArrayList<>();
+        for (Mob u : in.army) if (!sunSafe(u, u.position()) && !Orders.isCasting(u.getId())) out.add(u);
+        if (out.isEmpty()) return;
+        Orders.move(bot.name, out, rally(in));
+        for (Mob u : out) Orders.protect(u.getId(), 1500);
+        if (bot.verbose) bot.log("sun: " + out.size() + " burning units out of the dark sent home");
+    }
+
+    /** the straight stretch from where the dry route ends to the goal crosses lava */
+    private boolean lavaAhead(List<BlockPos> route, BlockPos goal) {
+        BlockPos e = route.get(route.size() - 1);
+        double dx = goal.getX() - e.getX(), dz = goal.getZ() - e.getZ(), d = Math.sqrt(dx * dx + dz * dz);
+        for (int t = 1; t < Math.min(d, 60); t++) {
+            int x = (int) Math.round(e.getX() + dx * t / d), z = (int) Math.round(e.getZ() + dz * t / d);
+            BlockPos c = new BlockPos(x, bot.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z), z);
+            if (Terrain.liquidAt(bot.level, c) == 2) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Bridges before they are needed (the user): every minute, if no dry route leads from home to the nearest
+     * enemy building, the bridger looks for the crossing (lava of any width, wide water) and lays it - not only
+     * once an attack is already stuck at the shore.
+     */
+    private void bridgeAhead(Intel in) {
+        if (!bot.params.b("bridges") || bot.bridger.busy() || bot.now - lastBridgeLook < 1200) return;
+        lastBridgeLook = bot.now;
+        BlockPos enemy = null;
+        for (Intel.EnemyMemory em : in.enemies.values()) {
+            BlockPos eb = em.alive ? em.anyBuilding() : null;
+            if (eb != null && (enemy == null || eb.distSqr(in.home()) < enemy.distSqr(in.home()))) enemy = eb;
+        }
+        Mob start = null;
+        Vec3 h = Vec3.atCenterOf(in.home());
+        for (Mob w : in.workers) if (start == null || w.distanceToSqr(h) < start.distanceToSqr(h)) start = w;
+        if (enemy == null || start == null) return;
+        List<BlockPos> r = Terrain.route(bot.level, start.blockPosition(), enemy, bot.now);
+        if (r != null && Terrain.reaches(r, enemy)) return;
+        bot.bridger.request(start.blockPosition(), enemy);
+    }
+
     /** Minecraft pathfinding gives up on long trips: march in legs of about 40 blocks */
     BlockPos waypoint(Vec3 from, BlockPos goal) {
         Vec3 g = Vec3.atCenterOf(goal);
@@ -2596,6 +2745,13 @@ public final class Army {
         List<BlockPos> route = Terrain.route(bot.level, BlockPos.containing(from), goal, bot.now);
         // water or lava on the way (or no way at all): let the bridger look for a crossing (throttled)
         if (route != null && mode == Mode.ATTACK) bot.bridger.request(BlockPos.containing(from), goal);
+        // lava between us and the goal and no bridge across yet: wait on this side (the user: whole squads walked
+        // into a lava river - 56 dead in one game - because RON's own pathing went on from the shore)
+        if (route != null && route.size() > 1 && !Terrain.reaches(route, goal) && lavaAhead(route, goal)) {
+            BlockPos shore = route.get(Math.max(0, route.size() - 3));
+            if (bot.verbose && bot.now - lastLavaLog > 600) { lastLavaLog = bot.now; bot.log("lava between the army and " + goal.toShortString() + ": waiting at " + shore.toShortString() + " for a bridge"); }
+            return shore;
+        }
         if (route != null && route.size() > 2) return Terrain.ahead(route, from, 18);
         if (len <= 45 || com.solegendary.reignofnether.unit.UnitServerEvents.rtsPathfinding) return goal;
         Vec3 p = from.add(d.x * 40 / len, 0, d.z * 40 / len);

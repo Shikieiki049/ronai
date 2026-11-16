@@ -58,9 +58,47 @@ public final class Orders {
         return r;
     }
 
+    // ---- order tracer (-Dronstrat.traceOrders=true): a unit sent one way and then back the other way within 3 s
+    // is logged with both callers - to find the logic pair behind the army walking out and back (the user)
+    static final boolean TRACE = Boolean.getBoolean("ronstrat.traceOrders");
+    private record Last(BlockPos dest, long ms, String caller) {}
+    private static final java.util.Map<Integer, Last> lastOrder = new java.util.concurrent.ConcurrentHashMap<>();
+    static final java.util.Map<String, Integer> flips = new java.util.concurrent.ConcurrentHashMap<>();
+    private static long lastFlipReport;
+
+    private static void trace(String owner, UnitAction a, int[] ids, BlockPos pos) {
+        if (a != UnitAction.MOVE && a != UnitAction.ATTACK_MOVE && a != UnitAction.ATTACK && a != UnitAction.ATTACK_BUILDING) return;
+        var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return;
+        var level = server.overworld();
+        String caller = StackWalker.getInstance().walk(st -> st.map(f -> f.getClassName().replace("com.ronstrat.", "") + "." + f.getMethodName() + ":" + f.getLineNumber())
+                .filter(x -> !x.startsWith("Orders.")).findFirst().orElse("?"));
+        long now = System.currentTimeMillis();
+        for (int id : ids) {
+            Entity e = level.getEntity(id);
+            if (e == null) continue;
+            Last l = lastOrder.put(id, new Last(pos, now, a.name() + "@" + caller));
+            if (l == null || now - l.ms() > 3000) continue;
+            double ax = l.dest().getX() - e.getX(), az = l.dest().getZ() - e.getZ(), bx = pos.getX() - e.getX(), bz = pos.getZ() - e.getZ();
+            double la = Math.hypot(ax, az), lb = Math.hypot(bx, bz);
+            if (la < 4 || lb < 4) continue;
+            if ((ax * bx + az * bz) / (la * lb) > -0.3) continue;
+            String k = l.caller() + "  ->  " + a.name() + "@" + caller;
+            flips.merge(k, 1, Integer::sum);
+        }
+        if (now - lastFlipReport > 30000 && !flips.isEmpty()) {
+            lastFlipReport = now;
+            StringBuilder sb = new StringBuilder("RON Strategist order flips (one way, then back within 3 s):");
+            flips.entrySet().stream().sorted((x, y) -> y.getValue() - x.getValue()).limit(12)
+                    .forEach(en -> sb.append(" | ").append(en.getValue()).append("x  ").append(en.getKey()));
+            com.ronstrat.RonStrategist.LOG.info(sb.toString());
+        }
+    }
+
     private static void act(String owner, UnitAction a, int targetId, int[] ids, BlockPos pos, BlockPos building) {
         ids = withoutCasting(ids);
         if (ids.length == 0) return;
+        if (TRACE) trace(owner, a, ids, pos);
         issued.computeIfAbsent(owner, k -> new int[UnitAction.values().length])[a.ordinal()] += ids.length;
         UnitServerEvents.addActionItem(owner, a, targetId, ids, pos, building == null ? BlockPos.ZERO : building);
     }

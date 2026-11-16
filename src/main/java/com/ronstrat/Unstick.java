@@ -57,6 +57,8 @@ final class Unstick {
                 last.put(u.getId(), new double[] { u.getX(), u.getZ(), bot.now });
                 continue;
             }
+            // standing in a fight is not being stuck (the order tracer: soldiers holding a line were "led round")
+            if (!in.enemiesNear(u.position(), 10).isEmpty()) { last.put(u.getId(), new double[] { u.getX(), u.getZ(), bot.now }); continue; }
             double[] l = last.get(u.getId());
             if (l == null || Math.hypot(u.getX() - l[0], u.getZ() - l[1]) > 1.5) { last.put(u.getId(), new double[] { u.getX(), u.getZ(), bot.now }); continue; }
             if (goal == null || u.blockPosition().distSqr(goal) < 5 * 5) { l[2] = bot.now; continue; }
