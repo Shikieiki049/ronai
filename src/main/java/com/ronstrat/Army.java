@@ -1983,9 +1983,13 @@ public final class Army {
                 if (n instanceof Mob nm && nm.getTarget() == m && n.distanceToSqr(m) < 20 * 20) onUs.add(n);
             boolean order = bot.now - lastPullOrder > 20;
             // hurt: home until healed again (a level-1 guard went on at 46% and came back with 5 of 125)
+            // the royal guard's Battle Rage heals it faster the lower it is (the user): it keeps fighting until it
+            // is in real danger (20%) and goes back out at 45%
+            boolean guard = m instanceof com.solegendary.reignofnether.unit.units.villagers.RoyalGuardUnit;
+            double low = guard ? 0.2 : 0.6, back = guard ? 0.45 : 0.9;
             boolean healing = resting.contains(m.getId());
-            if (m.getHealth() < 0.6 * m.getMaxHealth()) { resting.add(m.getId()); healing = true; }
-            else if (m.getHealth() >= 0.9 * m.getMaxHealth()) { resting.remove(m.getId()); healing = false; }
+            if (m.getHealth() < low * m.getMaxHealth()) { resting.add(m.getId()); healing = true; }
+            else if (m.getHealth() >= back * m.getMaxHealth()) { resting.remove(m.getId()); healing = false; }
             if (healing || UnitEval.strength(onUs) > 1.0 * mine) {
                 // hurt, or a crowd came: back home (the monsters give up the chase)
                 creeping.add(m.getId());
