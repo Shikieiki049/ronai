@@ -1937,10 +1937,16 @@ public final class Army {
             List<Mob> party = new ArrayList<>();
             party.add(m);
             List<Mob> spare = new ArrayList<>();
-            for (Mob o : in.army)
-                if (o != m && !(o instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit) && !creeping.contains(o.getId())
-                        && !resting.contains(o.getId()) && o.distanceToSqr(m) < 40 * 40) spare.add(o);
-            spare.sort(java.util.Comparator.comparingDouble(o -> o.distanceToSqr(m)));
+            boolean sun = bot.night.on() && bot.night.day();
+            for (Mob o : in.army) {
+                if (o == m || o instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit || creeping.contains(o.getId())
+                        || resting.contains(o.getId()) || o.distanceToSqr(m) > 40 * 40) continue;
+                // by day no escort that burns (the user) - but the necromancer's own raised zombies come along
+                boolean summoned = o.tickCount < 1600 && o.distanceToSqr(m) < 12 * 12 && NightPlan.burns(o);
+                if (sun && NightPlan.burns(o) && !summoned) continue;
+                spare.add(o);
+            }
+            spare.sort(java.util.Comparator.comparingDouble(o -> (o.tickCount < 1600 ? 0 : 1e6) + o.distanceToSqr(m)));
             for (int k = 0; k < Math.min(2, spare.size()); k++) party.add(spare.get(k));
             double mine = UnitEval.strength(party);
             // who is after the hero right now
@@ -1997,6 +2003,8 @@ public final class Army {
                 if (target != null) break;
             }
             // nothing left to pull: home, not standing about out there (the user)
+            // alone it beats nothing: raise the zombies first, the next look counts them in
+            if (target == null && in.neutrals.stream().anyMatch(n -> n.position().distanceToSqr(home) < 130 * 130) && raiseDead(m, hu)) continue;
             if (target == null) { heroHome(in, m, home); continue; }
             creeping.add(m.getId());
             // cannot get to it (a pit, a ledge) for 30 s: the next one
@@ -2006,6 +2014,8 @@ public final class Army {
                 if (d < creepBest - 2) { creepBest = d; creepProgressAt = bot.now; }
                 else if (bot.now - creepProgressAt > 600) { creepBlacklist.add(target.getId()); creepTarget = null; continue; }
             }
+            // the necromancer raises its two zombies first (the user: its first skill makes the escort)
+            if (raiseDead(m, hu)) continue;
             if (order) {
                 // to the edge of its reach on our side, so it alone notices the hero
                 Vec3 dir = m.position().subtract(target.position());
@@ -2019,6 +2029,18 @@ public final class Army {
         }
     }
     private long lastPullLog = -1000, lastHeroHome = -1000;
+
+    /** the hero's raise-dead skill (two temporary elite zombies), learnt and ready: cast it now */
+    private boolean raiseDead(Mob m, com.solegendary.reignofnether.unit.interfaces.HeroUnit h) {
+        for (com.solegendary.reignofnether.ability.HeroAbility a : h.getHeroAbilities()) {
+            if (a.action != com.solegendary.reignofnether.unit.UnitAction.RAISE_DEAD) continue;
+            if (a.getRank(h) <= 0 || !a.isOffCooldown(h) || h.getMana() < a.manaCost) return false;
+            Orders.cast(bot.name, a.action, -1, m, m.blockPosition(), 2000);
+            if (bot.verbose) bot.log("hero raises the dead before a pull");
+            return true;
+        }
+        return false;
+    }
 
     /** a hero with nothing to do away from home walks back (not into a fight: enemies near - leave it) */
     private void heroHome(Intel in, Mob m, Vec3 home) {

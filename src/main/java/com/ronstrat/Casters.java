@@ -160,12 +160,15 @@ final class Casters {
             HeroAbility pick = null;
             // the royal guard: Battle Rage first - its health regeneration is the only way it heals without
             // witches (the user); a guard without it stood at 5-28 of 125 health for the rest of the game
-            for (HeroAbility a : h.getHeroAbilities())
-                if (a.getClass().getSimpleName().equals("BattleRagePassive") && a.getRank(h) == 0
+            // ...and the necromancer Raise Dead first: its two zombies are the escort it levels with (the user)
+            for (HeroAbility a : h.getHeroAbilities()) {
+                String cn = a.getClass().getSimpleName();
+                if ((cn.equals("BattleRagePassive") || cn.equals("RaiseDead")) && a.getRank(h) == 0
                         && h.getHeroLevel() >= a.getLevelRequirement(h)) pick = a;
+            }
             if (pick != null) {
                 if (!pick.rankUp(h)) break;
-                if (bot.verbose) bot.log("hero learns BattleRagePassive first (health regeneration)");
+                if (bot.verbose) bot.log("hero learns " + pick.getClass().getSimpleName() + " first");
                 continue;
             }
             for (HeroAbility a : h.getHeroAbilities()) {
