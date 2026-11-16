@@ -629,7 +629,9 @@ public final class Builder {
         BlockPos origin = null;
         BotParams p = bot.params;
         boolean ring = p.b("farmRing");
-        if (p.b("expandOut") && territory(b) && r.priority < 113) origin = expandSpot(in, b);
+        // (not the locked first house: it goes up next to home - one sent 24 blocks out met a monster camp, its builder
+        // died and the piglins sat at 10/10 population for eight minutes)
+        if (p.b("expandOut") && territory(b) && r.priority < 111) origin = expandSpot(in, b);
         if (origin != null) { /* spread out: placed */ }
         else if (ring && b == bot.plan.farm) {
             // fields hug the drop sites, the town centre first, then the stockpiles nearest home: every
@@ -790,7 +792,9 @@ public final class Builder {
 
     BlockPos findSpot(Intel in, Building b, BlockPos anchor, int rMin, int rMax) {
         BlockPos p = findSpot(b, anchor, rMin, rMax, 1, 6);
-        // real maps are hilly: widen the search and accept a little more slope before giving up
+        // real maps are hilly: a little more slope near home first, and only then further out - a hilltop
+        // start sent the first house 40 blocks off to the foot of a cliff the builders never reached
+        if (p == null) p = findSpot(b, anchor, rMin, rMax, 2, 8);
         if (p == null) p = findSpot(b, anchor, rMax, (int) (rMax * 1.8) + 8, 2, 12);
         return p;
     }
@@ -832,11 +836,14 @@ public final class Builder {
                 if (netherOnly && !com.solegendary.reignofnether.nether.NetherBlocks.isNetherBlock(bot.level, new BlockPos(cx, y - 1, cz))) continue;
                 // never on top of resources: logs, ore, berries under or inside the footprint are buried for good
                 // (the user saw buildings put on wood piles and ore in all three factions)
-                if (b != bot.plan.capitol && coversResources(ox, oz, sx, sz, y)) continue;
+                if (b != bot.plan.capitol && bot.params.b("avoidResources") && coversResources(ox, oz, sx, sz, y)) continue;
                 for (int dy : flatTol > 1 ? new int[] { 0, -1, 1 } : new int[] { 0, -1 }) {
                     BlockPos origin = new BlockPos(ox, y + dy, oz);
                     if (++checks > 500) return null;
                     if (BuildingValidators.isPlacementValid(bot.level, b, origin, bot.name, Rotation.NONE, false, false, true)) {
+                        // the workers must be able to walk there (the user: buildings put where no worker gets to -
+                        // up a ledge, across water, behind a wall): our own surface route from home
+                        if (b != bot.plan.capitol && !walkableFromHome(new BlockPos(cx, y, cz))) { unreachableSkips++; break; }
                         return origin;
                     }
                 }
@@ -872,10 +879,28 @@ public final class Builder {
     }
 
     /**
-     * More than two valuable resource blocks under or inside this footprint (sampled every other block, 2 below to
-     * 5 above): logs, ore (anything "_ore", ancient debris), berry bushes. Not plain stone or dirt - RON counts
-     * stone as an ore source, which would rule out every rocky spot.
+     * More than two resource blocks under or inside this footprint (sampled every other block, 2 below to 5 above):
+     * anything RON gathers from (logs, ore, mushrooms, bee nests, hay, berries...) - not plain stone, leaves and
+     * the like, which are everywhere (RON counts stone as an ore source: every rocky spot would be ruled out).
      */
+    int unreachableSkips;
+
+    /**
+     * A surface route from our nearest worker reaches this spot (within a few blocks). From a worker, not from
+     * the town centre: its centre is inside the building, where no route starts - every spot came out
+     * unreachable and nothing was built.
+     */
+    private boolean walkableFromHome(BlockPos at) {
+        Mob from = null;
+        for (Mob w : bot.intel.workers) if (from == null || w.distanceToSqr(at.getX(), at.getY(), at.getZ()) < from.distanceToSqr(at.getX(), at.getY(), at.getZ())) from = w;
+        if (from == null || from.blockPosition().distSqr(at) < 10 * 10) return true;
+        List<BlockPos> r = Terrain.route(bot.level, from.blockPosition(), at, bot.now);
+        return Terrain.reaches(r, at);
+    }
+
+    private static final java.util.Set<String> CHEAP_SOURCES = java.util.Set.of("Stone", "Dripstone", "Leaves", "Unknown Leaves",
+            "Farmland", "Soul Sand", "Stick", "Saplings");
+
     private boolean coversResources(int ox, int oz, int sx, int sz, int y) {
         int n = 0;
         BlockPos.MutableBlockPos q = new BlockPos.MutableBlockPos();
@@ -885,12 +910,11 @@ public final class Builder {
                     q.set(x, yy, z);
                     var bs = bot.level.getBlockState(q);
                     if (bs.isAir()) continue;
-                    boolean value = bs.is(net.minecraft.tags.BlockTags.LOGS) || bs.is(net.minecraft.world.level.block.Blocks.SWEET_BERRY_BUSH)
-                            || bs.is(net.minecraft.world.level.block.Blocks.ANCIENT_DEBRIS);
-                    if (!value) {
-                        String id = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(bs.getBlock()).getPath();
-                        value = id.endsWith("_ore");
-                    }
+                    // every block RON gathers from (logs, ore, mushrooms, bee nests, hay, berries, crops...) except the
+                    // ones everywhere: plain stone, dripstone, leaves, farmland, soul sand, sticks and saplings
+                    var src = com.solegendary.reignofnether.resources.ResourceSources.getFromBlockState(bs);
+                    boolean value = src != null && !CHEAP_SOURCES.contains(src.name);
+                    if (!value) value = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey(bs.getBlock()).getPath().endsWith("_ore");
                     if (value && ++n > 2) return true;
                 }
         return false;

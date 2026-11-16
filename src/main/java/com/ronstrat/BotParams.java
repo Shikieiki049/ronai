@@ -327,6 +327,7 @@ public final class BotParams {
         p.put("returnFire",                 0,     0,      1,     1);   // hit on the way: strike back at the attacker in reach (the user)
         p.put("noStage",                    0,     0,      1,     1);   // no gathering spot before an attack (the user)
         p.put("unstick",                    0,     0,      1,     1);   // a stuck soldier or hero is led round by our own route (the user)
+        p.put("avoidResources",             1,     1,      1,     1);   // no building on top of logs, ore, mushrooms, hay... (the user)
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);
         p.put("targetWeakest",              0,     0,      1,     1);    // in FFA / 1vN pick the most profitable enemy, not the nearest
