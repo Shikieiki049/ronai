@@ -36,6 +36,7 @@ public final class Bot implements Agent {
     public final Bridger bridger = new Bridger(this);
     final Upgrades upgrades = new Upgrades(this);
     final Casters casters = new Casters(this);
+    final Unstick unstick = new Unstick(this);
     final Composition composition = new Composition(this);
     final NightPlan night = new NightPlan(this);
     final Ledger ledger = new Ledger(this);
@@ -181,6 +182,7 @@ public final class Bot implements Agent {
             bridger.think(intel);
             production.think(intel);
             army.think(intel);
+            unstick.think(intel);
             trader.think(intel);
             upgrades.think(intel);
             casters.think(intel);
@@ -189,8 +191,9 @@ public final class Bot implements Agent {
             peakArmy = Math.max(peakArmy, intel.army.size());
         }
         int mt = params.i("microTicks");
-        if (mt > 0 && now >= nextMicro && army.mode != Army.Mode.GATHER) {
-            nextMicro = now + mt;
+        // at home too (GATHER), less often: soldiers hit on the way to the rally point strike back (returnFire)
+        if (mt > 0 && now >= nextMicro && (army.mode != Army.Mode.GATHER || params.b("returnFire"))) {
+            nextMicro = now + (army.mode == Army.Mode.GATHER ? 3 * mt : mt);
             intel.refresh(now);
             army.micro(intel);
         }

@@ -324,6 +324,9 @@ public final class BotParams {
         p.put("pullWorkersToDefend",        0,     0,      0,     0);    // town bell: OFF - RON 1.5.1b and 1.5.1c duplicate villagers on call-to-arms, the AI must not exploit it
         p.put("focusFire",                  0,     0,      1,     1);
         p.put("spreadFire",                 0,     0,      1,     1);   // focus fire without overkill: enough damage on a target already -> the next one
+        p.put("returnFire",                 0,     0,      1,     1);   // hit on the way: strike back at the attacker in reach (the user)
+        p.put("noStage",                    0,     0,      1,     1);   // no gathering spot before an attack (the user)
+        p.put("unstick",                    0,     0,      1,     1);   // a stuck soldier or hero is led round by our own route (the user)
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);
         p.put("targetWeakest",              0,     0,      1,     1);    // in FFA / 1vN pick the most profitable enemy, not the nearest

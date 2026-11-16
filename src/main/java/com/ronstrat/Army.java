@@ -181,7 +181,7 @@ public final class Army {
         if (underAttack && !wasUnder) {
             timesRaided++;
             StringBuilder sb = new StringBuilder();
-            for (LivingEntity t : threats) sb.append(((Unit) t).getOwnerName()).append(":").append(t.getType().toShortString()).append("@").append((int) Math.sqrt(t.distanceToSqr(Vec3.atCenterOf(in.home())))).append(" ");
+            for (LivingEntity t : threats) sb.append(t instanceof Unit tu ? tu.getOwnerName() : "wild").append(":").append(t.getType().toShortString()).append("@").append((int) Math.sqrt(t.distanceToSqr(Vec3.atCenterOf(in.home())))).append(" ");
             bot.log("raid: " + sb);
         }
 
@@ -268,7 +268,8 @@ public final class Army {
                     teamPlan = tp;
                 }
             } else teamPlan = null;
-            stageUntil = bot.difficulty.ordinal() >= Difficulty.HARD.ordinal() ? bot.now + 800 : -1;
+            // (the user: no gathering at one spot before every attack - the army goes straight; noStage)
+            stageUntil = bot.difficulty.ordinal() >= Difficulty.HARD.ordinal() && !p.b("noStage") ? bot.now + 800 : -1;
             stageStarted = bot.now;
             stagePos = null;
             runAttack(in);
@@ -2245,7 +2246,7 @@ public final class Army {
     void micro(Intel in) {
         BotParams p = bot.params;
         boolean focus = p.b("focusFire"), kite = p.b("kiting"), save = p.b("retreatWounded");
-        if (!focus && !kite && !save && !p.b("fightIdle") && !p.b("creeperMicro")) return;
+        if (!focus && !kite && !save && !p.b("fightIdle") && !p.b("creeperMicro") && !p.b("returnFire")) return;
         Vec3 home = Vec3.atCenterOf(in.home());
         // spreadFire: who is already being hit and how hard - every soldier picking the same "best" target left
         // a dozen on one enemy (overkill, then all of them walking to the next) while the rest hit us freely
@@ -2261,6 +2262,22 @@ public final class Army {
         }
         for (Mob u : in.army) {
             if (bot.now - lastOrder.getOrDefault(u.getId(), -1000L) < 6) continue;
+            // returnFire (the user): hit on the way - on a move order, walking to the rally point - strike back at
+            // whoever hit us if it is in reach, instead of walking on and losing health for nothing; the march
+            // order is given again afterwards by the attack loop. Not while retreating, not a hero resting.
+            if (p.b("returnFire") && mode != Mode.RETREAT && u instanceof AttackerUnit && !resting.contains(u.getId())) {
+                LivingEntity by = u.getLastHurtByMob();
+                if (by != null && by.isAlive() && u.tickCount - u.getLastHurtByMobTimestamp() < 40
+                        && (in.visibleEnemies.contains(by) || in.neutrals.contains(by))
+                        && by.distanceToSqr(u) < Math.pow(Math.max(2.5, UnitEval.range(u)) + 6, 2)
+                        && ((Unit) u).getTargetGoal().getTarget() != by
+                        && !(!UnitEval.isRanged(u) && by instanceof Unit bu && bu.isFlyingUnit())) {
+                    LivingEntity t = by;
+                    returnFires++;
+                    order(u, () -> Orders.attack(bot.name, List.of(u), t));
+                    continue;
+                }
+            }
             List<LivingEntity> near = in.enemiesNear(u.position(), 14);
             if (near.isEmpty()) continue;
             double range = Math.max(2.5, UnitEval.range(u));
@@ -2382,7 +2399,7 @@ public final class Army {
         }
     }
 
-    int fightIdles, creeperBlasts, spreadSwitches;
+    int fightIdles, creeperBlasts, spreadSwitches, returnFires;
 
     /** the others on this target already deal enough to kill it in about 1.5 s (or three melee besides us) */
     private static boolean curOverkill(Map<LivingEntity, double[]> load, LivingEntity cur, Mob u, boolean ranged) {
