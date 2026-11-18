@@ -1,0 +1,131 @@
+{
+ "description": "Mir's Landing only: our three factions against each other, both seats, 10 seeds",
+ "items": [
+  {
+   "name": "villagers first",
+   "spec": "expert vs expert#monsters readied nohandicap night",
+   "us": 0,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110
+   ]
+  },
+  {
+   "name": "monsters first",
+   "spec": "expert#monsters vs expert readied nohandicap night",
+   "us": 1,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110
+   ]
+  },
+  {
+   "name": "villagers first",
+   "spec": "expert vs expert#piglins readied nohandicap",
+   "us": 0,
+   "pair": "villagerspiglins",
+   "maps": [
+    "Mirs_Landing"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110
+   ]
+  },
+  {
+   "name": "piglins first",
+   "spec": "expert#piglins vs expert readied nohandicap",
+   "us": 1,
+   "pair": "villagerspiglins",
+   "maps": [
+    "Mirs_Landing"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110
+   ]
+  },
+  {
+   "name": "monsters first",
+   "spec": "expert#monsters vs expert#piglins readied nohandicap night",
+   "us": 0,
+   "pair": "monsterspiglins",
+   "maps": [
+    "Mirs_Landing"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110
+   ]
+  },
+  {
+   "name": "piglins first",
+   "spec": "expert#piglins vs expert#monsters readied nohandicap night",
+   "us": 1,
+   "pair": "monsterspiglins",
+   "maps": [
+    "Mirs_Landing"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110
+   ]
+  }
+ ]
+}
