@@ -217,7 +217,12 @@ public final class Economy {
                 if (hunted && by != null && !in.neutrals.contains(by)) in.markDanger(by.blockPosition());
                 if (hunted) {
                     if (bot.now - fleeLog > 200) { fleeLog = bot.now; bot.log("monsters or raiders closing in at " + w.blockPosition().toShortString() + ": villagers run home"); }
-                    Orders.move(bot.name, List.of(w), in.home());
+                    // villagers (the user): run to the town centre and take up arms there (call to arms on the unit:
+                    // it walks to the nearest capitol and becomes militia); the bell's "back to work" sends them back
+                    // once no enemy is near. Others just run home.
+                    if (bot.plan.villagers && bot.params.b("militiaCall") && in.capitol != null && in.capitol.isBuilt)
+                        Orders.ability(bot.name, com.solegendary.reignofnether.unit.UnitAction.CALL_TO_ARMS_UNIT, -1, List.of(w), in.capitol.centrePos);
+                    else Orders.move(bot.name, List.of(w), in.home());
                     jobs.put(w.getId(), Job.IDLE);
                     assignedAt.put(w.getId(), bot.now);
                     fledFrom.put(w.getId(), new long[] { bot.now, w.getBlockX(), w.getBlockZ() });

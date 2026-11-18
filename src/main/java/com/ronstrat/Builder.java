@@ -119,7 +119,12 @@ public final class Builder {
             }
             // drop site
             if (bot.economy.stockpileWanted != null && p.b("stockpileCooldown") && recentlyCancelled(bot.economy.stockpileWanted)) bot.economy.stockpileWanted = null;
-            if (capitolUp && bot.economy.stockpileWanted != null && in.total(plan.stockpile) - in.built(plan.stockpile) == 0
+            // not one for every new stand of trees (the user: 19 stockpiles in a monster game): at most one per four
+            // woodcutters (4 at least) - beyond that only when the carriers really cannot deliver
+            int woodcutters = bot.economy.counts.getOrDefault(Economy.Job.WOOD, 0);
+            boolean stockFull = (plan.portals ? in.popCap >= 150 : in.total(plan.stockpile) >= Math.max(4, woodcutters / 4))
+                    && bot.now - bot.economy.deliveryTrouble > 2400;
+            if (capitolUp && !stockFull && bot.economy.stockpileWanted != null && in.total(plan.stockpile) - in.built(plan.stockpile) == 0
                     && workers >= 4 && !dropSiteNear(in, bot.economy.stockpileWanted, 12)) {
                 // villagers walking around with full packs they cannot drop anywhere: nothing else matters
                 // (not right after one was abandoned: wolves chasing the builders make that a wood sink)
@@ -164,6 +169,10 @@ public final class Builder {
             firstAt = Math.min(firstAt, Math.max(6, p.i("workerTarget") - 3)); // every tier fields an army
             int wantBarracks = workers < firstAt ? 0
                     : Math.min(p.i("maxBarracks"), 1 + (workers - firstAt) / Math.max(1, p.i("barracksPerWorkers")));
+            // money piling up with room for an army and every barracks busy (the user: late game lots of money, no
+            // army): more barracks, past maxBarracks, up to 10
+            if (bot.difficulty == Difficulty.EXPERT && in.food + in.wood + in.ore > 800 && in.popCap - in.pop >= 10 && barracks >= wantBarracks
+                    && barracks < 10 && allBarracksBusy(in)) wantBarracks = barracks + 1;
             // production buildings are useless without the food to feed them
             wantBarracks = Math.min(wantBarracks, 1 + in.built(plan.farm) / 3);
             boolean earlyArmy = bot.outnumbered() && p.b("rushWhenOutnumbered");
@@ -383,7 +392,11 @@ public final class Builder {
                 - in.built(com.solegendary.reignofnether.building.Buildings.PORTAL_BASIC) == 0 && workers >= 8)
             reqs.add(new Request(plan.house, 99, home, 8, 30));
         if ((plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS || plan.portals) && p.b("darkPath")) darkPath(in, reqs, workers, home);
+        if (plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS && p.b("darkPath")) workDark(in, reqs);
         reqs.removeIf(r -> r.building == null); // a building this faction does not have (piglins: no tower)
+        // population at RON's cap (150): no more houses for population (22 piglin portals in one game) - a dark
+        // path catalyst or a portal for nether ground (priority 99+) still goes up
+        if (in.popCap >= 150) reqs.removeIf(r -> r.building == plan.house && r.priority < 99);
         reqs.sort((a, b) -> Double.compare(b.priority, a.priority));
         reserved = null;
         note = reqs.isEmpty() ? "nothing wanted" : "";
@@ -510,6 +523,47 @@ public final class Builder {
      * first point outside any night source gets a sculk catalyst (night 30 blocks, +12 population); one at a
      * time, at most darkPathMax of them, once the economy stands (workers 20, a graveyard).
      */
+    /** every finished barracks-type building of ours has something in production */
+    private boolean allBarracksBusy(Intel in) {
+        int n = 0;
+        for (BuildingPlacement b : in.own) {
+            if (!b.isBuilt || b.getBuilding() != bot.plan.barracks) continue;
+            n++;
+            if (b instanceof com.solegendary.reignofnether.building.buildings.placements.ProductionPlacement pp && pp.productionQueue.isEmpty()) return false;
+        }
+        return n > 0;
+    }
+
+    private long lastWorkDark = -100000;
+    private BlockPos workDarkAt;
+
+    /**
+     * Monsters (the user): zombie villagers slow down in the sun - where three or more of them gather out of the
+     * night (a far wood line, an ore seam), a sculk catalyst goes up right there.
+     */
+    private void workDark(Intel in, List<Request> reqs) {
+        if (bot.now - lastWorkDark < 600 || in.workers.size() < 10) return;
+        lastWorkDark = bot.now;
+        Building cat = com.solegendary.reignofnether.building.Buildings.SCULK_CATALYST;
+        if (in.total(cat) - in.built(cat) > 1) return;
+        List<Mob> out = new ArrayList<>();
+        for (Mob w : in.workers) {
+            Economy.Job j = bot.economy.job(w);
+            if ((j == Economy.Job.WOOD || j == Economy.Job.ORE) && !com.solegendary.reignofnether.time.NightUtils.isInRangeOfNightSource(w.position(), false)) out.add(w);
+        }
+        for (Mob w : out) {
+            int n = 0;
+            double x = 0, z = 0;
+            for (Mob o : out) if (o.distanceToSqr(w) < 16 * 16) { n++; x += o.getX(); z += o.getZ(); }
+            if (n < 3) continue;
+            BlockPos at = new BlockPos((int) (x / n), w.getBlockY(), (int) (z / n));
+            reqs.add(new Request(cat, 97, at, 4, 14));
+            workDarkAt = at;
+            if (bot.verbose) bot.log("work dark: " + n + " workers out of the night at " + at.toShortString() + " - a catalyst there");
+            return;
+        }
+    }
+
     private void darkPath(Intel in, List<Request> reqs, int workers, BlockPos home) {
         if (workers < 20 || in.built(bot.plan.barracks) == 0 || bot.now - lastDarkPath < 300) return;
         Building cat = com.solegendary.reignofnether.building.Buildings.SCULK_CATALYST;
@@ -684,7 +738,7 @@ public final class Builder {
         boolean ring = p.b("farmRing");
         // (not the locked first house: it goes up next to home - one sent 24 blocks out met a monster camp, its builder
         // died and the piglins sat at 10/10 population for eight minutes)
-        if (p.b("expandOut") && territory(b) && r.priority < 111 && !r.anchor.equals(darkPathPending)) origin = expandSpot(in, b);
+        if (p.b("expandOut") && territory(b) && r.priority < 111 && !r.anchor.equals(darkPathPending) && !r.anchor.equals(workDarkAt)) origin = expandSpot(in, b);
         if (origin != null) { /* spread out: placed */ }
         else if (ring && b == bot.plan.farm) {
             // fields hug the drop sites, the town centre first, then the stockpiles nearest home: every

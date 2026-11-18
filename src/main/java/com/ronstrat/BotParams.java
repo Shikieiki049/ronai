@@ -331,6 +331,7 @@ public final class BotParams {
         p.put("unstick",                    0,     0,      1,     1);   // a stuck soldier or hero is led round by our own route (the user)
         p.put("avoidResources",             1,     1,      1,     1);   // no building on top of logs, ore, mushrooms, hay... (the user)
         p.put("unitSkills",                 0,     0,      1,     1);   // soldiers use their own skills: shields, clouds, fear, firewall, webs, mounts (the user)
+        p.put("militiaCall",                0,     0,      1,     1);   // villagers attacked run to the town centre and take up arms (the user)
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);
         p.put("targetWeakest",              0,     0,      1,     1);    // in FFA / 1vN pick the most profitable enemy, not the nearest

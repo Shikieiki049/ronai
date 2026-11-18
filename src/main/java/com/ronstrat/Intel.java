@@ -77,6 +77,10 @@ public final class Intel {
     public final List<LivingEntity> visibleEnemies = new ArrayList<>();
     /** neutral map monsters (unowned units: wolves, bears...) seen near us, remembered for a while */
     public final List<LivingEntity> neutrals = new ArrayList<>();
+    /** plain Minecraft monsters near home (not RON units), refreshed every 5 s */
+    public final List<BlockPos> wildPos = new ArrayList<>();
+    private long wildAt = -1000;
+    private BlockPos capitolPos() { return capitol != null ? capitol.centrePos : bot.startPos; }
     private final Map<Integer, BlockPos> neutralPos = new HashMap<>();
     private final Map<Integer, Long> neutralTick = new HashMap<>();
 
@@ -128,6 +132,7 @@ public final class Intel {
             BlockPos p = BlockPos.containing(from.getX() + dx * t, from.getY() + (to.getY() - from.getY()) * t, from.getZ() + dz * t);
             double r2 = r * r;
             for (BlockPos n : neutralPos.values()) if (n.distSqr(p) <= r2) return true;
+            for (BlockPos n : wildPos) if (n.distSqr(p) <= r2) return true;
             for (BlockPos n : deathSpots.keySet()) if (n.distSqr(p) <= r2) return true;
         }
         return false;
@@ -141,6 +146,7 @@ public final class Intel {
         double cap = 18;
         double rn = Math.min(r, cap) * Math.min(r, cap);
         for (BlockPos n : neutralPos.values()) if (n.distSqr(p) <= rn) return true;
+        for (BlockPos n : wildPos) if (n.distSqr(p) <= rn) return true;
         for (BlockPos n : deathSpots.keySet()) if (n.distSqr(p) <= r2) return true;
         // a camp too strong for our soldiers stays dangerous after its memory fades, until it is cleared
         if (bot.army != null && bot.army.nearStrongCamp(p, Math.max(r, 22))) return true;
@@ -228,6 +234,16 @@ public final class Intel {
         lastTick = tick;
         deathSpots.values().removeIf(t -> tick - t > 6000);
         neutrals.clear();
+        // plain Minecraft monsters (the night's zombies, skeletons, spiders) count as danger for the villagers too
+        // (the user: villagers walked to wood with monsters beside it and died) - every 5 s, within 200 blocks
+        if (tick - wildAt >= 100 && capitolPos() != null) {
+            wildAt = tick;
+            wildPos.clear();
+            BlockPos h = capitolPos();
+            for (net.minecraft.world.entity.Mob m : bot.level.getEntitiesOfClass(net.minecraft.world.entity.Mob.class,
+                    new net.minecraft.world.phys.AABB(h).inflate(200, 64, 200), x -> x.isAlive() && x instanceof net.minecraft.world.entity.monster.Enemy && !(x instanceof Unit)))
+                wildPos.add(m.blockPosition());
+        }
         java.util.Set<Integer> aliveIds = new java.util.HashSet<>();
         for (LivingEntity e : allUnits) {
             if (!(e instanceof Unit u) || !e.isAlive()) continue;
