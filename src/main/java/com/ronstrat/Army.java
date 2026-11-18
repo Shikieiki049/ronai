@@ -2396,6 +2396,17 @@ public final class Army {
             List<LivingEntity> near = new ArrayList<>(in.enemiesNear(u.position(), 14));
             near.removeIf(e -> !sunSafe(u, e.position()));
             if (near.isEmpty()) continue;
+            // by day the burning units do not look for enemies themselves (sunGuard): one standing with no target
+            // while an enemy is in the dark within 14 blocks goes for the nearest - our own auto-aggro, never
+            // into the sun (the user asked whether day defence suffered: it did, for enemies 9-14 blocks off)
+            if (autoOff.contains(u.getId()) && u instanceof AttackerUnit && ((Unit) u).getTargetGoal().getTarget() == null) {
+                LivingEntity t = null;
+                for (LivingEntity e : near) {
+                    if (!UnitEval.isRanged(u) && e instanceof Unit eu && eu.isFlyingUnit()) continue;
+                    if (t == null || e.distanceToSqr(u) < t.distanceToSqr(u)) t = e;
+                }
+                if (t != null) { LivingEntity tt = t; order(u, () -> Orders.attack(bot.name, List.of(u), tt)); continue; }
+            }
             double range = Math.max(2.5, UnitEval.range(u));
             boolean ranged = UnitEval.isRanged(u);
 
