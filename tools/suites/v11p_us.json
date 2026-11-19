@@ -1,0 +1,45 @@
+{
+ "description": "v11 feature screen v11us",
+ "items": [
+  {
+   "name": "expert first",
+   "spec": "expert#piglins:v11us vs expert#piglins@ron readied nohandicap",
+   "us": 0,
+   "pair": "ron",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "RON bot first",
+   "spec": "expert#piglins@ron vs expert#piglins:v11us readied nohandicap",
+   "us": 1,
+   "pair": "ron",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}

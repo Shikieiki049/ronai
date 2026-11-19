@@ -1,0 +1,45 @@
+{
+ "description": "cross-faction: our villagers vs our monsters",
+ "items": [
+  {
+   "name": "villagers first",
+   "spec": "expert vs expert#monsters:ma readied nohandicap night",
+   "us": 0,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "monsters first",
+   "spec": "expert#monsters:ma vs expert readied nohandicap night",
+   "us": 1,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}

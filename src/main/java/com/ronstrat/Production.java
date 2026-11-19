@@ -169,13 +169,13 @@ public final class Production {
             boolean unitTech = !plan.villagers && bot.difficulty == Difficulty.EXPERT && r.item != plan.marketUpgrade
                     && r.item != com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_RESOURCE_CAPACITY
                     && (in.army.size() >= 8 || BuildOrder.minutes() >= 12) && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore;
-            if (unitTech) bags = true;
+            if (unitTech && bot.params.b("techSave")) bags = true;
             // ...and when it cannot be paid yet, the army leaves its price in the bank until it can (the army spent
             // every coin and the laboratory never got its husks in a 20-minute game)
             boolean techWanted = !plan.villagers && bot.difficulty == Difficulty.EXPERT && r.item != plan.marketUpgrade
                     && r.item != com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_RESOURCE_CAPACITY
                     && (in.army.size() >= 8 || BuildOrder.minutes() >= 12) && in.built(r.at) > 0 && !unitTech && techSave == null;
-            if (techWanted) techSave = c;
+            if (techWanted && bot.params.b("techSave")) techSave = c;
             // huskRush (monsters): zombies that do not burn are the day army - from the bank, first in line
             if (p.b("huskRush") && r.item == com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HUSKS
                     && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore) bags = true;
@@ -277,7 +277,8 @@ public final class Production {
                 if (u.producer != b.getBuilding()) continue;
                 // witches early (parameter witchEarly): the only healing the villagers have
                 boolean earlyWitch = u.role == FactionPlan.Role.SUPPORT && Strategy.witches(bot);
-                if (in.workers.size() < (earlyWitch ? 16 : u.minWorkers)) continue;
+                boolean evokerEarly = u.item == com.solegendary.reignofnether.building.production.ProductionItems.EVOKER && plan.villagers && bot.composition.evokerRush(in);
+                if (in.workers.size() < (earlyWitch || evokerEarly ? 16 : u.minWorkers)) continue;
                 boolean unlocked = true;
                 for (var req : u.requires) if (in.built(req) == 0) { unlocked = false; break; }
                 if (!unlocked) continue;
@@ -399,13 +400,97 @@ public final class Production {
                 + "% wraiths " + Math.round(w * 100) + "% creepers " + Math.round(c * 100) + "% slimes " + Math.round(sl * 100) + "%"); }
         Map<FactionPlan.Role, Double> m = new java.util.EnumMap<>(FactionPlan.Role.class);
         // later game (the user): spiders as mounts for the skeletons (spider jockeys) once the lair stands
-        double sp = BuildOrder.minutes() >= 15 && in.built(com.solegendary.reignofnether.building.Buildings.SPIDER_LAIR) > 0 ? 0.12 : 0;
+        double sp = bot.params.b("monsterSpiders") && BuildOrder.minutes() >= 15 && in.built(com.solegendary.reignofnether.building.Buildings.SPIDER_LAIR) > 0 ? 0.12 : 0;
         z = Math.max(0.08, z - sp);
+        // monsterArena (v11): the same-cost arena results against what the enemy fields tilt zombies (husks once
+        // researched), skeletons, creepers and spiders; wraiths and slimes keep their share (no arena data), and
+        // zombies and skeletons never drop under 8% (the user: mixed damage always)
+        if (bot.params.b("monsterArena")) {
+            boolean husks = ResearchServerEvents.playerHasResearch(bot.name, com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HUSKS);
+            double[] sc = arenaScores(es, husks);
+            if (sc != null) {
+                double[] v = { z, sk, c, sp };
+                double before = z + sk + c + sp, after = 0;
+                for (int i = 0; i < 4; i++) { v[i] *= Math.exp(sc[i] / 0.4); after += v[i]; }
+                if (after > 0) for (int i = 0; i < 4; i++) v[i] *= before / after;
+                z = Math.max(0.08, v[0]); sk = Math.max(0.08, v[1]); c = v[2]; sp = v[3];
+            }
+        }
         m.put(FactionPlan.Role.MELEE, z); m.put(FactionPlan.Role.RANGED, sk); m.put(FactionPlan.Role.CASTER, w);
         m.put(FactionPlan.Role.SIEGE, c); m.put(FactionPlan.Role.SUPPORT, sl); m.put(FactionPlan.Role.TANK, sp);
         return m;
     }
     private String counterWhy = "";
+
+    // piglins against the other factions, same cost (arena APIG1 + AVX + ANIGHT at night). Rows by role:
+    // brute (MELEE), headhunter (RANGED), magma cube (SUPPORT), ghast (SIEGE), hoglin (TANK), blaze (CASTER)
+    private static final String[] PIG_FOES = { "vindicator", "pillager", "golem", "witch", "evoker", "zombie", "husk", "skeleton", "creeper", "spider" };
+    private static final FactionPlan.Role[] PIG_ROLES = { FactionPlan.Role.MELEE, FactionPlan.Role.RANGED, FactionPlan.Role.SUPPORT,
+            FactionPlan.Role.SIEGE, FactionPlan.Role.TANK, FactionPlan.Role.CASTER };
+    private static final double[][] PIG_VALUE = {
+            { 0.206, 0.479, 0.520, 0.350, 0.0, -0.019, 0.028, 0.535, 0.033, 0.418 },      // brute
+            { -0.589, 0.373, -0.496, 0.194, 0.521, -0.668, -0.679, -0.369, 0.948, -0.375 }, // headhunter
+            { 0.107, 0.432, 0.225, 0.414, 0.301, -0.093, -0.050, 0.294, 0.095, 0.375 },    // magma cube
+            { 1.000, 0.021, 0.0, 0.0, 0.0, 1.000, 0.0, 0.640, 0.0, 0.0 },                  // ghast
+            { -0.481, 0.122, -0.427, 0.477, -0.277, -0.623, -0.652, -0.601, 0.210, -0.342 }, // hoglin
+            { -0.698, -0.508, -0.708, -0.797, 0.0, -0.568, -0.496, -0.469, 0.005, -0.495 } }; // blaze
+
+    /** piglinArena (v11): the arena tilts the piglin mix against the enemy army seen; brutes stay the core (20%+) */
+    private void piglinTilt(Intel in, Map<FactionPlan.Role, Double> m) {
+        double[] w = new double[PIG_FOES.length];
+        double tot = 0;
+        java.util.Set<Integer> seen = new java.util.HashSet<>();
+        java.util.List<LivingEntity> es = new java.util.ArrayList<>(in.visibleEnemies);
+        for (Intel.EnemyMemory em : in.enemies.values()) es.addAll(em.seenUnits.values());
+        for (LivingEntity e : es) {
+            if (!seen.add(e.getId()) || UnitEval.isWorker(e)) continue;
+            String id = e.getType().getDescriptionId();
+            String n = id.substring(id.lastIndexOf('.') + 1).replace("_unit", "").replace("iron_golem", "golem").replace("stray", "skeleton").replace("poison_spider", "spider");
+            for (int i = 0; i < PIG_FOES.length; i++) if (PIG_FOES[i].equals(n)) { w[i]++; tot++; break; }
+        }
+        if (tot < 4) return;
+        double before = 0, after = 0;
+        double[] v = new double[PIG_ROLES.length];
+        for (int k = 0; k < PIG_ROLES.length; k++) {
+            v[k] = m.getOrDefault(PIG_ROLES[k], 0.0);
+            before += v[k];
+            double sc = 0;
+            for (int i = 0; i < w.length; i++) sc += w[i] / tot * PIG_VALUE[k][i];
+            v[k] *= Math.exp(sc / 0.4);
+            after += v[k];
+        }
+        if (after <= 0) return;
+        for (int k = 0; k < PIG_ROLES.length; k++) m.put(PIG_ROLES[k], v[k] * before / after);
+        if (m.get(FactionPlan.Role.MELEE) < 0.2) m.put(FactionPlan.Role.MELEE, 0.2);
+    }
+
+    // arena ANIGHT (2026-11-19, at night), same cost, our unit's value against each enemy type (+1 = untouched)
+    private static final String[] MON_FOES = { "vindicator", "pillager", "golem", "witch", "evoker",
+            "brute", "headhunter", "hoglin", "blaze", "witherskeleton", "magmacube" };
+    private static final double[][] MON_VALUE = { // at night (arena ANIGHT: the day run had zombies and skeletons burning)
+            { 0.186, 0.610, 0.502, 1.000, -0.379, 0.089, 0.669, 0.600, 0.541, 0.802, 0.119 },     // zombie
+            { 0.110, 0.659, 0.635, 1.000, -0.293, -0.028, 0.679, 0.652, 0.496, 0.774, 0.050 },    // husk
+            { -0.466, 0.557, -0.425, 1.000, 0.301, -0.523, 0.402, 0.643, 0.488, 0.592, -0.317 },  // skeleton
+            { -0.021, -0.538, -0.296, 0.040, -0.970, -0.033, -0.948, -0.210, -0.005, -0.006, -0.095 }, // creeper
+            { -0.326, 0.486, 0.133, 0.962, -0.140, -0.418, 0.375, 0.342, 0.495, 0.650, -0.375 } };  // spider  // spider
+
+    /** zombie (or husk), skeleton, creeper, spider: cost-weighted mean arena value against the enemy army seen; null if too few seen */
+    private static double[] arenaScores(java.util.List<LivingEntity> es, boolean husks) {
+        double[] w = new double[MON_FOES.length];
+        double tot = 0;
+        java.util.Set<Integer> seen = new java.util.HashSet<>();
+        for (LivingEntity e : es) {
+            if (!seen.add(e.getId()) || UnitEval.isWorker(e)) continue;
+            String id = e.getType().getDescriptionId();
+            String n = id.substring(id.lastIndexOf('.') + 1).replace("_unit", "").replace("iron_golem", "golem").replace("wither_skeleton", "witherskeleton").replace("magma_cube", "magmacube");
+            for (int i = 0; i < MON_FOES.length; i++) if (MON_FOES[i].equals(n)) { w[i]++; tot++; break; }
+        }
+        if (tot < 4) return null;
+        double[] out = new double[4];
+        int[] rows = { husks ? 1 : 0, 2, 3, 4 };
+        for (int k = 0; k < 4; k++) { double s = 0; for (int i = 0; i < w.length; i++) s += w[i] / tot * MON_VALUE[rows[k]][i]; out[k] = s; }
+        return out;
+    }
 
     /** the enemy's mix calls for slimes: they eat each other to grow - every slime of ours gets the autocast */
     boolean slimesWanted(Intel in) { return bot.params.b("monsterCounter") && (enemyEvokers(in) || "crossbows".equals(counterWhy)); }
@@ -481,6 +566,7 @@ public final class Production {
             m.put(FactionPlan.Role.TANK, hog + wither);
             m.put(FactionPlan.Role.CASTER, blaze);
             m.put(FactionPlan.Role.MELEE, Math.max(0.2, 1 - ghast - magma - head - hog - wither - blaze));
+            if (p.b("piglinArena")) piglinTilt(in, m);
             return m;
         }
         if (!bot.plan.villagers && p.b("monsterMix")) {

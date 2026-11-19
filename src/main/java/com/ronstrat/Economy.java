@@ -243,7 +243,7 @@ public final class Economy {
             // where monsters once killed someone would otherwise be sent back again and again (on a map
             // whose woods lie past a camp, wood income stopped for minutes)
             BlockPos workAt = assignedPos.get(w.getId());
-            if (seen != Job.BUILD && in.dangerous(bot.difficulty == Difficulty.EXPERT && workAt != null ? workAt : w.blockPosition(), 20)
+            if (seen != Job.BUILD && in.dangerous(bot.difficulty == Difficulty.EXPERT && workAt != null ? workAt : w.blockPosition(), 20, false)
                     && bot.now - assignedAt.getOrDefault(w.getId(), -10000L) > 40) {
                 Orders.move(bot.name, List.of(w), in.home());
                 idle.add(w); jobs.put(w.getId(), Job.IDLE);
@@ -529,7 +529,7 @@ public final class Economy {
         // hand out jobs, neediest resource first
         // a villager that just ran from a monster is not sent straight back to the same trees (the order tracer:
         // 270 out-and-back walks a game - run home, idle, back to the wood the monster stands in, run home...)
-        idle.removeIf(w -> { long[] f = fledFrom.get(w.getId()); return f != null && bot.now - f[0] < 200; });
+        if (bot.params.b("fledCool")) idle.removeIf(w -> { long[] f = fledFrom.get(w.getId()); return f != null && bot.now - f[0] < 200; });
         fledFrom.values().removeIf(f -> bot.now - f[0] > 1200);
         for (Mob w : idle) {
             int best = -1;
@@ -662,6 +662,10 @@ public final class Economy {
     double[] desiredShares(Intel in) {
         BotParams p = bot.params;
         int n = in.workers.size();
+        if (p.b("demandEco") && n >= 14 && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks >= 6000) {
+            double[] d = demandShares(in, n);
+            if (d != null) return d;
+        }
         double food, ore;
         // early game is all about food: every villager costs food and the start gives almost none
         if (n < 8) { food = p.get("openFood"); ore = 0.0; }
@@ -670,6 +674,9 @@ public final class Economy {
         // even game: the army is vindicators (160 food) and pillagers (food + wood) - no ore at all. A human
         // mines none and puts the workers on fields; ore is only for the odd upgrade
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n >= 14) { food = Math.max(food, 0.44); ore = Math.min(ore, 0.05); }
+        // vilFood: the villagers' army is food (vindicators 160, evokers 140, witches 90) - against monsters they
+        // gathered 3000 food to the monsters' 5200 by minute 15 and their wood went into buildings
+        if (bot.plan.villagers && p.b("vilFood") && n >= 14) food = Math.max(food, p.get("vilFoodShare"));
         // ...except a few miners from minute 5: golems (50 wood + 250 ore, no food) are the army food
         // cannot pay for when the first wave comes at minute 9-10 (Snowplow: the hard AI mined 1100 ore
         // by then and brought a golem; the expert had 3-5 soldiers and lost the base)
@@ -729,7 +736,7 @@ public final class Economy {
         // rebuilding after a raid (the user: a beaten computer never recovered): the fields are gone and there is
         // no wood to put them back - most hands on wood until the fields stand again (a piglin with 21 workers on
         // hunting and 0-8 on wood kept 6 buildings and no wood for eight minutes)
-        if (com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks > 9600 && n >= 5
+        if (p.b("ecoRecovery2") && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks > 9600 && n >= 5
                 && in.built(bot.plan.farm) < 3 && in.wood < 300) {
             food = Math.min(food, 0.3);
             ore = Math.min(ore, 0.05);
@@ -742,6 +749,62 @@ public final class Economy {
             if (ore < want) { food = Math.max(0.2, food - (want - ore) * 0.6); ore = want; }
         }
         return new double[] { food, Math.max(0.1, 1 - food - ore), ore };
+    }
+
+    private long demandLog = -100000;
+
+    /**
+     * v11 economy (demandEco): workers follow what the next two minutes will cost instead of a stack of
+     * separate share rules (they fought each other: food at 0 and 945 ore banked in a lost monster game).
+     * Spending = the army (the role mix priced by each role's unit, at the rate the production buildings can
+     * train, nothing while the population is full) + the builder's top request; the gap = spending - bank,
+     * never below a tenth of the spending (income keeps flowing). Shares follow the gaps; food is capped at
+     * what the fields (and hunting) can employ - the rest cuts wood, which is what builds more fields.
+     */
+    private double[] demandShares(Intel in, int n) {
+        FactionPlan plan = bot.plan;
+        java.util.Map<FactionPlan.Role, Double> mix = bot.production.roleMix(in);
+        double[] unit = new double[3];
+        double share = 0;
+        for (java.util.Map.Entry<FactionPlan.Role, Double> e : mix.entrySet()) {
+            if (e.getValue() <= 0) continue;
+            for (FactionPlan.UnitOption u : plan.units) {
+                if (u.role != e.getKey() || in.built(u.producer) == 0) continue;
+                com.solegendary.reignofnether.resources.ResourceCost c = Production.cost(u.item);
+                unit[0] += e.getValue() * c.food; unit[1] += e.getValue() * c.wood; unit[2] += e.getValue() * c.ore;
+                share += e.getValue();
+                break;
+            }
+        }
+        if (share <= 0) return null;
+        for (int i = 0; i < 3; i++) unit[i] /= share;
+        java.util.Set<com.solegendary.reignofnether.building.Building> producers = new java.util.HashSet<>();
+        for (FactionPlan.UnitOption u : plan.units) producers.add(u.producer);
+        int prod = 0;
+        for (com.solegendary.reignofnether.building.Building b : producers) prod += in.built(b);
+        boolean full = in.pop >= in.popCap - 2 && in.popCap >= 150;
+        double units = full ? 0.5 : Math.max(1, prod) * 4.0; // about a unit per 30 s per building, two minutes
+        double[] spend = { unit[0] * units, unit[1] * units, unit[2] * units };
+        int[] build = bot.builder.reservedCost();
+        double[] bank = { in.food, in.wood, in.ore };
+        // the next building is always coming: at least a field's worth of wood is wanted
+        spend[1] += Math.max(build[1], 150);
+        spend[0] += build[0]; spend[2] += build[2];
+        double[] gap = new double[3];
+        double tot = 0;
+        for (int i = 0; i < 3; i++) { gap[i] = Math.max(0.1 * spend[i], spend[i] - bank[i]); tot += gap[i]; }
+        if (tot <= 0) return null;
+        double food = gap[0] / tot, wood = gap[1] / tot, ore = gap[2] / tot;
+        int hunt = animalsNearHome > 0 ? maxHunters(in) : 0;
+        double cap = Math.max(0.15, (in.built(plan.farm) + hunt + 1.0) / n);
+        if (food > cap) { wood += food - cap; food = cap; }
+        if (ore > 0 && ore < 0.03) { wood += ore; ore = 0; }
+        if (bot.verbose && bot.now - demandLog > 1200) {
+            demandLog = bot.now;
+            bot.log(String.format("demand: spend %.0f/%.0f/%.0f bank %.0f/%.0f/%.0f -> food %.2f wood %.2f ore %.2f (farm cap %.2f, %d producers)",
+                    spend[0], spend[1], spend[2], bank[0], bank[1], bank[2], food, wood, ore, cap, prod));
+        }
+        return new double[] { food, wood, ore };
     }
 
     private static double clamp(double x) { return Math.max(-1, Math.min(1, x)); }
@@ -805,6 +868,8 @@ public final class Economy {
         if (bot.now - farGameAt > 600) { farGameAt = bot.now; farGame = countAnimals(in, bot.params.get("huntFarBox")); }
         return farGame >= 4 ? bot.params.get("huntFarBox") : 36;
     }
+
+    private boolean gameListed;
 
     private int countAnimals(Intel in, double r) {
         BlockPos h = in.home();
@@ -1274,6 +1339,15 @@ public final class Economy {
         sb.append(" | wood: ").append(budget(0)).append(standText()).append(" leaves ").append(100 * leafSamples / Math.max(1, leafSamples + logSamples)).append("%")
                 .append(" | farm: ").append(budget(1));
         leafSamples = logSamples = 0;
+        if (bot.verbose && !gameListed && bot.now > 200) {
+            gameListed = true;
+            BlockPos h = in.home();
+            StringBuilder g = new StringBuilder();
+            for (Animal a : bot.level.getEntitiesOfClass(Animal.class, new AABB(h).inflate(60, 64, 60), a -> a.isAlive() && !(a instanceof Unit)))
+                g.append(' ').append(a.getType().toShortString()).append('@').append((int) Math.sqrt(a.blockPosition().distSqr(h))).append("dy").append(a.getBlockY() - h.getY())
+                        .append(ResourceSources.isHuntableAnimal(a) ? "" : "(no)");
+            bot.log("animals within 60 (any height):" + g);
+        }
         sb.append(" | game within 40/80/120/200: ").append(countAnimals(in, 40)).append('/').append(countAnimals(in, 80)).append('/')
                 .append(countAnimals(in, 120)).append('/').append(countAnimals(in, 200));
         bot.log(sb.toString());

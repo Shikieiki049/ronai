@@ -1,0 +1,39 @@
+{
+ "description": "monsters, losing maps, profile mo0",
+ "items": [
+  {
+   "name": "expert first",
+   "spec": "expert#monsters:mo0 vs expert#monsters@ron readied nohandicap night",
+   "us": 0,
+   "pair": "ron",
+   "maps": [
+    "Berlingrad_Classic",
+    "Mirs_Landing",
+    "Snowplow",
+    "Post-Youth"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "RON bot first",
+   "spec": "expert#monsters@ron vs expert#monsters:mo0 readied nohandicap night",
+   "us": 1,
+   "pair": "ron",
+   "maps": [
+    "Berlingrad_Classic",
+    "Mirs_Landing",
+    "Snowplow",
+    "Post-Youth"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}

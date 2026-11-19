@@ -33,6 +33,39 @@ final class Composition {
     private static final double[] PRIOR = { 3, 3, 1, 1, 1, 1, 0.5 };
     private static double[][] matrix;
 
+    /** the other factions' soldiers as enemy columns (arena AVX + ANIGHT, 2026-11-19: our units against the same cost of
+     *  theirs, both orientations, 4 fights each, at night). Before this a zombie counted as a vindicator, so
+     *  the planner never asked for evokers against monsters - the one unit of ours that beats zombies and husks. Rows: vindicator, pillager, golem, witch, evoker. */
+    static final String[] FOREIGN = { "zombie", "husk", "skeleton", "creeper", "spider", "brute", "headhunter", "hoglin", "blaze", "witherskeleton", "magmacube" };
+    private static final double[][] FOREIGN_VALUE = {
+            // zombie, husk, skeleton, creeper, spider: the night re-run (arena ANIGHT); piglins: arena AVX
+            //  zomb   husk   skel  creep  spid  brute  head   hog  blaze  wither magma
+            { -0.186, -0.110, 0.466, 0.021, 0.326, -0.158, 0.567, 0.491, 0.664, 0.463, 0.019 },  // vindicator
+            { -0.610, -0.659, -0.557, 0.538, -0.486, -0.661, -0.376, -0.019, 0.480, -0.019, -0.473 }, // pillager
+            { -0.502, -0.635, 0.425, 0.296, -0.133, -0.520, 0.496, 0.427, 0.708, -0.448, -0.225 },  // golem
+            { -1.000, -1.000, -1.000, -0.040, -0.962, -0.350, -0.194, -0.477, 0.797, -1.000, -0.414 }, // witch
+            { 0.379, 0.293, -0.301, 0.970, 0.140, 0.0, -0.521, 0.277, 0.0, 0.263, -0.301 },       // evoker
+            new double[11], new double[11] };
+    private static final double[] FOREIGN_COST = { 75, 75, 95, 160, 120, 120, 150, 210, 180, 325, 120, };
+
+    /** a soldier of another faction as a FOREIGN column, or -1 */
+    static int foreign(LivingEntity e) {
+        String id = e.getType().getDescriptionId(); // entity.reignofnether.zombie_unit
+        int dot = id.lastIndexOf('.');
+        String n = (dot >= 0 ? id.substring(dot + 1) : id).replace("_unit", "");
+        switch (n) {
+            case "stray": n = "skeleton"; break;
+            case "poison_spider": n = "spider"; break;
+            case "wither_skeleton": n = "witherskeleton"; break;
+            case "magma_cube": n = "magmacube"; break;
+            default: break;
+        }
+        for (int i = 0; i < FOREIGN.length; i++) if (FOREIGN[i].equals(n)) return i;
+        return -1;
+    }
+    private final double[] seenF = new double[FOREIGN.length];
+    private double[] lastQF = new double[FOREIGN.length];
+
     private final Bot bot;
     private final double[] seen = new double[UNITS.length]; // cost-weighted enemy army, fading
     private long lastFade;
@@ -97,17 +130,25 @@ final class Composition {
     double[] enemyMix(Intel in) {
         if (bot.now - lastFade >= 200) { // every 10 s keep 95%: half-life about 2.3 minutes
             for (int i = 0; i < seen.length; i++) seen[i] *= 0.95;
+            for (int i = 0; i < seenF.length; i++) seenF[i] *= 0.95;
             lastFade = bot.now;
         }
         double[] now = new double[UNITS.length];
+        double[] nowF = new double[FOREIGN.length];
+        boolean fc = bot.params.b("foreignComp");
         for (LivingEntity e : in.visibleEnemies) {
+            int f = fc && !UnitEval.isWorker(e) ? foreign(e) : -1;
+            if (f >= 0) { nowF[f] += FOREIGN_COST[f]; continue; }
             int i = index(e);
             if (i >= 0) now[i] += COST[i];
         }
         // what is in sight now is at least what we know
         for (int i = 0; i < seen.length; i++) seen[i] = Math.max(seen[i], now[i]);
+        for (int i = 0; i < seenF.length; i++) seenF[i] = Math.max(seenF[i], nowF[i]);
         double total = 0;
         for (double v : seen) total += v;
+        for (double v : seenF) total += v;
+        for (int i = 0; i < seenF.length; i++) lastQF[i] = total > 0 ? seenF[i] / total * Math.min(1, total / 1500.0) : 0;
         double[] q = new double[UNITS.length];
         double priorW = Math.max(0, 1 - total / 1500.0); // the prior fades out as ~10 soldiers are seen
         double pt = 0;
@@ -127,6 +168,7 @@ final class Composition {
         for (int a = 0; a < UNITS.length; a++) {
             double s = 0;
             for (int b = 0; b < UNITS.length; b++) s += q[b] * m[a][b];
+            for (int f = 0; f < FOREIGN.length; f++) s += lastQF[f] * FOREIGN_VALUE[a][f];
             lastScores[a] = s;
             if (!allowed(a, in)) continue;
             if (in.built(producer(a)) == 0) s -= techCost;
@@ -140,7 +182,36 @@ final class Composition {
             lastShares[a] = share;
             out.merge(ROLE[a], share, Double::sum);
         }
+        // evokerVsMon: against zombie and husk seas the night arena's best mix - vindicators in front, a third evokers
+        if (evokerRush(in)) {
+            out.clear();
+            // ...and witches: the only healing the villagers' soldiers have (the user)
+            out.put(FactionPlan.Role.MELEE, 0.52);
+            out.put(FactionPlan.Role.CASTER, 0.33);
+            out.put(FactionPlan.Role.SUPPORT, 0.15);
+        }
         return out;
+    }
+
+    /** evokerVsMon and the enemy fields monsters (3 or more of their soldiers seen) */
+    boolean evokerRush(Intel in) {
+        if (!bot.params.b("evokerVsMon")) return false;
+        if (monSeen) return true;
+        monSeen = monsters(in);
+        return monSeen;
+    }
+
+    /** once seen it stays: the enemy is a monster player (Strategy.witches brings the witch hut in) */
+    boolean monSeen;
+
+    static boolean monsters(Intel in) {
+        int n = 0;
+        for (Intel.EnemyMemory em : in.enemies.values())
+            for (LivingEntity e : em.seenUnits.values())
+                if (e.getClass().getName().contains(".units.monsters.") && ++n >= 3) return true;
+        for (LivingEntity e : in.visibleEnemies)
+            if (e.getClass().getName().contains(".units.monsters.") && ++n >= 3) return true;
+        return false;
     }
 
     /** a unit the planner may ask for: barracks units always, the others once the economy can carry the tech */
@@ -150,7 +221,7 @@ final class Composition {
             case 0, 1 -> true;
             case 2 -> workers >= 14;
             case 3 -> workers >= 18;
-            case 4 -> workers >= 24;
+            case 4 -> workers >= (evokerRush(in) ? 16 : 24);
             case 5 -> workers >= 32;
             default -> false; // windcallers: we never train them
         };

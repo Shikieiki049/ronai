@@ -132,13 +132,18 @@ public final class Intel {
             BlockPos p = BlockPos.containing(from.getX() + dx * t, from.getY() + (to.getY() - from.getY()) * t, from.getZ() + dz * t);
             double r2 = r * r;
             for (BlockPos n : neutralPos.values()) if (n.distSqr(p) <= r2) return true;
-            for (BlockPos n : wildPos) if (n.distSqr(p) <= r2) return true;
+            for (BlockPos n : wildPos) if (n.distSqr(p) <= 8 * 8) return true;
             for (BlockPos n : deathSpots.keySet()) if (n.distSqr(p) <= r2) return true;
         }
         return false;
     }
 
-    public boolean dangerous(BlockPos p, double r) {
+    public boolean dangerous(BlockPos p, double r) { return dangerous(p, r, true); }
+
+    /** wild = also the plain Minecraft monsters of the night (choosing a work spot: yes; pulling a worker
+     *  off its spot or cancelling a site: no - on a night map they walk everywhere, workers were sent home
+     *  over and over and the whole economy stood still, M7base10 Cabana) */
+    public boolean dangerous(BlockPos p, double r, boolean wild) {
         if (bot.difficulty != Difficulty.EXPERT) return false; // the lower tiers stay as naive as they were
         double r2 = r * r;
         // a monster merely seen: keep a small berth only - a wide one once monsters have been killing villagers
@@ -146,7 +151,7 @@ public final class Intel {
         double cap = 18;
         double rn = Math.min(r, cap) * Math.min(r, cap);
         for (BlockPos n : neutralPos.values()) if (n.distSqr(p) <= rn) return true;
-        for (BlockPos n : wildPos) if (n.distSqr(p) <= rn) return true;
+        if (wild) for (BlockPos n : wildPos) if (n.distSqr(p) <= 10 * 10) return true;
         for (BlockPos n : deathSpots.keySet()) if (n.distSqr(p) <= r2) return true;
         // a camp too strong for our soldiers stays dangerous after its memory fades, until it is cleared
         if (bot.army != null && bot.army.nearStrongCamp(p, Math.max(r, 22))) return true;
@@ -242,7 +247,7 @@ public final class Intel {
             BlockPos h = capitolPos();
             for (net.minecraft.world.entity.Mob m : bot.level.getEntitiesOfClass(net.minecraft.world.entity.Mob.class,
                     new net.minecraft.world.phys.AABB(h).inflate(200, 64, 200), x -> x.isAlive() && x instanceof net.minecraft.world.entity.monster.Enemy && !(x instanceof Unit)))
-                wildPos.add(m.blockPosition());
+                if (m.blockPosition().distSqr(h) > 32 * 32) wildPos.add(m.blockPosition()); // home is never "dangerous"
         }
         java.util.Set<Integer> aliveIds = new java.util.HashSet<>();
         for (LivingEntity e : allUnits) {

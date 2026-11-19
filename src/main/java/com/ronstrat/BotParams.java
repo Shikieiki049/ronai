@@ -164,21 +164,21 @@ public final class BotParams {
         p.put("monsterLean",                0,     0,      0,     0);   // monsters: only catalysts, fields, graveyards, altar, laboratory until the bank floats
         p.put("fightIdle",                  0,     0,      0,     0);   // a soldier standing without a target near enemies: the nearest one at once
         p.put("nightPlan",                  0,     0,      0,     1);   // monsters: attack by night, home before dawn, burning units inside the night by day
-        p.put("huskRush",                   0,     0,      0,     1);   // monsters: the laboratory early, husks from the bank
+        p.put("huskRush",                   0,     0,      0,     0);   // monsters: the laboratory early, husks from the bank
         p.put("monsterOpenWood",            0,     0,      0,     0);   // monsters: this share of workers on wood until monsterOpenFields fields stand
         p.put("monsterOpenFields",          4,     4,      4,     4);
-        p.put("creeperMicro",               0,     0,      1,     1);   // creepers walk at the thickest knot of enemies and blow up when creeperBlast are in reach
+        p.put("creeperMicro",               0,     0,      0,     0);   // creepers walk at the thickest knot of enemies and blow up when creeperBlast are in reach
         p.put("creeperBlast",               3,     3,      3,     3);
-        p.put("bigArmyGo",                  0,     0,      0,     1);   // 20+ soldiers: a weak raid gets a detachment, the rest still attacks; monsters attack first by night
-        p.put("expandOut",                  0,     0,      1,     1);   // catalysts and piglin portals fan out expandDist from home: more ground (the user)
+        p.put("bigArmyGo",                  0,     0,      0,     0);   // 20+ soldiers: a weak raid gets a detachment, the rest still attacks; monsters attack first by night
+        p.put("expandOut",                  0,     0,      0,     0);   // catalysts and piglin portals fan out expandDist from home: more ground (the user)
         p.put("expandDist",                 24,    24,     24,    24);
         p.put("piglinMix",                  1,     1,      1,     1);   // piglins: brutes + magma cubes + headhunters (+ ghasts), from the arena
         p.put("pigMagma",                   0.2,   0.2,    0.2,   0.2);
         p.put("pigHead",                    0.18,  0.18,   0.18,  0.18);
         p.put("pigGhast",                   0.3,   0.3,    0.3,   0.3);
         p.put("monsterCounter",             1,     1,      1,     1);   // monsters: wraith core + zombies/skeletons, countered to the enemy's army (the user's rules)
-        p.put("monsterOre",                 0.2,   0.2,    0.2,   0.2);   // monsters: miners share once the dungeon stands (wraiths, creepers cost ore)
-        p.put("darkPath",                   0,     0,      1,     1);   // monsters: catalysts along the way to allies and the enemy (the user)
+        p.put("monsterOre",                 0,     0,      0,     0);   // monsters: miners share once the dungeon stands (wraiths, creepers cost ore)
+        p.put("darkPath",                   0,     0,      0,     0);   // monsters: catalysts along the way to allies and the enemy (the user)
         p.put("darkPathMax",                8,     8,      8,     8);
         p.put("monsterMix",                 0,     0,      0,     0);   // monsters: zombies tank, skeletons damage, creepers strike (shares below)
         p.put("mixZombie",               0.45,  0.45,   0.45,  0.45);  // share of army population: zombies / husks in front
@@ -258,6 +258,24 @@ public final class BotParams {
         p.put("econPhase2",                 0,     0,      0,     0);    // after the opening: workers by need (fields, miners for armour, rest wood)
         p.put("econWorkers",                0,     0,      0,     34);   // ...and the villager count the army phase stops at
         p.put("phase2Ore",                  0,     0,      0,     0.15); // ...share of gatherers mining once a blacksmith stands
+        p.put("heroPull",                    0,     0,      0,     0);   // v11 rollback: off as at build218, back one at a time after A/B
+        p.put("captureNeutral",              0,     0,      0,     0);   // v11 rollback: off as at build218, back one at a time after A/B
+        p.put("scoutFlee",                   0,     0,      0,     0);   // v11 rollback: off as at build218, back one at a time after A/B
+        p.put("woundedHome",                 0,     0,      0,     0);   // v11 rollback: off as at build218, back one at a time after A/B
+        p.put("techSave",                    0,     0,      0,     0);   // v11 rollback: off as at build218, back one at a time after A/B
+        p.put("extraBarracks",               0,     0,      0,     0);   // v11 rollback: off as at build218, back one at a time after A/B
+        p.put("stockCap",                    0,     0,      0,     0);   // v11 rollback: off as at build218, back one at a time after A/B
+        p.put("fledCool",                    0,     0,      0,     0);   // v11 rollback: off as at build218, back one at a time after A/B
+        p.put("ecoRecovery2",                0,     0,      0,     0);   // v11 rollback: off as at build218, back one at a time after A/B
+        p.put("monsterSpiders",              0,     0,      0,     0);   // v11 rollback: off as at build218, back one at a time after A/B
+        p.put("demandEco",                  0,     0,      0,     0);   // v11: workers follow the next two minutes' spending (Economy.demandShares)
+        p.put("monsterArena",               0,     0,      0,     0);   // v11: arena values tilt the monster mix against the enemy seen
+        p.put("piglinArena",                0,     0,      0,     0);   // v11: arena values tilt the piglin mix against the enemy seen
+        p.put("foreignComp",                0,     0,      0,     0);    // the composition planner knows the other factions' soldiers (arena AVX)
+        p.put("evokerVsMon",                0,     0,      0,     0);    // villagers vs monsters: arcane tower right after the barracks, vindicators 2 : evokers 1 (night arena: +0.31 vs zombies, +0.24 vs husks)
+        p.put("vilFood",                    0,     0,      0,     0);    // villagers: food share at least vilFoodShare from 14 workers
+        p.put("dayStrike",                  0,     0,      0,     0);    // non-burning factions vs monsters: attack by day only, home at nightfall
+        p.put("vilFoodShare",               0.55,  0.55,   0.55,  0.55);
         p.put("composition",                0,     0,      0,     1);    // army shares from the arena's unit matrix (Composition)
         p.put("compTemp",                   0.15,  0.15,   0.15,  0.15); // softmax temperature: lower = more of the single best unit
         p.put("compTech",                   0.10,  0.10,   0.10,  0.10); // score discount of a unit whose building we lack
@@ -326,12 +344,12 @@ public final class BotParams {
         p.put("pullWorkersToDefend",        0,     0,      0,     0);    // town bell: OFF - RON 1.5.1b and 1.5.1c duplicate villagers on call-to-arms, the AI must not exploit it
         p.put("focusFire",                  0,     0,      1,     1);
         p.put("spreadFire",                 0,     0,      1,     1);   // focus fire without overkill: enough damage on a target already -> the next one
-        p.put("returnFire",                 0,     0,      1,     1);   // hit on the way: strike back at the attacker in reach (the user)
-        p.put("noStage",                    0,     0,      1,     1);   // no gathering spot before an attack (the user)
-        p.put("unstick",                    0,     0,      1,     1);   // a stuck soldier or hero is led round by our own route (the user)
+        p.put("returnFire",                 0,     0,      0,     0);   // hit on the way: strike back at the attacker in reach (the user)
+        p.put("noStage",                    0,     0,      0,     0);   // no gathering spot before an attack (the user)
+        p.put("unstick",                    0,     0,      0,     0);   // a stuck soldier or hero is led round by our own route (the user)
         p.put("avoidResources",             1,     1,      1,     1);   // no building on top of logs, ore, mushrooms, hay... (the user)
-        p.put("unitSkills",                 0,     0,      1,     1);   // soldiers use their own skills: shields, clouds, fear, firewall, webs, mounts (the user)
-        p.put("militiaCall",                0,     0,      1,     1);   // villagers attacked run to the town centre and take up arms (the user)
+        p.put("unitSkills",                 0,     0,      0,     0);   // soldiers use their own skills: shields, clouds, fear, firewall, webs, mounts (the user)
+        p.put("militiaCall",                0,     0,      0,     0);   // villagers attacked run to the town centre and take up arms (the user)
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);
         p.put("targetWeakest",              0,     0,      1,     1);    // in FFA / 1vN pick the most profitable enemy, not the nearest

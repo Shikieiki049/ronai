@@ -122,7 +122,7 @@ public final class Builder {
             // not one for every new stand of trees (the user: 19 stockpiles in a monster game): at most one per four
             // woodcutters (4 at least) - beyond that only when the carriers really cannot deliver
             int woodcutters = bot.economy.counts.getOrDefault(Economy.Job.WOOD, 0);
-            boolean stockFull = (plan.portals ? in.popCap >= 150 : in.total(plan.stockpile) >= Math.max(4, woodcutters / 4))
+            boolean stockFull = p.b("stockCap") && (plan.portals ? in.popCap >= 150 : in.total(plan.stockpile) >= Math.max(4, woodcutters / 4))
                     && bot.now - bot.economy.deliveryTrouble > 2400;
             if (capitolUp && !stockFull && bot.economy.stockpileWanted != null && in.total(plan.stockpile) - in.built(plan.stockpile) == 0
                     && workers >= 4 && !dropSiteNear(in, bot.economy.stockpileWanted, 12)) {
@@ -171,7 +171,7 @@ public final class Builder {
                     : Math.min(p.i("maxBarracks"), 1 + (workers - firstAt) / Math.max(1, p.i("barracksPerWorkers")));
             // money piling up with room for an army and every barracks busy (the user: late game lots of money, no
             // army): more barracks, past maxBarracks, up to 10
-            if (bot.difficulty == Difficulty.EXPERT && in.food + in.wood + in.ore > 800 && in.popCap - in.pop >= 10 && barracks >= wantBarracks
+            if (bot.difficulty == Difficulty.EXPERT && p.b("extraBarracks") && in.food + in.wood + in.ore > 800 && in.popCap - in.pop >= 10 && barracks >= wantBarracks
                     && barracks < 10 && allBarracksBusy(in)) wantBarracks = barracks + 1;
             // production buildings are useless without the food to feed them
             wantBarracks = Math.min(wantBarracks, 1 + in.built(plan.farm) / 3);
@@ -353,6 +353,11 @@ public final class Builder {
             }
         }
 
+        // evokerVsMon: against monsters the arcane tower comes right after the first barracks (it came at minute
+        // 15-30, after the zombie sea had already won)
+        if (plan.villagers && bot.composition.evokerRush(in) && in.built(plan.barracks) > 0 && workers >= 16
+                && in.total(com.solegendary.reignofnether.building.Buildings.ARCANE_TOWER) == 0)
+            reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.ARCANE_TOWER, 92, home, 12, 30));
         // the composition planner's tech: the building of a unit that beats what we can train
         if (plan.villagers && p.b("composition") && bot.difficulty == Difficulty.EXPERT && in.built(plan.barracks) > 0 && workers >= 18) {
             Building tech = bot.composition.techWanted(in);
@@ -396,7 +401,7 @@ public final class Builder {
         reqs.removeIf(r -> r.building == null); // a building this faction does not have (piglins: no tower)
         // population at RON's cap (150): no more houses for population (22 piglin portals in one game) - a dark
         // path catalyst or a portal for nether ground (priority 99+) still goes up
-        if (in.popCap >= 150) reqs.removeIf(r -> r.building == plan.house && r.priority < 99);
+        if (in.popCap >= 150 && p.b("stockCap")) reqs.removeIf(r -> r.building == plan.house && r.priority < 99);
         reqs.sort((a, b) -> Double.compare(b.priority, a.priority));
         reserved = null;
         note = reqs.isEmpty() ? "nothing wanted" : "";
@@ -808,7 +813,7 @@ public final class Builder {
     private void cancelStalledSites(Intel in) {
         for (BuildingPlacement b : new ArrayList<>(in.own)) {
             if (b.isBuilt || b.isDestroyedServerside) { siteProgress.remove(b.originPos); continue; }
-            if (bot.difficulty == Difficulty.EXPERT && !b.isCapitol && in.dangerous(b.centrePos, 14)) {
+            if (bot.difficulty == Difficulty.EXPERT && !b.isCapitol && in.dangerous(b.centrePos, 14, false)) {
                 siteProgress.remove(b.originPos);
                 badSpots.add(b.originPos);
                 bot.log("cancel " + name(b.getBuilding()) + " at " + b.originPos.toShortString() + ": monsters there");

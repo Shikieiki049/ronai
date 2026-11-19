@@ -230,12 +230,12 @@ public final class Army {
         if (mode == Mode.DEFEND) mode = Mode.GATHER;
         // heroes level from the moment they are out (the user): pulled monsters one at a time, whatever the
         // rest of the army does - not in an attack; by day too, monsters included: they heal at home, in the dark
-        if (mode != Mode.ATTACK) heroPull(in);
+        if (mode != Mode.ATTACK && bot.params.b("heroPull")) heroPull(in);
         if (mode != Mode.ATTACK) creeperRaid(in);
         bridgeAhead(in);
         sunGuard(in);
         if (mode != Mode.ATTACK && allyDefence(in)) return;
-        if (mode == Mode.GATHER) captureNeutral(in);
+        if (mode == Mode.GATHER && bot.params.b("captureNeutral")) captureNeutral(in);
 
         if (mode == Mode.RETREAT) {
             if (bot.now < retreatUntil) { gather(in); return; }
@@ -670,6 +670,13 @@ public final class Army {
         return firstAttackJitter;
     }
 
+    /** dayStrike: we do not play by the night ourselves, the enemy is a monster player, and the clock turns */
+    private boolean dayStrike(Intel in) {
+        if (!bot.params.b("dayStrike") || !bot.plan.nightSources.isEmpty()) return false;
+        if (!bot.level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DAYLIGHT)) return false;
+        return Composition.monsters(in);
+    }
+
     private boolean shouldAttack(Intel in) {
         BotParams p = bot.params;
         double secs = PlayerServerEvents.rtsGameTicks / 20.0;
@@ -686,6 +693,19 @@ public final class Army {
             if (near < 1e9 && bot.night.day() && darkCorridor(in)) near = 1e9;
             if (near < 1e9 && !bot.night.attackWindow(attackForce(in), near)) {
                 whyNot(in, "night window: " + (bot.night.day() ? "day" : (bot.night.nightLeft() / 20) + " s of night left") + ", burning " + String.format("%.2f", NightPlan.burnShare(attackForce(in))) + ", enemy " + (int) near + " blocks");
+                return false;
+            }
+        }
+        // dayStrike: against monsters a non-burning army goes out by day - their zombies and skeletons sit in the
+        // dark at home or burn - and only when the day covers the march there and the fight
+        if (dayStrike(in)) {
+            double near = 1e9;
+            for (Intel.EnemyMemory em : in.enemies.values()) {
+                BlockPos b = em.alive ? em.anyBuilding() : null;
+                if (b != null) near = Math.min(near, Math.sqrt(b.distSqr(in.home())));
+            }
+            if (near < 1e9 && (!bot.night.day() || bot.night.untilDusk() < NightPlan.walkTicks(near) + p.get("nightFightTicks"))) {
+                whyNot(in, "day strike: " + (bot.night.day() ? (bot.night.untilDusk() / 20) + " s of day left" : "night") + ", enemy " + (int) near + " blocks");
                 return false;
             }
         }
@@ -1074,6 +1094,15 @@ public final class Army {
         // monsters: home before the dawn burns the army on the open field (NightPlan)
         if (bot.night.on() && bot.night.mustReturn(attackForce(in), in.home())) {
             bot.log("dawn coming (" + bot.night.nightLeft() / 20 + " s of night left): the army goes home");
+            endAttack();
+            mode = Mode.RETREAT;
+            retreatUntil = bot.now + 600;
+            Orders.move(bot.name, attackForce(in), in.home());
+            return;
+        }
+        // dayStrike: night falls - the monsters come out; home before it
+        if (dayStrike(in) && !bot.night.day()) {
+            bot.log("day strike: night falls, the army goes home");
             endAttack();
             mode = Mode.RETREAT;
             retreatUntil = bot.now + 600;
@@ -2261,7 +2290,8 @@ public final class Army {
         // no hero levelling, no guard post out by the woodcutters
         boolean sunUp = bot.night.on() && bot.night.day(); // by day the whole army waits in the dark at home
         if (!sunUp && clearNeutrals(in)) return;
-        // (the heroes level by themselves: heroPull, called from think)
+        // (the heroes level by themselves: heroPull, called from think - or the build218 camp hunt with it off)
+        if (!bot.params.b("heroPull")) { if (!sunUp) heroCreep(in); else creeping.clear(); }
         harass(in);
         BlockPos r = !sunUp && bot.difficulty == Difficulty.EXPERT && bot.params.b("rallyGuard") ? guardPoint(in) : rally(in);
         java.util.Set<Integer> visiting = upgradeVisits;
@@ -2348,7 +2378,7 @@ public final class Army {
         LivingEntity threat = null;
         for (LivingEntity e : in.enemiesNear(s.position(), 14)) if (!UnitEval.isWorker(e)) { threat = e; break; }
         if (threat == null) for (LivingEntity n : in.neutrals) if (n.distanceToSqr(s) < 14 * 14) { threat = n; break; }
-        if (threat != null) {
+        if (threat != null && bot.params.b("scoutFlee")) {
             if (bot.now - lastScoutFlee > 20) {
                 lastScoutFlee = bot.now;
                 Vec3 away = s.position().subtract(threat.position());
@@ -2499,7 +2529,7 @@ public final class Army {
                 continue;
             }
             // very hurt: this one soldier goes home to heal, alone - the rest fight on (the user); back at 60%
-            if (save && !(u instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit) && u.getHealth() < u.getMaxHealth() * 0.25) {
+            if (save && bot.params.b("woundedHome") && !(u instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit) && u.getHealth() < u.getMaxHealth() * 0.25) {
                 if (woundedHome.add(u.getId()) && bot.verbose) bot.log("wounded " + u.getType().toShortString() + " (" + (int) u.getHealth() + " hp) goes home to heal");
             }
             if (woundedHome.contains(u.getId())) {

@@ -81,6 +81,10 @@ final class ArenaTest {
                 if (index >= lines.size()) return true;
                 String[] f = lines.get(index).split("\\|");
                 sideA.clear(); sideB.clear();
+                // every fight at midnight with the clock stopped: by day zombies and skeletons burned in the sun
+                // and husks did not - the same unit on paper came out +0.6 better (the user caught it)
+                level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DAYLIGHT).set(false, level.getServer());
+                level.setDayTime(18000);
                 spawn(level, f[1].trim(), ownerA, -1, sideA);
                 spawn(level, f[2].trim(), ownerB, +1, sideB);
                 hpA0 = hp(sideA); hpB0 = hp(sideB);
@@ -258,6 +262,7 @@ final class ArenaTest {
         String[] parts = side.split("\\s+");
         EquipAbility armour = null;
         List<EnchantAbility> enchants = new ArrayList<>();
+        boolean piercing = false;
         for (int i = 1; i < parts.length; i++) {
             ProductionItem r = research(parts[i]);
             if (r != null) ResearchServerEvents.addResearch(owner, r); // before the units exist: they read it when created
@@ -268,6 +273,7 @@ final class ArenaTest {
             else if (parts[i].equals("quickcharge")) enchants.add(new com.solegendary.reignofnether.ability.abilities.EnchantQuickCharge());
             else if (parts[i].equals("multishot")) enchants.add(new com.solegendary.reignofnether.ability.abilities.EnchantMultishot());
             else if (parts[i].equals("vigor")) enchants.add(new com.solegendary.reignofnether.ability.abilities.EnchantVigor());
+            else if (parts[i].equals("piercing")) piercing = true;   // the enchanter hero's Martial Enchantment on pillagers: Piercing I
             else throw new IllegalArgumentException("arena: unknown option " + parts[i]);
         }
         int n = 0;
@@ -283,6 +289,8 @@ final class ArenaTest {
                 if (m instanceof Unit u2) u2.setupEquipmentAndUpgradesServer();
                 if (armour != null && armour.isCorrectUnit((LivingEntity) m)) m.setItemSlot(armour.equipmentSlot, new ItemStack(armour.item));
                 for (EnchantAbility en : enchants) if (en.isCorrectUnitAndEquipment(m)) DO_ENCHANT.invoke(en, m);
+                if (piercing && m instanceof com.solegendary.reignofnether.unit.units.villagers.PillagerUnit && !m.getMainHandItem().isEmpty())
+                    m.getMainHandItem().enchant(net.minecraft.world.item.enchantment.Enchantments.PIERCING, 1);
                 into.add(m);
             }
         }

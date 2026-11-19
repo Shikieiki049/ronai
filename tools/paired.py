@@ -27,13 +27,18 @@ def load(arg):
         # our side: the one that is not RON's bot; in a mirror (both ours) the first side counts as "us"
         us = next((i for i, s in enumerate(sides) if "@ron" not in s.split()[0]), 0)
         if sum("@ron" not in s.split()[0] for s in sides) == len(sides):
-            us = 0
+            # both ours: in a cross-faction game the villagers (no "#faction") are "us", whichever seat they
+            # have - the seat is in the key, so "villagers first" and "monsters first" stay two games
+            plain = [i for i, s in enumerate(sides) if "#" not in s.split()[0]]
+            mons = [i for i, s in enumerate(sides) if "#monsters" in s.split()[0]]
+            us = plain[0] if len(plain) == 1 else mons[0] if len(mons) == 1 else 0  # else monsters vs piglins: the monsters
         w = r.get("winnerTeam")
         if r.get("timeout") or w is None or w < 0:
             score = 0.5
         else:
             score = 1.0 if w == us else 0.0
-        out[(r.get("arena"), r.get("seed"), us)] = score
+        first = sides[0].split()[0].split(":")[0].split("@")[0]  # the first seat's faction (profiles differ between A and B)
+        out[(r.get("arena"), r.get("seed"), us, first)] = score
     return out
 
 

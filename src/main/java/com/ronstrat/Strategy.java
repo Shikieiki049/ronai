@@ -36,7 +36,7 @@ final class Strategy {
     }
 
     static boolean witches(Bot bot) {
-        return bot.plan.villagers && bot.difficulty == Difficulty.EXPERT && (bot.params.b("witchEarly") || (even(bot) && route(bot) == WITCHES) || meleeHeavyFoe(bot));
+        return bot.plan.villagers && bot.difficulty == Difficulty.EXPERT && (bot.params.b("witchEarly") || (even(bot) && route(bot) == WITCHES) || meleeHeavyFoe(bot) || bot.composition.monSeen);
     }
 
     /**
