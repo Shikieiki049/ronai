@@ -298,6 +298,21 @@ public final class BotParams {
         p.put("vilFood",                    0,     0,      0,     0);    // villagers: food share at least vilFoodShare from 14 workers
         p.put("dayStrike",                  0,     0,      0,     0);    // non-burning factions vs monsters: attack by day only, home at nightfall
         p.put("fieldsAlways",               0,     0,      0,     0);    // v12: the user's field curve under threat too, a field ahead of barracks when 2 behind
+        p.put("vilWoodArmy",                0,     0,      0,     0);    // villagers vs monsters: vindicators 45%, pillagers 40%, witches 15%
+        p.put("nightHold",                  0,     0,      0,     0);    // vs monsters at night the army fights only at our buildings
+        p.put("foodCap",                    0,     0,      0,     0);    // food workers at most built fields + hunters (+2 when short); the rest on wood
+        p.put("combatModel",                0,     0,      0,     0);    // v13: decisions by the arena-fitted combat model (CombatModel)
+        p.put("modelPower",                 0,     0,      0,     0);    // every UnitEval.power by the model (first try: worse)
+        p.put("modelAttackMin",             -0.1,  -0.1,   -0.1,  -0.1); // combatModel: no attack the model forecasts below this
+        p.put("modelPressure",              0,     0,      0,     0);    // v13: attack before attackMinArmyPop when the model calls the fight clearly won
+        p.put("pressureMinPop",             15,    15,     15,    15);
+        p.put("pressureForecast",           0.3,   0.3,    0.3,   0.3);
+        p.put("noTrickle",                  0,     0,      0,     0);    // v13: reinforcements set out for the army only in groups of trickleGroup
+        p.put("modelComp",                  0,     0,      0,     0);    // v13: villager army mix by the combat model
+        p.put("modelCompTemp",              0.15,  0.15,   0.15,  0.15);
+        p.put("modelWitchFloor",            0.12,  0.12,   0.12,  0.12);
+        p.put("trickleGroup",               4,     4,      4,     4);
+        p.put("fleeScoutIgnore",            0,     0,      0,     0);    // woodcutters do not run from scouts (vs RON -5.3%: off)
         p.put("vilFoodShare",               0.55,  0.55,   0.55,  0.55);
         p.put("composition",                0,     0,      0,     1);    // army shares from the arena's unit matrix (Composition)
         p.put("compTemp",                   0.15,  0.15,   0.15,  0.15); // softmax temperature: lower = more of the single best unit
@@ -397,6 +412,10 @@ public final class BotParams {
         p.put("scoutFlee.villagers",        0,     0,      0,     0);
         p.put("darkPath.piglins",           0,     0,      0,     0);   // +2.4% (monsters -3.0%: off)
         p.put("huskRush.monsters",          0,     0,      0,     0);   // +0.6%
+        // build222 (v13): the arena-fitted combat model for retreats and the attack veto - head-to-head vs b220 two rounds:
+        // monsters 59.5% (84 games), piglins 55.0% (80); villagers 47% - off for them
+        p.put("combatModel.monsters",       0,     0,      0,     1);
+        p.put("combatModel.piglins",        0,     0,      0,     1);
         p.put("militiaCall",                0,     0,      0,     0);   // villagers attacked run to the town centre and take up arms (the user)
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);

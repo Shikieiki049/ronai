@@ -373,14 +373,17 @@ public final class Builder {
         // fieldsAlways (v12): the user's field curve holds under threat too - the opening's shaping stopped for
         // every enemy seen in the last minute, and in real games the fields stalled at 9 from minute 8 to 11
         // (the user: 12 -> 14 -> 16). Behind the curve by 2 or more, a field outranks barracks.
-        if (p.b("fieldsAlways") && bot.difficulty == Difficulty.EXPERT && in.built(plan.capitol) > 0 && workers >= 4) {
+        // v2 (HFA: monsters 23.5%, villagers 40.6% head-to-head): fields went ahead of barracks under pressure and
+        // the army never came - now only while our army clearly holds what threatens home, and never ahead of barracks
+        boolean holds = bot.army.sinceThreat() > 1200 || bot.army.threatPower(in) < 0.5 * bot.army.ownPower(in);
+        if (p.b("fieldsAlways") && holds && bot.difficulty == Difficulty.EXPERT && in.built(plan.capitol) > 0 && workers >= 4) {
             double m = BuildOrder.minutes() + p.get("openingLead");
             int want = (int) Math.ceil(BuildOrder.at(BuildOrder.FIELDS, Math.min(m, 12)) * p.get("fieldsScale") - 0.01);
             if (m > 12) want = Math.max(want, (int) Math.min(16 * p.get("fieldsScale"), 15 + (m - 12)));
             int have = in.total(plan.farm);
             if (have < want && in.total(plan.farm) - in.built(plan.farm) < 2) {
                 reqs.removeIf(r -> r.building() == plan.farm);
-                reqs.add(new Request(plan.farm, have <= want - 2 ? 102 : 97, home, 10, 34));
+                reqs.add(new Request(plan.farm, have <= want - 2 ? 97 : 90, home, 10, 34));
             }
         }
         // LOCKED opening rule (the user's, every faction): after the capitol the first building is the

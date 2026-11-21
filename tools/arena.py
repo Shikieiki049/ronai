@@ -16,7 +16,7 @@ import argparse, json, pathlib, statistics as st, subprocess, sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 COST = {"vindicator": (160, 0, 0, 3), "pillager": (110, 80, 0, 3), "golem": (0, 50, 250, 4), "witch": (90, 90, 90, 3),
         "evoker": (140, 0, 120, 3), "ravager": (400, 50, 150, 7), "windcaller": (140, 60, 60, 3), "militia": (0, 0, 0, 0), "guard": (0, 0, 0, 5),
-        "zombie": (75, 0, 0, 1), "husk": (75, 0, 0, 1), "skeleton": (50, 45, 0, 1), "creeper": (40, 0, 120, 2), "spider": (80, 20, 20, 2),
+        "zombie": (75, 0, 0, 1), "husk": (75, 0, 0, 1), "skeleton": (50, 45, 0, 1), "creeper": (40, 0, 120, 2), "spider": (80, 20, 20, 2), "wraith": (70, 0, 70, 2), "slime": (40, 40, 40, 2),
         "brute": (120, 0, 0, 2), "headhunter": (90, 60, 0, 2), "marauder": (175, 75, 75, 4), "hoglin": (140, 0, 70, 3),
         "blaze": (40, 40, 100, 2), "witherskeleton": (200, 0, 125, 4), "magmacube": (40, 40, 40, 2), "ghast": (100, 100, 250, 6)}
 OPTION_UNIT = {"leather": 30, "chain": 30}  # ore per unit that can wear it

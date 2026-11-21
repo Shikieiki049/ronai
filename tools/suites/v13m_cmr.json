@@ -1,0 +1,45 @@
+{
+ "description": "monsters vs RON with cmr",
+ "items": [
+  {
+   "name": "expert first",
+   "spec": "expert#monsters:cmr vs expert#monsters@ron readied nohandicap night",
+   "us": 0,
+   "pair": "ron",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "RON bot first",
+   "spec": "expert#monsters@ron vs expert#monsters:cmr readied nohandicap night",
+   "us": 1,
+   "pair": "ron",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}

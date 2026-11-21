@@ -44,8 +44,11 @@ public final class UnitEval {
         if (!e.isAlive()) return 0;
         double p = Math.sqrt(dps(e) * effectiveHp(e));
         if (isRanged(e)) p *= 1.2;
-        if (isWorker(e)) p *= 0.35;
-        return p;
+        if (isWorker(e)) return p * 0.35;
+        // v13 combatModel: the arena-fitted value of the unit (evokers, witches and blazes count; per-type values)
+        // (v13 first try: every power by the model - mixed with the old numbers for camps and heroes it misjudged:
+        // piglins 28.6% head-to-head; now only modelPower)
+        return CombatModel.on && CombatModel.modelPower ? CombatModel.power(e, p) : p;
     }
 
     public static double strength(Collection<? extends LivingEntity> units) {

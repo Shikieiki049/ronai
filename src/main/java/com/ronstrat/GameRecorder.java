@@ -79,7 +79,7 @@ public final class GameRecorder {
             tick++;
             flows();
             if (tick % 10 == 0) { buildings(); births(); }
-            if (tick - lastSnap >= 200) { lastSnap = tick; snaps(); research(); out.flush(); }
+            if (tick - lastSnap >= 100) { lastSnap = tick; snaps(); research(); out.flush(); } // every 5 s (v13: the battles)
         } catch (Exception ex) {
             RonStrategist.LOG.warn("RON Strategist: game recorder stopped ({})", ex.toString());
             close();
@@ -193,6 +193,7 @@ public final class GameRecorder {
         Map<String, int[]> jobs = new HashMap<>();          // food wood ore build idle
         Map<String, double[]> centre = new HashMap<>();     // x, z, n, pop
         Map<String, List<double[]>> pos = new HashMap<>();
+        Map<String, StringBuilder> units = new HashMap<>();
         for (LivingEntity e : new ArrayList<>(UnitServerEvents.getAllUnits())) {
             if (!(e instanceof Unit u) || !e.isAlive()) continue;
             String o = owner(u);
@@ -204,6 +205,9 @@ public final class GameRecorder {
                 double[] c = centre.computeIfAbsent(o, k -> new double[4]);
                 c[0] += e.getX(); c[1] += e.getZ(); c[2]++; c[3] += UnitEval.popValue(e);
                 pos.computeIfAbsent(o, k -> new ArrayList<>()).add(new double[] { e.getX(), e.getZ() });
+                // v13: every soldier where it is and how hurt, for tools/battles.py (type:x:z:hp%)
+                units.computeIfAbsent(o, k -> new StringBuilder()).append(units.get(o).length() > 0 ? "|" : "").append(type(e)).append(':')
+                        .append((int) e.getX()).append(':').append((int) e.getZ()).append(':').append((int) (100 * e.getHealth() / Math.max(1, e.getMaxHealth())));
             }
         }
         for (BuildingPlacement b : BuildingServerEvents.getBuildings()) {
@@ -232,6 +236,7 @@ public final class GameRecorder {
                 sb.append(",\"armyPop\":").append((int) c[3]).append(",\"armyAt\":[").append((int) x).append(',').append((int) z).append(']')
                         .append(",\"armySpread\":").append((int) (spread / c[2]));
             }
+            if (units.get(n) != null) sb.append(",\"units\":").append(q(units.get(n).toString()));
             sb.append(",\"built\":").append(map(bdone.get(n))).append(",\"building\":").append(map(bbuild.get(n)));
             write(sb.append('}').toString());
         }

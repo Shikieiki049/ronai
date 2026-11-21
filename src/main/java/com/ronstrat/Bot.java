@@ -170,6 +170,8 @@ public final class Bot implements Agent {
     @Override
     public void tick(long gameTick) {
         now = gameTick;
+        CombatModel.on = params.b("combatModel"); // v13: this bot's retreats and attack veto by the combat model
+        CombatModel.modelPower = params.b("modelPower");
         // real games: a status line every minute next to the decisions (the test harness prints its own)
         if (verbose && !AutoTest.enabled() && now % 1200 == 0)
             RonStrategist.LOG.info("[{}|{}] status t={}s {}", name, difficulty.key(),

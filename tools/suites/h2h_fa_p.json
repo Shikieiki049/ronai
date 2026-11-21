@@ -1,9 +1,9 @@
 {
- "description": "head-to-head: expert#piglins:fa against the frozen b219 (piglins)",
+ "description": "head-to-head: expert#piglins:fa against the frozen b220 (piglins)",
  "items": [
   {
    "name": "new first",
-   "spec": "expert#piglins:fa vs expert#piglins@b219 readied nohandicap night",
+   "spec": "expert#piglins:fa vs expert#piglins@b220 readied nohandicap night",
    "us": 0,
    "pair": "h2h",
    "maps": [
@@ -23,7 +23,7 @@
   },
   {
    "name": "old first",
-   "spec": "expert#piglins@b219 vs expert#piglins:fa readied nohandicap night",
+   "spec": "expert#piglins@b220 vs expert#piglins:fa readied nohandicap night",
    "us": 1,
    "pair": "h2h",
    "maps": [

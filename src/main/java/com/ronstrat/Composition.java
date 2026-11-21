@@ -165,15 +165,34 @@ final class Composition {
         double temp = Math.max(0.02, p.get("compTemp")), techCost = p.get("compTech");
         double[] w = new double[UNITS.length];
         double sum = 0;
+        // modelComp (v13): what 100 resources of each unit are worth against the enemy soldiers seen, by the combat
+        // model fitted on 5555 arena fights (counters in) - instead of the villager-only matrix
+        boolean model = p.b("modelComp") && CombatModel.ready();
+        java.util.List<LivingEntity> foes = new java.util.ArrayList<>();
+        if (model) {
+            for (Intel.EnemyMemory em : in.enemies.values()) for (LivingEntity e : em.seenUnits.values()) if (e.isAlive()) foes.add(e);
+            for (LivingEntity e : in.visibleEnemies) if (!foes.contains(e)) foes.add(e);
+            temp = Math.max(0.02, p.get("modelCompTemp"));
+        }
         for (int a = 0; a < UNITS.length; a++) {
             double s = 0;
-            for (int b = 0; b < UNITS.length; b++) s += q[b] * m[a][b];
-            for (int f = 0; f < FOREIGN.length; f++) s += lastQF[f] * FOREIGN_VALUE[a][f];
+            if (model) {
+                double v = CombatModel.perCostLog(UNITS[a], foes);
+                s = Double.isNaN(v) ? -9 : v;
+            } else {
+                for (int b = 0; b < UNITS.length; b++) s += q[b] * m[a][b];
+                for (int f = 0; f < FOREIGN.length; f++) s += lastQF[f] * FOREIGN_VALUE[a][f];
+            }
             lastScores[a] = s;
             if (!allowed(a, in)) continue;
             if (in.built(producer(a)) == 0) s -= techCost;
             w[a] = Math.exp(s / temp);
             sum += w[a];
+        }
+        // the user: witches are the villagers' only healing - a floor of them once they can be made (modelComp)
+        if (model && allowed(3, in) && sum > 0 && w[3] / sum < p.get("modelWitchFloor")) {
+            double add = (p.get("modelWitchFloor") * sum - w[3]) / (1 - p.get("modelWitchFloor"));
+            w[3] += add; sum += add;
         }
         Map<FactionPlan.Role, Double> out = new EnumMap<>(FactionPlan.Role.class);
         for (int a = 0; a < UNITS.length; a++) {
@@ -181,6 +200,16 @@ final class Composition {
             if (share < p.get("compMinShare")) share = 0;
             lastShares[a] = share;
             out.merge(ROLE[a], share, Double::sum);
+        }
+        // vilWoodArmy (v12): against monsters the villagers had equal food but a third of the soldiers (vindicators are
+        // 160 food, zombies 75) while their wood went into buildings - pillagers (110 food + 80 wood) put wood into the
+        // army, witches heal the front
+        if (bot.params.b("vilWoodArmy") && monsters(in)) {
+            out.clear();
+            out.put(FactionPlan.Role.MELEE, 0.45);
+            out.put(FactionPlan.Role.RANGED, 0.40);
+            out.put(FactionPlan.Role.SUPPORT, 0.15);
+            return out;
         }
         // evokerVsMon: against zombie and husk seas the night arena's best mix - vindicators in front, a third evokers
         if (evokerRush(in)) {

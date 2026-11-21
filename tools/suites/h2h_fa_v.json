@@ -1,9 +1,9 @@
 {
- "description": "head-to-head: expert:fa against the frozen b219 (villagers)",
+ "description": "head-to-head: expert:fa against the frozen b220 (villagers)",
  "items": [
   {
    "name": "new first",
-   "spec": "expert:fa vs expert@b219 readied nohandicap night",
+   "spec": "expert:fa vs expert@b220 readied nohandicap night",
    "us": 0,
    "pair": "h2h",
    "maps": [
@@ -23,7 +23,7 @@
   },
   {
    "name": "old first",
-   "spec": "expert@b219 vs expert:fa readied nohandicap night",
+   "spec": "expert@b220 vs expert:fa readied nohandicap night",
    "us": 1,
    "pair": "h2h",
    "maps": [

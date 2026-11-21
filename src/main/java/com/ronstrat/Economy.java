@@ -64,6 +64,7 @@ public final class Economy {
     public BlockPos stockpileWanted;
     public ResourceName stockpileFor;
     public int farmsWanted;
+    private int rawFoodWant;
     public int unreachableCount;
     public int animalsNearHome;
     public double[] lastShares = new double[3];
@@ -205,7 +206,9 @@ public final class Economy {
         // pillagers shot 10+ villagers at one wood line, each replaced by the next one sent there)
         if (bot.difficulty == Difficulty.EXPERT && bot.params.b("fleeRaiders"))
             for (LivingEntity e : in.visibleEnemies)
-                if (!UnitEval.isWorker(e) && e.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(in.home())) > 18 * 18) chasers.add(e);
+                // fleeScoutIgnore: not from a scout dog walking past (20-40 flights a game against our monsters and
+                // piglins) - off: vs RON 84 games -5.3% (RON's scouts do bite)
+                if (!UnitEval.isWorker(e) && (!UnitEval.isScout(e) || !bot.params.b("fleeScoutIgnore")) && e.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(in.home())) > 18 * 18) chasers.add(e);
         for (Mob w : in.workers) {
             if (TEST_HOLD.contains(w.getId())) continue; // autotest water drop: hands off these villagers
             Job recorded = jobs.getOrDefault(w.getId(), Job.IDLE);
@@ -213,6 +216,8 @@ public final class Economy {
                 boolean hunted = false;
                 LivingEntity by = null;
                 for (LivingEntity c : chasers) if (c.distanceToSqr(w) < (in.neutrals.contains(c) ? 12 * 12 : 16 * 16)) { hunted = true; by = c; break; }
+                // (staying put with 3+ of our soldiers near was tried: vs RON's pillagers shooting the wood line it lost
+                // half the games - the soldiers could not reach the archers)
                 // where it came from is off the list for the next job (the searches skip dangerous spots)
                 if (hunted && by != null && !in.neutrals.contains(by)) in.markDanger(by.blockPosition());
                 if (hunted) {
@@ -450,6 +455,16 @@ public final class Economy {
             want[2] = Math.min(oreW, Math.max(0, gatherers - foodW));
             want[1] = Math.max(0, gatherers - foodW - want[2]);
         }
+        // foodCap (v12): one farmer per built field, hunters while game is near, two more while food is short - under
+        // threat the share rules above kept 15-20 on food with 7-11 fields (Post-Youth 16 on 9, Cabana 15 on 7): the rest
+        // waited or swapped fields back and forth (100-800 "field swaps" a game). They cut wood for the next fields.
+        // How many fields to build still follows the uncapped wish (farmsWanted below).
+        rawFoodWant = want[0];
+        if (p.b("foodCap") && bot.difficulty == Difficulty.EXPERT) {
+            int hunt = animalsNearHome > 0 ? Math.min(maxHunters(in), animalsNearHome) : 0;
+            int cap = in.built(bot.plan.farm) + hunt + (in.food < 200 ? 2 : 0);
+            if (want[0] > cap) { want[1] += want[0] - cap; want[0] = cap; }
+        }
         // armour: the blacksmith from minute smithFrom - its ore is mined for it first (nothing else mines
         // in an even game, so it came in 29 of 80 games, at 23:48 on average, and 1% of soldiers had armour)
         if (bot.plan.villagers && bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && BuildOrder.minutes() >= p.get("smithFrom") - 1.5
@@ -548,7 +563,7 @@ public final class Economy {
             else if (bot.verbose && bot.now - lastNoJobLog > 200) { lastNoJobLog = bot.now; bot.log("no job for worker #" + w.getId() + " at " + w.blockPosition().toShortString() + " want " + java.util.Arrays.toString(want) + " have " + java.util.Arrays.toString(have)); }
         }
         if (bot.verbose && !idle.isEmpty() && bot.now - lastIdleLog > 400) { lastIdleLog = bot.now; bot.log("idle " + idle.size() + " of " + in.workers.size() + " want " + java.util.Arrays.toString(want) + " have " + java.util.Arrays.toString(have)); }
-        farmsWanted = computeFarmsWanted(in, want[0]);
+        farmsWanted = computeFarmsWanted(in, p.b("foodCap") ? Math.max(want[0], rawFoodWant) : want[0]);
     }
 
     private long lastNoJobLog = -1000, lastIdleLog = -1000;

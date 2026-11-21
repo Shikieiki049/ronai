@@ -158,6 +158,7 @@ public final class Army {
 
     void think(Intel in) {
         CombatSim.v2 = bot.params.b("simV2"); // the calibrated forecast (CombatSim.v2) for this bot's decisions
+        CombatModel.on = bot.params.b("combatModel"); // v13: the arena-fitted combat model for this bot's decisions
         BotParams p = bot.params;
         if (!armyAheadLatch && bot.difficulty == Difficulty.EXPERT && BuildOrder.minutes() < p.get("openingMinutes") && enemyArmyAhead(in)) {
             armyAheadLatch = true;
@@ -424,6 +425,13 @@ public final class Army {
                 for (Mob w : in.workers) if (w.distanceToSqr(e) <= 12 * 12) { out.add(e); break; }
             }
         }
+        // nightHold (v12): against monsters at night the army stays inside the base - the vindicators died in the open
+        // at night (Berlingrad 50 of 69 deaths, Snowplow 26 of 27), where zombies regenerate; only what is at our
+        // buildings is fought, the walls and the militia help there
+        if (nightHold(in)) out.removeIf(e -> {
+            for (BuildingPlacement b : in.own) if (!captured(b) && e.distanceToSqr(Vec3.atCenterOf(b.centrePos)) <= 22 * 22) return false;
+            return true;
+        });
         // monsters by day: the army defends the dark only - an enemy outside it is not chased into the sun
         if (bot.night.on() && bot.night.day())
             out.removeIf(e -> !com.solegendary.reignofnether.time.NightUtils.isInRangeOfNightSource(e.position(), false));
@@ -671,6 +679,12 @@ public final class Army {
         return firstAttackJitter;
     }
 
+    /** nightHold: dayStrike's night half - our army holds the base at night against a monster player */
+    private boolean nightHold(Intel in) {
+        return bot.params.b("nightHold") && bot.plan.nightSources.isEmpty() && !bot.night.day()
+                && bot.level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DAYLIGHT) && Composition.monsters(in);
+    }
+
     /** dayStrike: we do not play by the night ourselves, the enemy is a monster player, and the clock turns */
     private boolean dayStrike(Intel in) {
         if (!bot.params.b("dayStrike") || !bot.plan.nightSources.isEmpty()) return false;
@@ -826,6 +840,24 @@ public final class Army {
         double minPop = p.get("attackMinArmyPop") * (bot.outnumbered() ? 1.8 : 1.0);
         // even game: go as one real wave (a human pushes back a dozen units with a few more from four barracks)
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered()) minPop = Math.max(minPop, 45);
+        // modelPressure (v13): the army sat home until 45 population and attacked about once a game; when the combat
+        // model gives the fight against the enemy soldiers we know of as clearly won, a smaller army goes now
+        if (armyPop < minPop && !maxed && p.b("modelPressure") && CombatModel.ready() && armyPop >= p.get("pressureMinPop")) {
+            String t0 = chooseTarget(in);
+            Intel.EnemyMemory m0 = t0 == null ? null : in.enemies.get(t0);
+            if (m0 != null) {
+                List<LivingEntity> foes = new ArrayList<>();
+                for (LivingEntity e : m0.seenUnits.values()) if (e.isAlive() && !UnitEval.isWorker(e)) foes.add(e);
+                if (foes.size() >= 3 && bot.now - m0.lastSeenArmy < 20 * 90) {
+                    double f = CombatModel.forecast(attackForce(in), foes);
+                    if (f >= p.get("pressureForecast")) {
+                        target = t0; targetPos = m0.anyBuilding();
+                        bot.log("pressure: forecast " + String.format("%+.2f", f) + " against " + foes.size() + " seen, army pop " + (int) armyPop);
+                        return targetPos != null;
+                    }
+                }
+            }
+        }
         if (armyPop < minPop && !maxed) { whyNot(in, "army pop " + (int) armyPop + " < " + (int) minPop); return false; }
         String t = chooseTarget(in);
         if (t == null) {
@@ -845,8 +877,18 @@ public final class Army {
             // i.e. only go with a clearly larger force than the minimum (unknown = dangerous)
             if (armyPop < p.get("attackMinArmyPop") * 1.5 && !maxed) return false;
         }
-        if (own < adv * enemy) whyNot(in, "too weak: ours " + (int) own + " vs " + String.format("%.1f", adv) + " x " + (int) enemy);
-        return own >= adv * enemy;
+        if (own < adv * enemy) { whyNot(in, "too weak: ours " + (int) own + " vs " + String.format("%.1f", adv) + " x " + (int) enemy); return false; }
+        // combatModel (v13): the arena-fitted forecast of this force against the enemy soldiers we know of vetoes a
+        // losing attack (the battle log: half the villagers' fights were ones the model gave as lost)
+        if (CombatModel.on && CombatModel.ready()) {
+            List<LivingEntity> foes = new ArrayList<>();
+            for (LivingEntity e : m.seenUnits.values()) if (e.isAlive() && !UnitEval.isWorker(e)) foes.add(e);
+            if (foes.size() >= 3) {
+                double f = CombatModel.forecast(attackForce(in), foes);
+                if (f < p.get("modelAttackMin")) { whyNot(in, "model forecast " + String.format("%+.2f", f) + " against " + foes.size() + " seen"); return false; }
+            }
+        }
+        return true;
     }
 
     private long lastWhyNot = -100000, lastDetach = -1000, darkCheckAt = -100000;
@@ -1161,7 +1203,9 @@ public final class Army {
         // lost the fight? fall back and rebuild instead of feeding units one by one
         double rr = p.get("retreatRatio");
         if (rr > 0 && !localEnemies.isEmpty() && !localOwn.isEmpty()) {
-            double ratio = UnitEval.strength(localFriends) / Math.max(1, UnitEval.strength(localEnemies));
+            // combatModel: the counters in too (who is fighting whom right here)
+            double ratio = CombatModel.on ? CombatModel.ratio(localFriends, localEnemies)
+                    : UnitEval.strength(localFriends) / Math.max(1, UnitEval.strength(localEnemies));
             // the expert commits: a clearly bigger army overall (with partners) does not turn round over one
             // bad skirmish (a player watched four attacks in a row break off at 0.4-0.5 and come to nothing)
             boolean committed = false;
@@ -1207,9 +1251,18 @@ public final class Army {
         // leave them out of the body's own orders.
         List<Mob> lost = new ArrayList<>();
         for (Mob u : force) if (u.position().distanceToSqr(c) > 56 * 56) lost.add(u);
+        // noTrickle (v13): fewer than four of them do not set out alone - the battle log had single vindicators and
+        // golems walking into twenty piglins (forecast -0.9..-1.0) one after the other; they wait at the rally point
+        // until a group has formed
+        boolean trickle = p.b("noTrickle") && lost.size() < p.i("trickleGroup");
         if (!lost.isEmpty() && bot.now - lastLostOrder > 160) {
             lastLostOrder = bot.now;
-            Orders.move(bot.name, lost, waypoint(centroid(lost), anchor(body, c)));
+            if (trickle) {
+                BlockPos r = rally(in);
+                List<Mob> walk = new ArrayList<>();
+                for (Mob u : lost) if (u.blockPosition().distSqr(r) > 10 * 10) walk.add(u);
+                if (!walk.isEmpty()) Orders.move(bot.name, walk, r);
+            } else Orders.move(bot.name, lost, waypoint(centroid(lost), anchor(body, c)));
         }
         if (!lost.isEmpty()) { force = new ArrayList<>(force); force.removeAll(lost); if (force.isEmpty()) return; }
         if (rg > 0 && localEnemies.isEmpty() && bot.now - lastRegroup > 160) {

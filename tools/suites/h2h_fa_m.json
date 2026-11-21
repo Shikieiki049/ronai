@@ -1,9 +1,9 @@
 {
- "description": "head-to-head: expert#monsters:fa against the frozen b219 (monsters)",
+ "description": "head-to-head: expert#monsters:fa against the frozen b220 (monsters)",
  "items": [
   {
    "name": "new first",
-   "spec": "expert#monsters:fa vs expert#monsters@b219 readied nohandicap night",
+   "spec": "expert#monsters:fa vs expert#monsters@b220 readied nohandicap night",
    "us": 0,
    "pair": "h2h",
    "maps": [
@@ -23,7 +23,7 @@
   },
   {
    "name": "old first",
-   "spec": "expert#monsters@b219 vs expert#monsters:fa readied nohandicap night",
+   "spec": "expert#monsters@b220 vs expert#monsters:fa readied nohandicap night",
    "us": 1,
    "pair": "h2h",
    "maps": [

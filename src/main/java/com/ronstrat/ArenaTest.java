@@ -84,7 +84,8 @@ final class ArenaTest {
                 // every fight at midnight with the clock stopped: by day zombies and skeletons burned in the sun
                 // and husks did not - the same unit on paper came out +0.6 better (the user caught it)
                 level.getGameRules().getRule(net.minecraft.world.level.GameRules.RULE_DAYLIGHT).set(false, level.getServer());
-                level.setDayTime(18000);
+                // ...unless the fight's name says @day (v13: the burning units by day, for the combat model)
+                level.setDayTime(f[0].contains("@day") ? 6000 : 18000);
                 spawn(level, f[1].trim(), ownerA, -1, sideA);
                 spawn(level, f[2].trim(), ownerB, +1, sideB);
                 hpA0 = hp(sideA); hpB0 = hp(sideB);
@@ -218,6 +219,8 @@ final class ArenaTest {
             case "skeleton" -> EntityRegistrar.SKELETON_UNIT.get();
             case "creeper" -> EntityRegistrar.CREEPER_UNIT.get();
             case "spider" -> EntityRegistrar.SPIDER_UNIT.get();
+            case "wraith" -> EntityRegistrar.WRAITH_UNIT.get();
+            case "slime" -> EntityRegistrar.SLIME_UNIT.get();
             // piglins
             case "brute" -> EntityRegistrar.BRUTE_UNIT.get();
             case "headhunter" -> EntityRegistrar.HEADHUNTER_UNIT.get();
