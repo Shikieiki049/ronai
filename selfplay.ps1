@@ -90,7 +90,7 @@ if ($Prod) {
     $prodJar = Join-Path $root 'build\libs\ron-strategist-1.0.0-selfplay.jar'
     if (-not (Test-Path $prodJar)) { throw "self-play jar missing: run build.ps1 testJar" }
     Copy-Item $prodJar (Join-Path $snap 'ronstrat-selfplay.jar')
-    $ronJar = if ($AltRon) { Join-Path $root 'libs\ronalt-1.5.0b2.jar' } else { Join-Path $root 'libs\reignofnether-1.5.1d.jar' }
+    $ronJar = if ($AltRon) { Join-Path $root 'libs\ronalt-1.5.0b2.jar' } else { Join-Path $root 'libs\reignofnether-1.5.1e.jar' }
     $prodArgs = Get-Content (Join-Path $root 'prodserver\win_args_abs.txt') | Where-Object { $_.Trim() }
 }
 $modClasses = "ronstrat%%$snap\resources;ronstrat%%$snap\classes"
