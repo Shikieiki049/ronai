@@ -51,8 +51,9 @@ public final class Bot implements Agent {
         this.name = name;
         this.difficulty = d;
         this.profile = profile == null ? "" : profile;
-        this.params = BotParams.of(d, this.profile);
         this.plan = FactionPlan.forFaction(faction);
+        this.params = BotParams.of(d, this.profile).forFaction(plan.villagers ? "villagers"
+                : plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS ? "monsters" : "piglins");
         this.startPos = startPos;
         this.level = level;
         this.random = new Random(seed ^ name.hashCode());

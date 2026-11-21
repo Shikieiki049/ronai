@@ -71,7 +71,7 @@ def run(parts):
         if fl.startswith("vs:"):
             pr = subprocess.run(["py", "tools/paired.py", fl[3:], label], cwd=ROOT, capture_output=True, text=True,
                                 encoding="utf-8", errors="replace").stdout.splitlines()
-            lines += [f"  paired vs {fl[3:]}: " + pr[0]] + ["  " + l.strip() for l in pr[1:]]
+            lines += ([f"  paired vs {fl[3:]}: " + pr[0]] + ["  " + l.strip() for l in pr[1:]]) if pr else [f"  paired vs {fl[3:]}: no output"]
     with OUT.open("a", encoding="utf-8") as f:
         f.write(f"== {suite} {label} ({int(time.time() - t0) // 60} min)\n" + "\n".join(lines) + "\n")
     with DONE.open("a", encoding="utf-8") as f:

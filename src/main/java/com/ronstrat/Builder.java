@@ -370,6 +370,19 @@ public final class Builder {
             }
         }
         BuildOrder.shape(bot, in, reqs, home);
+        // fieldsAlways (v12): the user's field curve holds under threat too - the opening's shaping stopped for
+        // every enemy seen in the last minute, and in real games the fields stalled at 9 from minute 8 to 11
+        // (the user: 12 -> 14 -> 16). Behind the curve by 2 or more, a field outranks barracks.
+        if (p.b("fieldsAlways") && bot.difficulty == Difficulty.EXPERT && in.built(plan.capitol) > 0 && workers >= 4) {
+            double m = BuildOrder.minutes() + p.get("openingLead");
+            int want = (int) Math.ceil(BuildOrder.at(BuildOrder.FIELDS, Math.min(m, 12)) * p.get("fieldsScale") - 0.01);
+            if (m > 12) want = Math.max(want, (int) Math.min(16 * p.get("fieldsScale"), 15 + (m - 12)));
+            int have = in.total(plan.farm);
+            if (have < want && in.total(plan.farm) - in.built(plan.farm) < 2) {
+                reqs.removeIf(r -> r.building() == plan.farm);
+                reqs.add(new Request(plan.farm, have <= want - 2 ? 102 : 97, home, 10, 34));
+            }
+        }
         // LOCKED opening rule (the user's, every faction): after the capitol the first building is the
         // population building and the second the hero building - heroes level up and only get stronger, a
         // hero that does not pay off means its play is wrong, not the rule. Only emergencies (priority 113+:

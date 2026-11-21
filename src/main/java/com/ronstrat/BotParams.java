@@ -22,6 +22,8 @@ import java.util.Map;
  */
 public final class BotParams {
     private final Map<String, Double> v = new LinkedHashMap<>();
+    /** keys a config, override or profile file set: a faction default (below) never overrides them */
+    private final java.util.Set<String> set = new java.util.HashSet<>();
     public final Difficulty difficulty;
 
     private static final Map<String, BotParams> CACHE = new LinkedHashMap<>();
@@ -37,6 +39,24 @@ public final class BotParams {
     public boolean b(String k) { return get(k) >= 0.5; }
 
     public Map<String, Double> asMap() { return v; }
+
+    /**
+     * Faction defaults (v12): a key "name.monsters" / "name.villagers" / "name.piglins" replaces "name" for that
+     * faction - the switches A/B-tested per faction (unstick helped the piglins, not the monsters) - unless a
+     * config or profile file set "name" itself (a test profile wins).
+     */
+    public BotParams forFaction(String faction) {
+        String suf = "." + faction;
+        BotParams c = null;
+        for (Map.Entry<String, Double> e : v.entrySet()) {
+            if (!e.getKey().endsWith(suf)) continue;
+            String base = e.getKey().substring(0, e.getKey().length() - suf.length());
+            if (!v.containsKey(base) || set.contains(base)) continue;
+            if (c == null) { c = new BotParams(difficulty); c.v.putAll(v); c.set.addAll(set); }
+            c.v.put(base, e.getValue());
+        }
+        return c == null ? this : c;
+    }
 
     public static BotParams of(Difficulty d) { return of(d, ""); }
 
@@ -56,6 +76,7 @@ public final class BotParams {
     public BotParams with(Map<String, Double> overrides) {
         BotParams c = new BotParams(difficulty);
         c.v.putAll(v);
+        c.set.addAll(set);
         for (Map.Entry<String, Double> e : overrides.entrySet()) if (c.v.containsKey(e.getKey())) c.v.put(e.getKey(), e.getValue());
         return c;
     }
@@ -100,6 +121,7 @@ public final class BotParams {
             for (Map.Entry<String, JsonElement> e : o.entrySet()) {
                 if (v.containsKey(e.getKey()) && e.getValue().isJsonPrimitive()) {
                     v.put(e.getKey(), e.getValue().getAsDouble());
+                    set.add(e.getKey());
                 }
             }
         }
@@ -275,6 +297,7 @@ public final class BotParams {
         p.put("evokerVsMon",                0,     0,      0,     0);    // villagers vs monsters: arcane tower right after the barracks, vindicators 2 : evokers 1 (night arena: +0.31 vs zombies, +0.24 vs husks)
         p.put("vilFood",                    0,     0,      0,     0);    // villagers: food share at least vilFoodShare from 14 workers
         p.put("dayStrike",                  0,     0,      0,     0);    // non-burning factions vs monsters: attack by day only, home at nightfall
+        p.put("fieldsAlways",               0,     0,      0,     0);    // v12: the user's field curve under threat too, a field ahead of barracks when 2 behind
         p.put("vilFoodShare",               0.55,  0.55,   0.55,  0.55);
         p.put("composition",                0,     0,      0,     1);    // army shares from the arena's unit matrix (Composition)
         p.put("compTemp",                   0.15,  0.15,   0.15,  0.15); // softmax temperature: lower = more of the single best unit
@@ -349,6 +372,31 @@ public final class BotParams {
         p.put("unstick",                    0,     0,      0,     0);   // a stuck soldier or hero is led round by our own route (the user)
         p.put("avoidResources",             1,     1,      1,     1);   // no building on top of logs, ore, mushrooms, hay... (the user)
         p.put("unitSkills",                 0,     0,      0,     0);   // soldiers use their own skills: shields, clouds, fear, firewall, webs, mounts (the user)
+        // build220 (v11 screening, two rounds of 42/84 games each, adopted per faction - forFaction):
+        p.put("techSave.monsters",          0,     0,      0,     0);   // alone +4.2%, but with the others the bank sat on research: M220 -15.5%, without it -3.6% - off
+        p.put("creeperMicro.monsters",      0,     0,      0,     1);   // monsters +1.2%, the user's rule (creepers very strong)
+        p.put("monsterArena.monsters",      0,     0,      0,     1);   // monsters vs our piglins +17.9% (mirror: not used)
+        p.put("stockCap.villagers",         0,     0,      0,     1);   // villagers +8.3% (with fledCool)
+        p.put("fledCool.villagers",         0,     0,      0,     1);
+        p.put("unitSkills.piglins",         0,     0,      0,     1);   // piglins +7.7% [+0.6, +14.9]
+        p.put("unstick.piglins",            0,     0,      0,     1);   // piglins +4.2%
+        // the user's behaviours: each alone not clearly worse, but stacked they were (P220 -6.0%, villagers vs b219
+        // 45% head-to-head) - off for build220 until each is made to pay (v12 plan); woundedHome to a witch stays
+        // (villagers +3.2% after the fix)
+        p.put("heroPull.monsters",          0,     0,      0,     0);   // +2.4%
+        p.put("heroPull.villagers",         0,     0,      0,     0);   // +2.4%
+        p.put("heroPull.piglins",           0,     0,      0,     0);   // +3.6%
+        p.put("returnFire.villagers",       0,     0,      0,     0);   // +2.4% (monsters -2.4% over 84: off)
+        p.put("noStage.villagers",          0,     0,      0,     0);
+        p.put("returnFire.piglins",         0,     0,      0,     0);   // -1.2%
+        p.put("noStage.piglins",            0,     0,      0,     0);
+        p.put("woundedHome.villagers",      0,     0,      0,     1);   // to a witch: villagers +3.2% after the fix (R11_whB)
+        p.put("woundedHome.piglins",        0,     0,      0,     0);   // +2.4%
+        p.put("militiaCall.villagers",      0,     0,      0,     0);   // +4.2%
+        p.put("captureNeutral.villagers",   0,     0,      0,     0);   // after the fix -4.5% over 77 (monsters -4.2%): off until it only takes useful buildings
+        p.put("scoutFlee.villagers",        0,     0,      0,     0);
+        p.put("darkPath.piglins",           0,     0,      0,     0);   // +2.4% (monsters -3.0%: off)
+        p.put("huskRush.monsters",          0,     0,      0,     0);   // +0.6%
         p.put("militiaCall",                0,     0,      0,     0);   // villagers attacked run to the town centre and take up arms (the user)
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);

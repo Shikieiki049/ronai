@@ -242,7 +242,7 @@ public final class BotManager {
      * block thick floor (Summoner's Rift) the start workers were squeezed into the gap below, alive and busy
      * "building" a town centre they could never reach: the capitol never went up.
      */
-    static BlockPos standAt(net.minecraft.world.level.Level level, int x, int z) {
+    public static BlockPos standAt(net.minecraft.world.level.Level level, int x, int z) {
         return new BlockPos(x, level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z), z);
     }
 

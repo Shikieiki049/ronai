@@ -405,7 +405,9 @@ public final class Production {
         // monsterArena (v11): the same-cost arena results against what the enemy fields tilt zombies (husks once
         // researched), skeletons, creepers and spiders; wraiths and slimes keep their share (no arena data), and
         // zombies and skeletons never drop under 8% (the user: mixed damage always)
-        if (bot.params.b("monsterArena")) {
+        // ...against villagers and piglins only: in the mirror it lost (vs RON monsters, 84 games -4.8%) while it
+        // beat our piglins (+17.9%) - the arena table has no monster-vs-monster rows
+        if (bot.params.b("monsterArena") && !Composition.monsters(in)) {
             boolean husks = ResearchServerEvents.playerHasResearch(bot.name, com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HUSKS);
             double[] sc = arenaScores(es, husks);
             if (sc != null) {

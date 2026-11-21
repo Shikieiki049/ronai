@@ -87,6 +87,14 @@ final class Casters {
                 if (underFire != br.isHoldingUpShield() && bot.now - skillAt.getOrDefault(u.getId(), -1000L) > 20) cast(u, sh, null, u.blockPosition());
                 continue;
             }
+            // wraiths: RON's own autocast puts the fear on what the wraith attacks. Our ordered cast replaced
+            // its attack-move, and after the fear it stood (M11_us: -7.1%, early losses on Cabana)
+            if (u instanceof com.solegendary.reignofnether.unit.units.monsters.WraithUnit) {
+                Ability fear = ability(un, UnitAction.FEAR);
+                if (fear != null && fear.autocastEnableAction != null && !fear.isAutocasting(un) && autocastSet.add(u.getId()))
+                    Orders.ability(bot.name, fear.autocastEnableAction, -1, List.of(u), u.blockPosition());
+                continue;
+            }
             if (bot.now - skillAt.getOrDefault(u.getId(), -1000L) < 40) continue;
             List<LivingEntity> foes = enemiesNear(in, u, 16);
             if (foes.isEmpty()) continue;

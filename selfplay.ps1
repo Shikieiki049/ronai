@@ -209,8 +209,8 @@ while ($queue.Count -gt 0 -or $running.Count -gt 0) {
     Start-Sleep -Seconds 5
     # servers run at normal priority (set "Idle" here while the user needs the machine)
     Get-Process ronstrat-java -ErrorAction SilentlyContinue | Where-Object { $_.PriorityClass -ne "Normal" } | ForEach-Object { try { $_.PriorityClass = "Normal" } catch {} }
-    # leave about a quarter of the machine to the user: servers only run on the first ~69% of the logical CPUs (total load ~75-80% with everything else)
-    $cpuMask = [IntPtr]([long][Math]::Pow(2, [Math]::Max(1, [int]([Environment]::ProcessorCount * 1.0))) - 1)
+    # the user is using the machine (11-20): 0.6 leaves them 40%; 1.0 = full load
+    $cpuMask = [IntPtr]([long][Math]::Pow(2, [Math]::Max(1, [int][Math]::Floor([Environment]::ProcessorCount * 1.0))) - 1)
     Get-Process ronstrat-java -ErrorAction SilentlyContinue | Where-Object { $_.ProcessorAffinity -ne $cpuMask } | ForEach-Object { try { $_.ProcessorAffinity = $cpuMask } catch {} }
     $still = @()
     foreach ($r in $running) {

@@ -403,12 +403,13 @@ public final class Army {
                     x -> x.isAlive() && isMonster(x))) {
                 boolean hunting = e instanceof Mob m && m.getTarget() != null && m.getTarget() instanceof Unit tu && bot.name.equals(tu.getOwnerName());
                 boolean inBase = false;
-                for (BuildingPlacement b : in.own) if (e.distanceToSqr(Vec3.atCenterOf(b.centrePos)) <= 14 * 14) { inBase = true; break; }
+                for (BuildingPlacement b : in.own) if (!captured(b) && e.distanceToSqr(Vec3.atCenterOf(b.centrePos)) <= 14 * 14) { inBase = true; break; }
                 if (hunting && e.distanceToSqr(hc) <= r2 || inBase) { out.add(e); monstersAtHome++; }
             }
         }
         for (LivingEntity e : in.visibleEnemies) {
             for (BuildingPlacement b : in.own) {
+                if (captured(b)) continue;
                 double d = b.isCapitol ? r2 : r2 * 0.45;
                 if (e.distanceToSqr(Vec3.atCenterOf(b.centrePos)) <= d) { out.add(e); break; }
             }
@@ -1812,6 +1813,7 @@ public final class Army {
         List<LivingEntity> inBase = new ArrayList<>();
         for (LivingEntity n : in.neutrals) {
             for (BuildingPlacement b : in.own) {
+                if (captured(b)) continue;
                 if (hopelessCamps.contains(campKey(n)) || strongCamp(n.blockPosition())) break;
                 if (n.distanceToSqr(Vec3.atCenterOf(b.centrePos)) < (b.isCapitol ? 30 * 30 : 14 * 14)) { inBase.add(n); break; }
             }
@@ -2449,12 +2451,16 @@ public final class Army {
             if (!sunSafe(u, u.position())) continue;
             // a wounded one on its way home keeps going home even with no enemy in sight
             if (woundedHome.contains(u.getId())) {
-                if (u.getHealth() >= u.getMaxHealth() * 0.6 || !u.isAlive()) woundedHome.remove(u.getId());
+                if (u.getHealth() >= u.getMaxHealth() * 0.6 || !u.isAlive() || noHealing(u)) woundedHome.remove(u.getId());
                 else {
-                    BlockPos r = rally(in);
-                    if (u.blockPosition().distSqr(r) > 8 * 8) order(u, () -> Orders.move(bot.name, List.of(u), r));
-                    Orders.protect(u.getId(), 1500);
-                    continue;
+                    BlockPos r = healSpot(in, u);
+                    if (r == null) { woundedHome.remove(u.getId()); }
+                    else {
+                        double healR = bot.plan.villagers ? 4 : 8;
+                        if (u.blockPosition().distSqr(r) > healR * healR) order(u, () -> Orders.move(bot.name, List.of(u), r));
+                        Orders.protect(u.getId(), 1500);
+                        continue;
+                    }
                 }
             }
             // returnFire (the user): hit on the way - on a move order, walking to the rally point - strike back at
@@ -2529,16 +2535,23 @@ public final class Army {
                 continue;
             }
             // very hurt: this one soldier goes home to heal, alone - the rest fight on (the user); back at 60%
-            if (save && bot.params.b("woundedHome") && !(u instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit) && u.getHealth() < u.getMaxHealth() * 0.25) {
+            if (save && bot.params.b("woundedHome") && !(u instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit) && u.getHealth() < u.getMaxHealth() * 0.25 && !noHeal.contains(u.getId())
+                    // not on an attack (M11_wh2 -11.0%: wins turned into 40-minute timeouts - the push never broke
+                    // through while the hurt walked home one by one); the army comes home after it and heals there
+                    && mode != Mode.ATTACK && healSpot(in, u) != null) {
                 if (woundedHome.add(u.getId()) && bot.verbose) bot.log("wounded " + u.getType().toShortString() + " (" + (int) u.getHealth() + " hp) goes home to heal");
             }
             if (woundedHome.contains(u.getId())) {
-                if (u.getHealth() >= u.getMaxHealth() * 0.6) woundedHome.remove(u.getId());
+                if (u.getHealth() >= u.getMaxHealth() * 0.6 || noHealing(u)) woundedHome.remove(u.getId());
                 else {
-                    BlockPos r = rally(in);
-                    if (u.blockPosition().distSqr(r) > 8 * 8) order(u, () -> Orders.move(bot.name, List.of(u), r));
-                    Orders.protect(u.getId(), 1500);
-                    continue;
+                    BlockPos r = healSpot(in, u);
+                    if (r == null) { woundedHome.remove(u.getId()); }
+                    else {
+                        double healR = bot.plan.villagers ? 4 : 8;
+                        if (u.blockPosition().distSqr(r) > healR * healR) order(u, () -> Orders.move(bot.name, List.of(u), r));
+                        Orders.protect(u.getId(), 1500);
+                        continue;
+                    }
                 }
             }
             // kiting (hit and step back): a ranged unit a melee unit is about to reach steps away,
@@ -2619,6 +2632,24 @@ public final class Army {
 
     int fightIdles, creeperBlasts, spreadSwitches, returnFires;
     final java.util.Set<Integer> woundedHome = new java.util.HashSet<>();
+    /** id -> {tick of the last health gain, health then}: soldiers do not heal by themselves in RON (only witches'
+     *  potions, life steal and the healing fountain) - one that gains nothing for 60 s goes back to the
+     *  fight after 60 s (R11_wh: the wounded sat home for good, wins turned into 40-minute timeouts) */
+    private final Map<Integer, double[]> woundedHp = new HashMap<>();
+
+    /** wounded that found no healing: they fight on, not sent home again */
+    private final java.util.Set<Integer> noHeal = new java.util.HashSet<>();
+
+    private boolean noHealing(Mob u) {
+        double[] h = woundedHp.get(u.getId());
+        if (h == null || u.getHealth() > h[1] + 0.5) { woundedHp.put(u.getId(), new double[] { bot.now, u.getHealth() }); return false; }
+        h[1] = Math.min(h[1], u.getHealth());
+        if (bot.now - h[0] < 1200) return false;
+        woundedHp.remove(u.getId());
+        noHeal.add(u.getId());
+        if (bot.verbose) bot.log("wounded " + u.getType().toShortString() + " healed nothing in 60 s - back to the army");
+        return true;
+    }
 
     /** our own soldiers and workers (and allies') within r of p, not counting one */
     private int friendsNear(Intel in, Vec3 p, double r, Mob not) {
@@ -2627,6 +2658,24 @@ public final class Army {
         for (Mob m : in.workers) if (m.position().distanceToSqr(p) <= r * r) n++;
         return n;
     }
+
+    /** a captured neutral building (trade hub...) out on the map is not our base: enemies passing it are no raid
+     *  (R11_cn -10.5%: the army ran out to "defend" it and dropped its attacks) */
+    /**
+     * Where a wounded soldier heals (RON Unit.tick: monsters regain 1 hp per 8 s at night and 1 more in the dark
+     * of a night source; piglins 1 per 8 s on nether ground; villagers only from witches' potions - the user):
+     * monsters and piglins at home (the dark / the nether ground there), villagers next to one of our witches.
+     * null: nowhere to heal - it fights on.
+     */
+    private BlockPos healSpot(Intel in, Mob u) {
+        if (!bot.plan.villagers) return rally(in);
+        Mob best = null;
+        for (Mob w : in.army)
+            if (w != u && w.getClass().getSimpleName().equals("WitchUnit") && (best == null || w.distanceToSqr(u) < best.distanceToSqr(u))) best = w;
+        return best == null ? null : best.blockPosition();
+    }
+
+    static boolean captured(BuildingPlacement b) { return b.getBuilding() != null && b.getBuilding().capturable; }
 
     private boolean ownBuildingNear(Intel in, Vec3 p, double r) {
         for (BuildingPlacement b : in.own) {

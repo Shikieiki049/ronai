@@ -1,0 +1,45 @@
+{
+ "description": "piglins expert vs RON BRUTAL piglins - round 2, seeds 104-106",
+ "items": [
+  {
+   "name": "expert first",
+   "spec": "expert#piglins vs expert#piglins@ron readied nohandicap",
+   "us": 0,
+   "pair": "ron",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    104,
+    105,
+    106
+   ]
+  },
+  {
+   "name": "RON bot first",
+   "spec": "expert#piglins@ron vs expert#piglins readied nohandicap",
+   "us": 1,
+   "pair": "ron",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    104,
+    105,
+    106
+   ]
+  }
+ ]
+}

@@ -1,0 +1,45 @@
+{
+ "description": "v11 feature screen v11cn - round 2, seeds 104-106",
+ "items": [
+  {
+   "name": "expert first",
+   "spec": "expert#monsters:v11cn vs expert#monsters@ron readied nohandicap night",
+   "us": 0,
+   "pair": "ron",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    104,
+    105,
+    106
+   ]
+  },
+  {
+   "name": "RON bot first",
+   "spec": "expert#monsters@ron vs expert#monsters:v11cn readied nohandicap night",
+   "us": 1,
+   "pair": "ron",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    104,
+    105,
+    106
+   ]
+  }
+ ]
+}
