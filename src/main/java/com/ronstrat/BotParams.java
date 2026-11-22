@@ -301,6 +301,9 @@ public final class BotParams {
         p.put("vilWoodArmy",                0,     0,      0,     0);    // villagers vs monsters: vindicators 45%, pillagers 40%, witches 15%
         p.put("nightHold",                  0,     0,      0,     0);    // vs monsters at night the army fights only at our buildings
         p.put("foodCap",                    0,     0,      0,     0);    // food workers at most built fields + hunters (+2 when short); the rest on wood
+        p.put("farmFloor",                  0,     0,      0,     0);    // v13: food short - the fields wished for follow the user's curve by the clock
+        p.put("penBreak",                   0,     1,      1,     1);    // the user: a penned animal - cut the log in the way, then hunt (a fix, on)
+        p.put("oneHunter",                  0,     0,      0,     0);    // the user: one hunter all game, as far as there is game (huntFarBox)
         p.put("combatModel",                0,     0,      0,     0);    // v13: decisions by the arena-fitted combat model (CombatModel)
         p.put("modelPower",                 0,     0,      0,     0);    // every UnitEval.power by the model (first try: worse)
         p.put("modelAttackMin",             -0.1,  -0.1,   -0.1,  -0.1); // combatModel: no attack the model forecasts below this
@@ -331,6 +334,9 @@ public final class BotParams {
         p.put("stockpileEagerFarms",        0,     0,      0,     10);    // ...only once this many fields stand (the opening wood goes to fields first)
         p.put("farmRing",                   0,     0,      0,     1);    // fields right around the town centre and stockpiles; other buildings further out
         p.put("farmRingMax",                16,    16,     16,    16);   // ...search radius for a field around a drop site
+        p.put("profJobs",                   0,     0,      0,     0);    // v14 (the user): villagers keep the job of their profession and train one
+        p.put("farmTight",                  0,     0,      0,     0);    // v14: fields at the drop site nearest, the town centre ring kept for fields
+        p.put("farmTightMax",               12,    12,     12,    12);   // ...search radius of the tight field spot
         p.put("farmRingKeep",               18,    18,     18,    18);   // ...houses, barracks etc. no nearer to the town centre than this
         p.put("woodDesperate",              0,     0,      0,     1);    // no wood for 4 min, none banked: woods near monsters and up hills are fine
         p.put("resourceClear",              0,     0,      0,     1);    // army + hero clear camps on the woods/ore further out while nothing threatens
@@ -419,6 +425,7 @@ public final class BotParams {
         // build223: food workers at most built fields + hunters (+2 when short) - head-to-head two rounds: monsters 61.9 /
         // 51.2%, piglins 65.9 / 60.7% (round 2 vs b222, clean); villagers 47.6% - off
         p.put("foodCap.monsters",           0,     0,      0,     1);
+        p.put("oneHunter.villagers",        0,     0,      0,     1);   // v14 (the user: one hunter is enough): 2v2 +36%, vs b223 64.3%, vs RON +10.7% [+2.6, +18.9]
         p.put("foodCap.piglins",            0,     0,      0,     1);
         p.put("militiaCall",                0,     0,      0,     0);   // villagers attacked run to the town centre and take up arms (the user)
         p.put("kiting",                     0,     0,      0,     1);

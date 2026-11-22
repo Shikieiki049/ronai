@@ -345,6 +345,7 @@ public final class Army {
                     target = em.name;
                     targetPos = em.anyBuilding();
                     joinedHuman = h;
+                    jointAttacks++;
                     bot.log("joint attack with " + h + " (human, " + n + " units at " + em.name + ")");
                     return true;
                 }
@@ -359,6 +360,7 @@ public final class Army {
             if (o.intel.army.size() < 4) continue;
             target = o.army.target;
             targetPos = em.anyBuilding();
+            jointAttacks++;
             bot.log("joint attack with " + o.name + " on " + target + " (theirs " + o.intel.army.size() + ")");
             bot.tellAllies("跟上 " + o.name + "，一起打 " + target + "！", true);
             return true;
@@ -469,6 +471,18 @@ public final class Army {
                 .min(Comparator.comparingDouble(e -> e.distanceToSqr(Vec3.atCenterOf(home)))).orElse(threats.get(0));
         lastThreat = focus.blockPosition();
         double threatS = UnitEval.strength(threats);
+        // v14 (2v2 with the user): a raid we cannot hold - say so to the allies, where and how many, once a minute
+        // (the user's teammate fell to both enemies in 90 s without a word)
+        if (!in.allies.isEmpty() && bot.now - lastHelpCall > 1200) {
+            int f = 0;
+            for (LivingEntity e : threats) if (!UnitEval.isWorker(e)) f++;
+            double ours = UnitEval.strength(in.army);
+            if (f >= 5 && threatS > 1.3 * ours) {
+                lastHelpCall = bot.now;
+                helpCalls++;
+                bot.tellAllies("我家被打了！敌人 " + f + " 个兵，我只有 " + in.army.size() + " 个，快来帮忙（" + lastThreat.getX() + ", " + lastThreat.getZ() + "）", true);
+            }
+        }
 
         List<Mob> responders = new ArrayList<>(in.army);
         boolean keepAttacking = false;
@@ -2504,7 +2518,7 @@ public final class Army {
             if (!sunSafe(u, u.position())) continue;
             // a wounded one on its way home keeps going home even with no enemy in sight
             if (woundedHome.contains(u.getId())) {
-                if (u.getHealth() >= u.getMaxHealth() * 0.6 || !u.isAlive() || noHealing(u)) woundedHome.remove(u.getId());
+                if (u.getHealth() >= u.getMaxHealth() * 0.6 || !u.isAlive() || noHealing(u)) { if (u.isAlive() && u.getHealth() >= u.getMaxHealth() * 0.6) woundedHealed++; woundedHome.remove(u.getId()); }
                 else {
                     BlockPos r = healSpot(in, u);
                     if (r == null) { woundedHome.remove(u.getId()); }
@@ -2592,10 +2606,10 @@ public final class Army {
                     // not on an attack (M11_wh2 -11.0%: wins turned into 40-minute timeouts - the push never broke
                     // through while the hurt walked home one by one); the army comes home after it and heals there
                     && mode != Mode.ATTACK && healSpot(in, u) != null) {
-                if (woundedHome.add(u.getId()) && bot.verbose) bot.log("wounded " + u.getType().toShortString() + " (" + (int) u.getHealth() + " hp) goes home to heal");
+                if (woundedHome.add(u.getId())) { woundedSent++; if (bot.verbose) bot.log("wounded " + u.getType().toShortString() + " (" + (int) u.getHealth() + " hp) goes home to heal"); }
             }
             if (woundedHome.contains(u.getId())) {
-                if (u.getHealth() >= u.getMaxHealth() * 0.6 || noHealing(u)) woundedHome.remove(u.getId());
+                if (u.getHealth() >= u.getMaxHealth() * 0.6 || noHealing(u)) { if (u.getHealth() >= u.getMaxHealth() * 0.6) woundedHealed++; woundedHome.remove(u.getId()); }
                 else {
                     BlockPos r = healSpot(in, u);
                     if (r == null) { woundedHome.remove(u.getId()); }
@@ -2685,6 +2699,9 @@ public final class Army {
 
     int fightIdles, creeperBlasts, spreadSwitches, returnFires;
     final java.util.Set<Integer> woundedHome = new java.util.HashSet<>();
+    /** v14 counters of the user's ideas: wounded sent home / back healed, ally defences, joint attacks */
+    int woundedSent, woundedHealed, allyHelps, jointAttacks, helpCalls;
+    private long lastHelpCall = -100000;
     /** id -> {tick of the last health gain, health then}: soldiers do not heal by themselves in RON (only witches'
      *  potions, life steal and the healing fountain) - one that gains nothing for 60 s goes back to the
      *  fight after 60 s (R11_wh: the wounded sat home for good, wins turned into 40-minute timeouts) */
@@ -2859,6 +2876,7 @@ public final class Army {
                 lastAllyTell = bot.now;
                 bot.tellAllies(who + " 被打了，我带 " + go.size() + " 个兵来帮你守（" + spot.getX() + ", " + spot.getZ() + "）！", true);
             }
+            allyHelps++;
             bot.log("ally defence: " + most + " enemies at " + who + "'s base " + spot.toShortString());
         }
         return true;

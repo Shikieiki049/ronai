@@ -34,6 +34,10 @@ public final class Telemetry {
     private static final Map<String, Telemetry> ALL = new HashMap<>();
 
     private int samples, lowFood, lowWood, lowOre, highFood, highWood, highOre;
+    private int armySamples, witchSamples; private double evokerSum;
+    private java.util.Map<String, Integer> prof10, profEnd;
+    static final String[] IDEAS = { "penBreaks", "penReturns", "woundedSent", "woundedHealed", "allyHelps", "jointAttacks", "helpCalls" };
+    private final java.util.Map<String, Integer> ideas = new java.util.LinkedHashMap<>();
     private int tcSamples, tcIdle, tcIdleFood, tcIdlePop, tcIdleFree; // while the villager count is under 38 (the expert's cap)
     private int placeFails;
     int stalls, pathSat;
@@ -114,6 +118,25 @@ public final class Telemetry {
         int food = r == null ? 0 : r.food, wood = r == null ? 0 : r.wood, ore = r == null ? 0 : r.ore;
 
         samples++;
+        // v14: the user's ideas, how often they come into play (witches with the army, evokers' share, the rest
+        // from the bot's own counters)
+        if (army >= 4) {
+            armySamples++;
+            int wi = 0, ev = 0;
+            for (LivingEntity e : soldiers) {
+                if (e instanceof com.solegendary.reignofnether.unit.units.villagers.WitchUnit) wi++;
+                if (e instanceof com.solegendary.reignofnether.unit.units.villagers.EvokerUnit) ev++;
+            }
+            if (wi > 0) witchSamples++;
+            evokerSum += ev / (double) army;
+        }
+        for (String k : IDEAS) ideas.put(k, (int) a.stat(k));
+        // v14 (the user: villagers should train their professions, mostly lumberjacks and farmers)
+        java.util.Map<String, Integer> pr = new java.util.TreeMap<>();
+        for (LivingEntity e : units)
+            if (e instanceof com.solegendary.reignofnether.unit.units.villagers.VillagerUnit v && e.isAlive() && me.equals(v.getOwnerName()))
+                pr.merge(String.valueOf(v.getUnitProfession()).toLowerCase(), 1, Integer::sum);
+        if (!pr.isEmpty()) { profEnd = pr; if (sec >= 600 && prof10 == null) prof10 = pr; }
         if (Bot.pathQueue() >= 450) pathSat++; // RON's path queue full: nothing on the map can walk
         if (food < 50) lowFood++;
         if (wood < 50) lowWood++;
@@ -198,6 +221,13 @@ public final class Telemetry {
         o.addProperty("peakWorkers", t.peakWorkers);
         o.addProperty("peakArmy", t.peakArmy);
         o.addProperty("retreats", t.retreatsSeen);
+        JsonObject id = new JsonObject();
+        t.ideas.forEach(id::addProperty);
+        id.addProperty("witchTime", t.armySamples == 0 ? 0 : round(t.witchSamples / (double) t.armySamples));
+        id.addProperty("evokerShare", t.armySamples == 0 ? 0 : round(t.evokerSum / t.armySamples));
+        if (t.prof10 != null) t.prof10.forEach((k, v) -> id.addProperty("p10_" + k, v));
+        if (t.profEnd != null) t.profEnd.forEach((k, v) -> id.addProperty("pEnd_" + k, v));
+        o.add("ideas", id);
         JsonObject fb = new JsonObject();
         t.firstBuilt.forEach(fb::addProperty);
         o.add("firstBuilt", fb);

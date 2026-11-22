@@ -761,6 +761,25 @@ public final class Builder {
         // died and the piglins sat at 10/10 population for eight minutes)
         if (p.b("expandOut") && territory(b) && r.priority < 111 && !r.anchor.equals(darkPathPending) && !r.anchor.equals(workDarkAt)) origin = expandSpot(in, b);
         if (origin != null) { /* spread out: placed */ }
+        else if (ring && b == bot.plan.farm && p.b("farmTight")) {
+            // v14 farmTight (the user's games: fields 8 blocks from a drop site, the AI's 14): of every drop site the
+            // spot nearest to one, not the first spot within 16 of the town centre
+            int bestR = p.i("farmTightMax");
+            for (BlockPos s : bot.economy.dropSites(in)) {
+                BlockPos o = findSpot(b, s, 4, bestR, 1, 6);
+                if (o == null) continue;
+                int d = (int) Math.sqrt(o.offset(BuildingUtils.getBuildingSize(b.getRelativeBlockData(bot.level)).getX() / 2, 0,
+                        BuildingUtils.getBuildingSize(b.getRelativeBlockData(bot.level)).getZ() / 2).distSqr(s));
+                if (origin == null || d < bestR) { origin = o; bestR = Math.max(4, d - 1); }
+            }
+            if (origin == null) {
+                List<BlockPos> sites = new ArrayList<>(bot.economy.dropSites(in));
+                BlockPos home = in.home();
+                sites.sort(java.util.Comparator.comparingDouble(s -> s.distSqr(home)));
+                for (BlockPos s : sites) { origin = findSpot(b, s, 4, p.i("farmRingMax"), 1, 6); if (origin != null) break; }
+                if (origin != null) farFields++;
+            }
+        }
         else if (ring && b == bot.plan.farm) {
             // fields hug the drop sites, the town centre first, then the stockpiles nearest home: every
             // harvest walks a few blocks instead of 10-30 (a friend's report; a player rings the town centre)
@@ -789,7 +808,14 @@ public final class Builder {
                 if (origin != null) break;
             }
         }
-        if (origin == null) origin = findSpot(in, b, r.anchor, r.rMin, r.rMax);
+        if (origin == null) {
+            // farmTight: nothing but fields, houses' first one and drop sites inside the ring round the town centre
+            // (the AI's barracks and shrine took it and its later fields went 13-23 blocks out)
+            if (ring && p.b("farmTight") && b != bot.plan.farm && b != bot.plan.stockpile && b != bot.plan.capitol && in.total(bot.plan.house) > 0) {
+                keepCentre = in.home(); keepR = p.i("farmRingKeep");
+            }
+            try { origin = findSpot(in, b, r.anchor, r.rMin, r.rMax); } finally { keepCentre = null; }
+        }
         if (origin == null) return false;
         int n;
         if (b == bot.plan.capitol) n = in.total(b) == 0 ? in.workers.size() : 3;
@@ -930,6 +956,9 @@ public final class Builder {
         return p;
     }
 
+    /** farmTight: candidates inside keepR of keepCentre are skipped (kept for fields); fields that found no tight spot */
+    private BlockPos keepCentre; private int keepR; int farFields;
+
     private BlockPos findSpot(Building b, BlockPos anchor, int rMin, int rMax, int flatTol, int yTol) {
         ArrayList<BuildingBlock> rel = b.getRelativeBlockData(bot.level);
         Vec3i size = BuildingUtils.getBuildingSize(rel);
@@ -952,6 +981,7 @@ public final class Builder {
                 int ox = cx - sx / 2, oz = cz - sz / 2;
                 if (tightFarm ? !clearForField(ox, oz, sx, sz) : !clearOfBuildings(ox, oz, sx, sz, gap, dropSite)) continue;
                 if (nearBadSpot(ox, oz)) continue;
+                if (keepCentre != null && (cx - keepCentre.getX()) * (cx - keepCentre.getX()) + (cz - keepCentre.getZ()) * (cz - keepCentre.getZ()) < keepR * keepR) continue;
                 int y = bot.level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, cx, cz);
                 if (Math.abs(y - anchor.getY()) > yTol && b != bot.plan.capitol) continue;
                 // never put a foundation where monsters have been killing villagers: the builders die on it

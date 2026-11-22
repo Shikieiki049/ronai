@@ -40,6 +40,7 @@ import java.util.*;
  *           finished and under construction by type, the army's centre and spread
  *  bld    - a building placed / finished / destroyed (owner, type, position)
  *  born   - a unit made (owner, type)
+ *  hunt   - an animal killed by a player's unit (owner, animal, position, the killer's type)
  *  death  - a unit died (owner, type, position, the killer's owner and type, cause)
  *  res    - a research finished (owner, item)
  *  end    - the game is over: who is still in
@@ -88,7 +89,17 @@ public final class GameRecorder {
 
     @SubscribeEvent
     public static void onDeath(LivingDeathEvent e) {
-        if (out == null || !(e.getEntity() instanceof Unit u) || e.getEntity().level().isClientSide) return;
+        if (out == null || e.getEntity().level().isClientSide) return;
+        // v14: game killed by a player's unit (the user's hunting: where, how far from home, how often)
+        if (!(e.getEntity() instanceof Unit) && e.getEntity() instanceof net.minecraft.world.entity.animal.Animal a
+                && e.getSource().getEntity() instanceof Unit ku && ku.getOwnerName() != null) {
+            try {
+                write("{\"t\":" + t() + ",\"ev\":\"hunt\",\"owner\":" + q(ku.getOwnerName()) + ",\"u\":" + q(type(a)) + ",\"x\":" + a.getBlockX()
+                        + ",\"z\":" + a.getBlockZ() + ",\"byU\":" + q(type(e.getSource().getEntity())) + "}");
+            } catch (IOException ignored) {}
+            return;
+        }
+        if (!(e.getEntity() instanceof Unit u)) return;
         try {
             LivingEntity v = e.getEntity();
             Entity k = e.getSource().getEntity();

@@ -1,0 +1,45 @@
+{
+ "description": "tuner th_m3a vs b223",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert#monsters:th_m3a vs expert#monsters@b223 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "old first",
+   "spec": "expert#monsters@b223 vs expert#monsters:th_m3a readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}

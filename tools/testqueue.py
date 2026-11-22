@@ -51,6 +51,9 @@ def run(parts):
     for fl in flags:
         if fl.startswith("t") and fl[1:].isdigit():
             args += ["-TimeoutMinutes", fl[1:]]
+    # rec: the match recorder on (ronstrat_matches/*.jsonl in each work dir: tools/human_diff.py, tools/battles.py)
+    if "rec" in flags:
+        args += ["-Extra", "-Dronstrat.recorder=true"]
     if "ron" in flags:
         args += ["-AltRon", "-Full"]
     else:

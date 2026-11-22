@@ -128,6 +128,13 @@ public final class Bot implements Agent {
             case "deaths": return deaths;
             case "placeFails": return placeFails;
             case "stalls": return stalls;
+            case "penBreaks": return economy.penBreaks;
+            case "penReturns": return economy.penReturns;
+            case "woundedSent": return army.woundedSent;
+            case "woundedHealed": return army.woundedHealed;
+            case "allyHelps": return army.allyHelps;
+            case "jointAttacks": return army.jointAttacks;
+            case "helpCalls": return army.helpCalls;
             default: return 0;
         }
     }

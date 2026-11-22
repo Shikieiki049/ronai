@@ -45,7 +45,7 @@ def run(profiles, maps, seeds, minutes, parallel, label, dev=False, global_max=N
         spec = (f"expert{fx}" if p == "base" else f"expert{fx}:{p}") + " solo readied nohandicap" + (" night" if faction == "monsters" else "")
         for m in maps:
             for s in seeds:
-                plan.append({"spec": spec, "seed": s, "map": str(ROOT / "tmp" / "maps" / m), "extra": f"-Dronstrat.stopAt={minutes * 60}"})
+                plan.append({"spec": spec, "seed": s, "map": str(ROOT / "tmp" / "maps" / m), "extra": f"-Dronstrat.stopAt={minutes * 60} -Dronstrat.recorder=true"})
     pf = ROOT / "tmp" / f"{label}.plan.json"
     pf.write_text(json.dumps(plan, indent=1), encoding="utf-8")
     out = ROOT / "results" / f"{label}.jsonl"

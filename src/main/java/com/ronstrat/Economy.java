@@ -143,6 +143,12 @@ public final class Economy {
     }
 
     private final Map<Integer, long[]> huntSince = new HashMap<>();
+    /** penBreak: animal id -> logs cut to get at it */
+    private final Map<Integer, Integer> penTries = new HashMap<>();
+    /** penBreak: worker -> { prey id, log x, y, z, since } while it cuts the pen open */
+    private final Map<Integer, long[]> penCut = new HashMap<>();
+    int penReturns;
+    int penBreaks;
     private long fleeLog = -10000;
     static final java.util.Set<Integer> TEST_HOLD = new java.util.HashSet<>();
     private final java.util.Set<Integer> badPrey = new java.util.HashSet<>();
@@ -211,6 +217,26 @@ public final class Economy {
                 if (!UnitEval.isWorker(e) && (!UnitEval.isScout(e) || !bot.params.b("fleeScoutIgnore")) && e.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(in.home())) > 18 * 18) chasers.add(e);
         for (Mob w : in.workers) {
             if (TEST_HOLD.contains(w.getId())) continue; // autotest water drop: hands off these villagers
+            // penBreak: the log of the pen is down (or 25 s gone) - back to the animal. Before this fix the hunter
+            // stayed a woodcutter for the rest of the game (RON's gather goal walks on to the next tree) and, as
+            // the one fixed hunter, kept anyone else from hunting: food from game stopped at minute 3 (4Rivers)
+            long[] pc = penCut.get(w.getId());
+            if (pc != null) {
+                BlockPos lp = new BlockPos((int) pc[1], (int) pc[2], (int) pc[3]);
+                boolean down = !bot.level.getBlockState(lp).is(net.minecraft.tags.BlockTags.LOGS);
+                if (down || bot.now - pc[4] > 500) {
+                    penCut.remove(w.getId());
+                    net.minecraft.world.entity.Entity pe = bot.level.getEntity((int) pc[0]);
+                    if (pe instanceof Animal pa && pa.isAlive()) {
+                        Orders.attack(bot.name, List.of(w), pa);
+                        setJob(w, Job.FOOD);
+                        huntSince.remove(w.getId());
+                        penReturns++;
+                        bot.log("pen open (" + (down ? "log down" : "timeout") + "): #" + w.getId() + " back after the " + pa.getType().toShortString());
+                    } else { jobs.put(w.getId(), Job.IDLE); idle.add(w); }
+                    continue;
+                }
+            }
             Job recorded = jobs.getOrDefault(w.getId(), Job.IDLE);
             if (!chasers.isEmpty() && recorded != Job.MILITARY && !(((WorkerUnit) w).getGatherResourceGoal() != null && ((WorkerUnit) w).getGatherResourceGoal().isFarming())) {
                 boolean hunted = false;
@@ -261,7 +287,27 @@ public final class Economy {
                 // the clock restarts on every hit: a fleeing pig being chased down is fine
                 long hp = (long) (prey.getHealth() * 10);
                 if (hs == null || hs[0] != prey.getId() || hp < hs[2]) huntSince.put(w.getId(), new long[] { prey.getId(), bot.now, hp });
-                else if (bot.now - hs[1] > 500) {
+                else if (bot.now - hs[1] > 500 && bot.params.b("penBreak") && penTries.merge(prey.getId(), 1, Integer::sum) <= 2) {
+                    // penBreak (the user: some animals are penned in by wood - cut one log and the way is open): a log
+                    // within 3 blocks of the animal, on the hunter's side, is cut first; then the hunt goes on
+                    GatherResourcesGoal g = ((WorkerUnit) w).getGatherResourceGoal();
+                    BlockPos pp = prey.blockPosition();
+                    double dPrey = Math.sqrt(w.blockPosition().distSqr(pp));
+                    Optional<BlockPos> log = g == null ? Optional.empty() : ResourceIndex.get(bot.level).findClosest(bot.level, pp, 3, ResourceName.WOOD,
+                            pos -> Math.abs(pos.getY() - pp.getY()) <= 2 && Math.sqrt(w.blockPosition().distSqr(pos)) < dPrey + 1
+                                    && RonCompat.canGather(g, bot.level, pos, ResourceName.WOOD));
+                    huntSince.remove(w.getId());
+                    if (log.isPresent()) {
+                        Orders.gather(bot.name, List.of(w), log.get());
+                        assignedPos.put(w.getId(), log.get()); assignedAt.put(w.getId(), bot.now); loadChangedAt.put(w.getId(), bot.now);
+                        jobs.put(w.getId(), Job.WOOD);
+                        penCut.put(w.getId(), new long[] { prey.getId(), log.get().getX(), log.get().getY(), log.get().getZ(), bot.now });
+                        penBreaks++;
+                        bot.log("penned " + prey.getType().toShortString() + " at " + pp.toShortString() + ": cutting the log at " + log.get().toShortString() + " to get in");
+                        continue;
+                    }
+                }
+                if (hs != null && hs[0] == prey.getId() && hp >= hs[2] && bot.now - hs[1] > 500) {
                     badPrey.add(prey.getId());
                     badPreySpots.put(prey.blockPosition(), bot.now);
                     huntSince.remove(w.getId());
@@ -431,7 +477,7 @@ public final class Economy {
                 int got = foodHarvested();
                 if (got > huntFoodSeen) { huntFoodSeen = got; huntFoodAt = bot.now; }
                 // 150 s: foragers deliver a load at a time, a minute and more apart; Cabana's hunters brought nothing for nine minutes
-                if (hunt > 0 && bot.now - huntFoodAt > p.get("leanDryTicks") && bot.now > p.get("leanDryTicks")) huntDryUntil = bot.now + 2400;
+                if (hunt > 0 && !p.b("oneHunter") && bot.now - huntFoodAt > p.get("leanDryTicks") && bot.now > p.get("leanDryTicks")) huntDryUntil = bot.now + 2400;
                 if (bot.now < huntDryUntil) hunt = 0;
             }
             int foodW = Math.min(gatherers, fields + hunt);
@@ -459,6 +505,11 @@ public final class Economy {
         // threat the share rules above kept 15-20 on food with 7-11 fields (Post-Youth 16 on 9, Cabana 15 on 7): the rest
         // waited or swapped fields back and forth (100-800 "field swaps" a game). They cut wood for the next fields.
         // How many fields to build still follows the uncapped wish (farmsWanted below).
+        // oneHunter: a food place for the hunter on top of the fields, all game, while game is in reach
+        if (p.b("oneHunter") && animalsNearHome > 0 && bot.difficulty == Difficulty.EXPERT) {
+            int need = Math.min(gatherers, in.built(bot.plan.farm) + 1);
+            if (want[0] < need) { int add = need - want[0]; int fromWood = Math.min(add, want[1]); want[1] -= fromWood; want[0] += fromWood; }
+        }
         rawFoodWant = want[0];
         if (p.b("foodCap") && bot.difficulty == Difficulty.EXPERT) {
             int hunt = animalsNearHome > 0 ? Math.min(maxHunters(in), animalsNearHome) : 0;
@@ -532,7 +583,7 @@ public final class Economy {
                 if (k == i) continue;
                 int surplus = have[k] - want[k];
                 while (surplus > 0 && deficit > 0) {
-                    Mob m = pickMovable(byJob.get(gj[k]));
+                    Mob m = pickMovable(byJob.get(gj[k]), gj[k], gj[i]);
                     if (m == null) break;
                     byJob.get(gj[k]).remove(m);
                     idle.add(m);
@@ -555,6 +606,15 @@ public final class Economy {
                 if (gap > bestGap) { bestGap = gap; best = i; }
             }
             if (best < 0) best = 1;
+            // profJobs: a trained villager back to its own work unless that is well over its share
+            if (p.b("profJobs")) {
+                Job pj = profJob(w);
+                int pi = pj == null ? -1 : jobIndex(pj);
+                if (pi >= 0 && want[pi] > 0 && have[pi] - want[pi] <= 1 && assign(in, w, pj)) { have[jobIndex(job(w))]++; continue; }
+            }
+            // oneHunter: the fixed hunter goes back to the hunt after every delivery (it was handed to wood and
+            // the builders once its first animal was in: game food stopped there)
+            if (p.b("oneHunter") && hunterIds.contains(w.getId()) && assignFood(in, w) && job(w) == Job.FOOD) { have[0]++; continue; }
             boolean ok = assign(in, w, gj[best]);
             if (!ok) {
                 for (int i = 0; i < 3 && !ok; i++) if (i != best) ok = assign(in, w, gj[i]);
@@ -665,10 +725,45 @@ public final class Economy {
         return j == Job.FOOD ? 0 : j == Job.ORE ? 2 : 1;
     }
 
+    /** v14 profJobs: the job a villager's profession belongs to (null: none or not a villager) */
+    static Job profJob(Mob w) {
+        if (!(w instanceof com.solegendary.reignofnether.unit.units.villagers.VillagerUnit v)) return null;
+        return switch (v.getUnitProfession()) {
+            case LUMBERJACK -> Job.WOOD; case FARMER, HUNTER -> Job.FOOD; case MINER -> Job.ORE; default -> null;
+        };
+    }
+
+    /** experience toward the profession of a job (a villager without one): what moving it away throws away */
+    static int jobExp(Mob w, Job j) {
+        if (!(w instanceof com.solegendary.reignofnether.unit.units.villagers.VillagerUnit v)) return 0;
+        return j == Job.WOOD ? v.lumberjackExp : j == Job.FOOD ? v.farmerExp * 15 / 80 + v.hunterExp * 4 : j == Job.ORE ? v.minerExp * 3 : 0;
+    }
+
+    /**
+     * profJobs (the user: villagers should train their professions, mostly lumberjacks and farmers - the first one
+     * reached is kept for good, +25% wood, better crops): of the workers on job from, the one to move to job to is one
+     * whose profession is to's, else one without a profession that has the least experience at from; one already
+     * trained for from stays
+     */
+    private Mob pickMovable(List<Mob> ms, Job from, Job to) {
+        if (!bot.params.b("profJobs")) return pickMovable(ms);
+        return ms.stream()
+                .filter(m -> !(((WorkerUnit) m).getGatherResourceGoal() != null && ((WorkerUnit) m).getGatherResourceGoal().isFarming()))
+                .filter(m -> !(bot.params.b("oneHunter") && hunterIds.contains(m.getId())))
+                .min(Comparator.comparingInt(m -> {
+                    Job pj = profJob(m);
+                    int sc = pj == to ? -1000 : pj == from ? 1000 : pj != null ? 0 : jobExp(m, from) * 10 - jobExp(m, to) * 5;
+                    return sc + ((Unit) m).getItems().size();
+                }))
+                .filter(m -> profJob(m) != from)
+                .orElse(null);
+    }
+
     private Mob pickMovable(List<Mob> ms) {
         // move the worker that carries the least, so no resources are lost in transit
         return ms.stream()
                 .filter(m -> !(((WorkerUnit) m).getGatherResourceGoal() != null && ((WorkerUnit) m).getGatherResourceGoal().isFarming()))
+                .filter(m -> !(bot.params.b("oneHunter") && hunterIds.contains(m.getId())))
                 .min(Comparator.comparingInt(m -> ((Unit) m).getItems().size()))
                 .orElse(null);
     }
@@ -846,6 +941,12 @@ public final class Economy {
         // stock until none can replant (27 farms, 38 farmers and zero food in a timed-out game)
         // short of food: fields for nearly half the villagers, whatever the hunt promises
         if (in.food < 400 && !bot.outnumbered()) want = Math.max(want, (int) Math.round(in.workers.size() * 0.45) - Math.min(2, hunters));
+        // farmFloor (v13, the user's 2v2 on 4Rivers): with food short the wish followed the villagers we have
+        // (45% of 15 = 7 fields) and the villagers waited for food - 15 of them from minute 6 to 12, the town centre
+        // idle for food half the time, while the opening's curve was off for the threats of a 4-player map.
+        // The wish is at least the user's curve by the clock (BuildOrder.FIELDS), whatever the threat.
+        if (in.food < 400 && bot.params.b("farmFloor") && bot.difficulty == Difficulty.EXPERT)
+            want = Math.max(want, (int) Math.ceil(BuildOrder.at(BuildOrder.FIELDS, Math.min(12, BuildOrder.minutes())) * bot.params.get("fieldsScale")));
         int farms = in.total(bot.plan.farm);
         if (bot.now < exhaustedUntil[1]) want = Math.min(want, farms);
         return Math.min(want, 20);
@@ -863,6 +964,8 @@ public final class Economy {
     private final java.util.Set<Integer> hunterIds = new java.util.HashSet<>();
 
     private int maxHunters(Intel in) {
+        // oneHunter (the user: one hunter is enough - all game long, the first food, then the gap before the fields, then extra)
+        if (bot.params.b("oneHunter")) return 1;
         int h = Math.max(2, bot.params.i("hunters"));
         // a map rich in game (parameter huntFar): the hunters stay on, one per three animals in reach
         if (farGame >= 0 && bot.difficulty == Difficulty.EXPERT && bot.params.b("huntFar") && in.workers.size() >= 12)
@@ -879,9 +982,11 @@ public final class Economy {
      * at least four animals stand inside it (counted every 30 s).
      */
     private double huntBox(Intel in) {
-        if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("huntFar")) return 36;
+        boolean one = bot.params.b("oneHunter");
+        if (bot.difficulty != Difficulty.EXPERT || !(bot.params.b("huntFar") || one)) return 36;
         if (bot.now - farGameAt > 600) { farGameAt = bot.now; farGame = countAnimals(in, bot.params.get("huntFarBox")); }
-        return farGame >= 4 ? bot.params.get("huntFarBox") : 36;
+        // the one hunter goes as far as there is game (a lone animal too); the hunting party only for herds
+        return farGame >= (one ? 1 : 4) ? bot.params.get("huntFarBox") : 36;
     }
 
     private boolean gameListed;
@@ -905,8 +1010,9 @@ public final class Economy {
     }
 
     private boolean assignFood(Intel in, Mob w) {
-        // 1. an empty farm
-        for (BuildingPlacement b : in.own) {
+        // 1. an empty farm (not for the fixed hunter while there is game: it was turned into a farmer)
+        boolean keepHunter = bot.params.b("oneHunter") && hunterIds.contains(w.getId()) && countAnimals(in, huntBox(in)) > 0;
+        if (!keepHunter) for (BuildingPlacement b : in.own) {
             if (!(b instanceof FarmPlacement) || !b.isBuilt) continue;
             if (farmTaken(in, b)) continue;
             // a hunter, lumberjack or miner never becomes a farmer (RON: the first profession reached is
@@ -931,7 +1037,7 @@ public final class Economy {
         // 2. hunt near home
         int hunting = 0;
         for (Mob o : in.workers) if (((Unit) o).getTargetGoal().getTarget() instanceof Animal) hunting++;
-        boolean fixed = bot.difficulty == Difficulty.EXPERT && bot.params.b("fixedHunters");
+        boolean fixed = bot.difficulty == Difficulty.EXPERT && (bot.params.b("fixedHunters") || bot.params.b("oneHunter"));
         if (fixed) {
             hunterIds.removeIf(id -> in.workers.stream().noneMatch(o -> o.getId() == id));
             if (!hunterIds.contains(w.getId()) && hunterIds.size() >= maxHunters(in)) hunting = Integer.MAX_VALUE;
@@ -951,6 +1057,12 @@ public final class Economy {
                             a -> a.isAlive() && !(a instanceof Unit) && worthHunting(a) && !badPrey(a) && !in.dangerous(a.blockPosition(), 26)
                                     && !chased.contains(a.getId()) && a.distanceToSqr(w) < reach2)
                     .stream().min(Comparator.comparingDouble(a -> a.distanceToSqr(w)));
+            if (prey.isEmpty() && bot.verbose && bot.params.b("oneHunter") && hunterIds.contains(w.getId())) {
+                var all = bot.level.getEntitiesOfClass(Animal.class, box, a -> a.isAlive() && !(a instanceof Unit));
+                long wh = all.stream().filter(Economy::worthHunting).count(), bp = all.stream().filter(a -> worthHunting(a) && badPrey(a)).count();
+                long dg = all.stream().filter(a -> worthHunting(a) && !badPrey(a) && in.dangerous(a.blockPosition(), 26)).count();
+                bot.log("hunter #" + w.getId() + " finds no prey in box " + (int) hb + ": animals " + all.size() + " worth " + wh + " bad " + bp + " danger " + dg + " chased " + chased.size());
+            }
             if (prey.isPresent()) {
                 bot.log("hunt " + prey.get().getType().toShortString() + " d=" + (int) Math.sqrt(prey.get().distanceToSqr(w)) + " by #" + w.getId());
                 Orders.attack(bot.name, List.of(w), prey.get());
@@ -1347,6 +1459,14 @@ public final class Economy {
         }
         StringBuilder sb = new StringBuilder("roles:");
         for (var e : prof.entrySet()) sb.append(' ').append(e.getKey()).append(' ').append(e.getValue()[0]).append("(v").append(e.getValue()[1]).append(')');
+        // v14: professions per job, and the experience the untrained ones have toward their job
+        Map<String, int[]> pj = new java.util.TreeMap<>();
+        for (Mob w : in.workers) if (w instanceof com.solegendary.reignofnether.unit.units.villagers.VillagerUnit v) {
+            String k = job(w) + "/" + v.getUnitProfession().name().toLowerCase();
+            int[] c = pj.computeIfAbsent(k, x -> new int[2]); c[0]++; c[1] += jobExp(w, job(w));
+        }
+        sb.append(" | by job:");
+        for (var e : pj.entrySet()) sb.append(' ').append(e.getKey()).append(' ').append(e.getValue()[0]).append("(xp").append(e.getValue()[1] / e.getValue()[0]).append(')');
         sb.append(" | on farms:");
         for (var e : onFarm.entrySet()) sb.append(' ').append(e.getKey()).append(' ').append(e.getValue()[0]).append("(v").append(e.getValue()[1]).append(')');
         sb.append(" | ").append(farms).append(" farms: wheat ").append(wheat).append(" carrot ").append(carrot).append(" potato ").append(potato)
@@ -1466,11 +1586,18 @@ public final class Economy {
         for (Mob w : in.workers) {
             Job j = job(w);
             if (j == Job.BUILD || j == Job.MILITARY) continue;
+            if (bot.params.b("oneHunter") && hunterIds.contains(w.getId()) && in.workers.size() > 3) continue; // the hunter keeps hunting
             pool.add(w);
         }
         pool.sort(Comparator.comparingDouble(m -> {
             Job j = job(m);
             double pen = j == Job.IDLE ? -1000 : j == Job.WOOD ? 0 : j == Job.ORE ? 30 : 80;
+            if (bot.params.b("profJobs") && m instanceof com.solegendary.reignofnether.unit.units.villagers.VillagerUnit v) {
+                var pr = v.getUnitProfession();
+                if (pr == com.solegendary.reignofnether.unit.units.villagers.VillagerUnitProfession.MASON) pen -= 40;
+                else if (pr != com.solegendary.reignofnether.unit.units.villagers.VillagerUnitProfession.NONE) pen += 60;
+                else pen += jobExp(m, j) * 2; // halfway to lumberjack: let it finish
+            }
             return pen + Math.sqrt(m.distanceToSqr(near.getX(), near.getY(), near.getZ()));
         }));
         List<Mob> out = new ArrayList<>(pool.subList(0, Math.min(n, pool.size())));
