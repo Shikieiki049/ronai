@@ -426,6 +426,7 @@ public final class BotParams {
         // 51.2%, piglins 65.9 / 60.7% (round 2 vs b222, clean); villagers 47.6% - off
         p.put("foodCap.monsters",           0,     0,      0,     1);
         p.put("oneHunter.villagers",        0,     0,      0,     1);   // v14 (the user: one hunter is enough): 2v2 +36%, vs b223 64.3%, vs RON +10.7% [+2.6, +18.9]
+        p.put("oneHunter.monsters",         0,     0,      0,     1);   // v14: 2v2 (monster + villager teammates) 90.0% vs 47.5%; 2-player maps neutral (vs b223 46.4%, vs RON +4.8%)
         p.put("foodCap.piglins",            0,     0,      0,     1);
         p.put("militiaCall",                0,     0,      0,     0);   // villagers attacked run to the town centre and take up arms (the user)
         p.put("kiting",                     0,     0,      0,     1);
