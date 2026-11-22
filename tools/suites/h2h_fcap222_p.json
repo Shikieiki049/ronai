@@ -1,0 +1,45 @@
+{
+ "description": "head-to-head: expert#piglins:fcap against the frozen b222 (piglins)",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert#piglins:fcap vs expert#piglins@b222 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    104,
+    105,
+    106
+   ]
+  },
+  {
+   "name": "old first",
+   "spec": "expert#piglins@b222 vs expert#piglins:fcap readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    104,
+    105,
+    106
+   ]
+  }
+ ]
+}

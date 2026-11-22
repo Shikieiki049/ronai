@@ -416,6 +416,10 @@ public final class BotParams {
         // monsters 59.5% (84 games), piglins 55.0% (80); villagers 47% - off for them
         p.put("combatModel.monsters",       0,     0,      0,     1);
         p.put("combatModel.piglins",        0,     0,      0,     1);
+        // build223: food workers at most built fields + hunters (+2 when short) - head-to-head two rounds: monsters 61.9 /
+        // 51.2%, piglins 65.9 / 60.7% (round 2 vs b222, clean); villagers 47.6% - off
+        p.put("foodCap.monsters",           0,     0,      0,     1);
+        p.put("foodCap.piglins",            0,     0,      0,     1);
         p.put("militiaCall",                0,     0,      0,     0);   // villagers attacked run to the town centre and take up arms (the user)
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);
