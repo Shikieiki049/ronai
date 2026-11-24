@@ -1,0 +1,45 @@
+{
+ "description": "head-to-head: expert:fcv against the frozen b225 (villagers)",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert:fcv vs expert@b225 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "old first",
+   "spec": "expert@b225 vs expert:fcv readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}

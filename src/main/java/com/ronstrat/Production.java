@@ -91,10 +91,15 @@ public final class Production {
             // ...but a gutted economy cannot pay for an army either: below 26 villagers they still come
             // from any food past one soldier's price (16 villagers for 10 minutes starved the army too)
             int foodFloor = armyFirst ? (bot.difficulty == Difficulty.EXPERT && !turtle && workersNow < 26 ? 120 : 220) : 0;
+            // tcNonstop (the user: the town centre never stops making villagers before the cap): no army-first food
+            // floor and no rush/camp pause. Villagers vs monsters: the lost games stood at 32 villagers from minute 12
+            // (army first under threat) against the monsters' 39; the won ones had 36-37.
+            boolean nonstop = p.b("tcNonstop") && bot.difficulty == Difficulty.EXPERT && !turtle;
+            if (nonstop) foodFloor = 0;
             // monsters camped at home: the soldiers to clear them first (parameter campRush)
-            if (bot.difficulty == Difficulty.EXPERT && bot.army.campRush(in) && in.built(plan.barracks) > 0 && workersNow >= 6) continue;
+            if (!nonstop && bot.difficulty == Difficulty.EXPERT && bot.army.campRush(in) && in.built(plan.barracks) > 0 && workersNow >= 6) continue;
             // rush defence: every bit of food into soldiers until the army has caught up with theirs
-            if (bot.difficulty == Difficulty.EXPERT && bot.army.rushDefence(in) && workersNow >= 12) continue;
+            if (!nonstop && bot.difficulty == Difficulty.EXPERT && bot.army.rushDefence(in) && workersNow >= 12) continue;
             while (workersNow + queuedWorkers < workerTarget && pp.productionQueue.size() < p.i("workerQueue")
                     && in.food >= cost(plan.worker).food + foodFloor && room(in, plan.worker)) {
                 if (!bot.attentive()) break;

@@ -302,6 +302,7 @@ public final class BotParams {
         p.put("vilWoodArmy",                0,     0,      0,     0);    // villagers vs monsters: vindicators 45%, pillagers 40%, witches 15%
         p.put("nightHold",                  0,     0,      0,     0);    // vs monsters at night the army fights only at our buildings
         p.put("foodCap",                    0,     0,      0,     0);    // food workers at most built fields + hunters (+2 when short); the rest on wood
+        p.put("tcNonstop",                  0,     0,      0,     0);    // the user: villagers nonstop to the cap - no army-first floor, no rush/camp pause
         p.put("farmFloor",                  0,     0,      0,     0);    // v13: food short - the fields wished for follow the user's curve by the clock
         p.put("penBreak",                   0,     1,      1,     1);    // the user: a penned animal - cut the log in the way, then hunt (a fix, on)
         p.put("oneHunter",                  0,     0,      0,     0);    // the user: one hunter all game, as far as there is game (huntFarBox)
@@ -432,6 +433,11 @@ public final class BotParams {
         p.put("oneHunter.villagers",        0,     0,      0,     1);   // v14 (the user: one hunter is enough): 2v2 +36%, vs b223 64.3%, vs RON +10.7% [+2.6, +18.9]
         p.put("oneHunter.monsters",         0,     0,      0,     1);   // v14: 2v2 (monster + villager teammates) 90.0% vs 47.5%; 2-player maps neutral (vs b223 46.4%, vs RON +4.8%)
         p.put("foodCap.piglins",            0,     0,      0,     1);
+        // build226 (v15, the user's 4Mountains 2v2: the AI teammate had 12-13 farmers on 6 fields, standing 50-77% of the
+        // time, and made no villager for 5 minutes): foodCap for villagers - mirror vs b225 50.0%, vs monsters -1.2 / +9.5,
+        // 2v2 +10 (20 pairs). With witchLate as well: mirror 54.8% but vs RON 85.1% (R225 90.5%, -5.4 paired) and 2v2
+        // 9 vs 12 of 19 - witchLate stays off.
+        p.put("foodCap.villagers",          0,     0,      0,     1);
         p.put("militiaCall",                0,     0,      0,     0);   // villagers attacked run to the town centre and take up arms (the user)
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);
