@@ -62,6 +62,8 @@ final class BuildOrder {
             if (b == plan.farm) return true; // re-added below to the curve
             if (b == com.solegendary.reignofnether.building.Buildings.SHRINE_OF_PROSPERITY && (bot.params.b("shrineEarly") || (bot.params.b("shrineMid") && minutes() >= bot.params.get("shrineMinute")))) return false;
             if (b == com.solegendary.reignofnether.building.Buildings.WITCH_HUT && Strategy.witches(bot)) return false;
+            // evokerVsMon: the arcane tower right after the barracks - here it waited for the opening to end (minute 11-24)
+            if (b == com.solegendary.reignofnether.building.Buildings.ARCANE_TOWER && bot.composition.evokerRush(in)) return false;
             if ((b == com.solegendary.reignofnether.building.Buildings.BLACKSMITH || b == com.solegendary.reignofnether.building.Buildings.IRON_GOLEM_BUILDING) && Strategy.golems(bot)) return false;
             if (b == plan.barracks) return in.total(plan.barracks) >= barracksWanted;
             if (b == plan.stockpile) return in.total(plan.stockpile) >= Math.max(1, stockWanted) && r.priority() < (bot.economy.farWoodTrip ? 98 : 100);

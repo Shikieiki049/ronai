@@ -1,0 +1,49 @@
+{
+ "description": "2v2 head-to-head: build225 villagers pair vs the b223 pair, 4-player maps",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert,expert vs expert@b223,expert@b223 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "4Rivers",
+    "4Mountains"
+   ],
+   "seeds": [
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120
+   ]
+  },
+  {
+   "name": "old first",
+   "spec": "expert@b223,expert@b223 vs expert,expert readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "4Rivers",
+    "4Mountains"
+   ],
+   "seeds": [
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120
+   ]
+  }
+ ]
+}

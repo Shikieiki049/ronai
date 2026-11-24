@@ -194,6 +194,11 @@ final class Composition {
             double add = (p.get("modelWitchFloor") * sum - w[3]) / (1 - p.get("modelWitchFloor"));
             w[3] += add; sum += add;
         }
+        // witchLate: a floor of witches once the hut stands, whatever the matrix says (they heal the wounded)
+        if (!model && p.b("witchLate") && allowed(3, in) && in.built(producer(3)) > 0 && sum > 0 && w[3] / sum < p.get("witchFloor")) {
+            double add = (p.get("witchFloor") * sum - w[3]) / (1 - p.get("witchFloor"));
+            w[3] += add; sum += add;
+        }
         Map<FactionPlan.Role, Double> out = new EnumMap<>(FactionPlan.Role.class);
         for (int a = 0; a < UNITS.length; a++) {
             double share = sum > 0 ? w[a] / sum : (a == 0 ? 1 : 0);

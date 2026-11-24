@@ -36,7 +36,8 @@ public final class Telemetry {
     private int samples, lowFood, lowWood, lowOre, highFood, highWood, highOre;
     private int armySamples, witchSamples; private double evokerSum;
     private java.util.Map<String, Integer> prof10, profEnd;
-    static final String[] IDEAS = { "penBreaks", "penReturns", "woundedSent", "woundedHealed", "allyHelps", "jointAttacks", "helpCalls" };
+    private int potionsAt = -1;
+    static final String[] IDEAS = { "penBreaks", "penReturns", "woundedSent", "woundedHealed", "allyHelps", "jointAttacks", "helpCalls", "witchHeals" };
     private final java.util.Map<String, Integer> ideas = new java.util.LinkedHashMap<>();
     private int tcSamples, tcIdle, tcIdleFood, tcIdlePop, tcIdleFree; // while the villager count is under 38 (the expert's cap)
     private int placeFails;
@@ -131,6 +132,8 @@ public final class Telemetry {
             evokerSum += ev / (double) army;
         }
         for (String k : IDEAS) ideas.put(k, (int) a.stat(k));
+        if (potionsAt < 0 && com.solegendary.reignofnether.research.ResearchServerEvents.playerHasResearch(me,
+                com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HEALING_POTIONS)) potionsAt = sec;
         // v14 (the user: villagers should train their professions, mostly lumberjacks and farmers)
         java.util.Map<String, Integer> pr = new java.util.TreeMap<>();
         for (LivingEntity e : units)
@@ -223,6 +226,7 @@ public final class Telemetry {
         o.addProperty("retreats", t.retreatsSeen);
         JsonObject id = new JsonObject();
         t.ideas.forEach(id::addProperty);
+        id.addProperty("potionsMin", t.potionsAt < 0 ? -1 : t.potionsAt / 60);
         id.addProperty("witchTime", t.armySamples == 0 ? 0 : round(t.witchSamples / (double) t.armySamples));
         id.addProperty("evokerShare", t.armySamples == 0 ? 0 : round(t.evokerSum / t.armySamples));
         if (t.prof10 != null) t.prof10.forEach((k, v) -> id.addProperty("p10_" + k, v));

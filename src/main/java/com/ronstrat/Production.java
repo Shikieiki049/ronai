@@ -296,6 +296,13 @@ public final class Production {
             }
             if (best == null) { idleReason = "nothing affordable f=" + f + " w=" + w + " o=" + o + " pop=" + in.pop + "/" + in.popCap; continue; }
             ResourceCost c = cost(best.item);
+            // evokerVsMon: the barracks took every 160 food the moment it came in and the arcane tower's evokers
+            // (140 food + 120 ore) never got any - 5-7% of the army instead of a third. While evokers are well short
+            // of their share the barracks leaves them the food
+            if (plan.villagers && best.item == com.solegendary.reignofnether.building.production.ProductionItems.VINDICATOR
+                    && bot.composition.evokerRush(in) && in.built(com.solegendary.reignofnether.building.Buildings.ARCANE_TOWER) > 0
+                    && have.getOrDefault(FactionPlan.Role.CASTER, 0.0) / Math.max(1, totalPop) < 0.6 * want.getOrDefault(FactionPlan.Role.CASTER, 0.0)
+                    && f < c.food + 140 && bot.army.sinceThreat() > 200) { idleReason = "food kept for evokers"; continue; }
             boolean bankWitch = best.role == FactionPlan.Role.SUPPORT && Strategy.witches(bot)
                     && have.getOrDefault(FactionPlan.Role.SUPPORT, 0.0) < 3 * p.get("witchMin") && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore;
             if ((!bankWitch && !pays(c, f, wFor(best, in, w, o), o)) || !room(in, best.item)) { idleReason = "cannot afford " + best.item.getItemName(); continue; }
@@ -322,13 +329,13 @@ public final class Production {
     boolean savingForPotions(Intel in) {
         check:
         {
-            if (bot.difficulty != Difficulty.EXPERT || !Strategy.witches(bot) || bot.army.sinceThreat() < 600) break check;
+            if (bot.difficulty != Difficulty.EXPERT || !Strategy.witches(bot) || bot.army.sinceThreat() < (bot.params.b("witchLate") ? 200 : 600)) break check;
             var item = com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HEALING_POTIONS;
             if (ResearchServerEvents.playerHasResearch(bot.name, item) || item.itemIsBeingProduced(false, bot.name)) break check;
             if (in.built(com.solegendary.reignofnether.building.Buildings.WITCH_HUT) == 0 || in.ore < 350) break check;
             int witches = 0;
             for (var a : in.army) if (a.getClass().getSimpleName().equals("WitchUnit")) witches++;
-            if (witches < 1) break check;
+            if (witches < 1 && !bot.params.b("witchLate")) break check;
             if (savingSince < 0) savingSince = bot.now;
             if (bot.now - savingSince < 1800) return true;
             if (bot.now - savingSince > 4800) savingSince = -1; // a new try a while later

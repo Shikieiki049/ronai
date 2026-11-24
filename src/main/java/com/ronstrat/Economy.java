@@ -801,6 +801,16 @@ public final class Economy {
         // twenty minutes in a player's game and 2 of 21 soldiers had armour)
         if (bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && n >= 28 && in.ore < 500
                 && com.solegendary.reignofnether.player.PlayerServerEvents.rtsGameTicks >= 18000) ore = Math.max(ore, 0.10);
+        // witchLate: the healing potions (350 wood + 350 ore) are what makes the witches heal - miners for them once
+        // the hut stands (the wounded walked to witches that could not heal: 4.5 a game, none healed)
+        if (p.b("witchLate") && in.built(com.solegendary.reignofnether.building.Buildings.WITCH_HUT) > 0 && in.ore < 350
+                && !com.solegendary.reignofnether.research.ResearchServerEvents.playerHasResearch(bot.name,
+                        com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HEALING_POTIONS)) ore = Math.max(ore, 0.20);
+        // evokerVsMon: a third of the army are evokers (140 food + 120 ore) - with ~1 miner they were 6% of it (X_vmev225).
+        // Ore for them (and the tower) from the first barracks on
+        if (bot.plan.villagers && bot.composition.evokerRush(in) && n >= 14 && in.ore < 400
+                && in.built(bot.plan.barracks) > 0)
+            ore = Math.max(ore, p.get("evokerOreShare"));
         // ore piled up, wood gone: every miner to the woods (a player's game: 1185 ore, wood at 0 for 10 min)
         if (bot.difficulty == Difficulty.EXPERT && in.ore >= 600 && in.wood < 150) { ore = 0; food = Math.min(food, 0.5); }
         // no game to hunt near home: the opening lives on berries and the first fields - more hands on food

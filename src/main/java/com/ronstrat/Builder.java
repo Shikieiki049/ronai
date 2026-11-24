@@ -318,6 +318,11 @@ public final class Builder {
                     && in.total(com.solegendary.reignofnether.building.Buildings.WITCH_HUT) == 0 && in.built(plan.barracks) >= 1
                     && workers >= 18 && BuildOrder.minutes() >= p.get("witchFrom"))
                 reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.WITCH_HUT, 91, home, 12, 30));
+            // witchLate (v14, the user: witches are the villagers' only healing; the user's hut goes up at 10-14 min):
+            // on every map once the economy stands - not the early witch route, which cost the opening
+            else if (plan.villagers && p.b("witchLate") && in.total(com.solegendary.reignofnether.building.Buildings.WITCH_HUT) == 0
+                    && in.built(plan.barracks) >= 2 && workers >= 24 && BuildOrder.minutes() >= p.get("witchLateFrom") && !bot.outnumbered())
+                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.WITCH_HUT, 86, home, 12, 30));
             // early shrine (a player's advice): right after the first house - heroes cost nothing but time,
             // so the sooner the shrine stands the more of the game they fight in
             // ...or a little later (shrineEarlyMinute / shrineEarlyFields): its 125 wood at minute 1 slowed the
@@ -357,7 +362,7 @@ public final class Builder {
         // 15-30, after the zombie sea had already won)
         if (plan.villagers && bot.composition.evokerRush(in) && in.built(plan.barracks) > 0 && workers >= 16
                 && in.total(com.solegendary.reignofnether.building.Buildings.ARCANE_TOWER) == 0)
-            reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.ARCANE_TOWER, 92, home, 12, 30));
+            reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.ARCANE_TOWER, 96, home, 12, 30));
         // the composition planner's tech: the building of a unit that beats what we can train
         if (plan.villagers && p.b("composition") && bot.difficulty == Difficulty.EXPERT && in.built(plan.barracks) > 0 && workers >= 18) {
             Building tech = bot.composition.techWanted(in);

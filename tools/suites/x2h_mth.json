@@ -1,0 +1,49 @@
+{
+ "description": "2v2 head-to-head: monster pair with th_m3b vs the b225 pair",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert#monsters:th_m3b,expert#monsters:th_m3b vs expert#monsters@b225,expert#monsters@b225 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "4Rivers",
+    "4Mountains"
+   ],
+   "seeds": [
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130
+   ]
+  },
+  {
+   "name": "old first",
+   "spec": "expert#monsters@b225,expert#monsters@b225 vs expert#monsters:th_m3b,expert#monsters:th_m3b readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "4Rivers",
+    "4Mountains"
+   ],
+   "seeds": [
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130
+   ]
+  }
+ ]
+}

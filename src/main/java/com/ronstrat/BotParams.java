@@ -295,6 +295,7 @@ public final class BotParams {
         p.put("piglinArena",                0,     0,      0,     0);   // v11: arena values tilt the piglin mix against the enemy seen
         p.put("foreignComp",                0,     0,      0,     0);    // the composition planner knows the other factions' soldiers (arena AVX)
         p.put("evokerVsMon",                0,     0,      0,     0);    // villagers vs monsters: arcane tower right after the barracks, vindicators 2 : evokers 1 (night arena: +0.31 vs zombies, +0.24 vs husks)
+        p.put("evokerOreShare",             0.22,  0.22,   0.22,  0.22); // evokerVsMon: miners for the evokers once the arcane tower is placed
         p.put("vilFood",                    0,     0,      0,     0);    // villagers: food share at least vilFoodShare from 14 workers
         p.put("dayStrike",                  0,     0,      0,     0);    // non-burning factions vs monsters: attack by day only, home at nightfall
         p.put("fieldsAlways",               0,     0,      0,     0);    // v12: the user's field curve under threat too, a field ahead of barracks when 2 behind
@@ -334,6 +335,9 @@ public final class BotParams {
         p.put("stockpileEagerFarms",        0,     0,      0,     10);    // ...only once this many fields stand (the opening wood goes to fields first)
         p.put("farmRing",                   0,     0,      0,     1);    // fields right around the town centre and stockpiles; other buildings further out
         p.put("farmRingMax",                16,    16,     16,    16);   // ...search radius for a field around a drop site
+        p.put("witchLate",                  0,     0,      0,     0);    // v14: villagers' witch hut on every map from witchLateFrom, witches >= witchFloor
+        p.put("witchLateFrom",              10,    10,     10,    10);
+        p.put("witchFloor",                 0.12,  0.12,   0.12,  0.12);
         p.put("profJobs",                   0,     0,      0,     0);    // v14 (the user): villagers keep the job of their profession and train one
         p.put("farmTight",                  0,     0,      0,     0);    // v14: fields at the drop site nearest, the town centre ring kept for fields
         p.put("farmTightMax",               12,    12,     12,    12);   // ...search radius of the tight field spot

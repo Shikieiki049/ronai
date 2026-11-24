@@ -1,9 +1,9 @@
 {
- "description": "tuner th_m2b vs b223",
+ "description": "tuner th_m2b vs b225",
  "items": [
   {
    "name": "new first",
-   "spec": "expert#monsters:th_m2b vs expert#monsters@b223 readied nohandicap night",
+   "spec": "expert#monsters:th_m2b vs expert#monsters@b225 readied nohandicap night",
    "us": 0,
    "pair": "h2h",
    "maps": [
@@ -23,7 +23,7 @@
   },
   {
    "name": "old first",
-   "spec": "expert#monsters@b223 vs expert#monsters:th_m2b readied nohandicap night",
+   "spec": "expert#monsters@b225 vs expert#monsters:th_m2b readied nohandicap night",
    "us": 1,
    "pair": "h2h",
    "maps": [

@@ -152,14 +152,17 @@ public final class Match {
         if (spec.ffa || teams.size() != 2 || teams.get(0).size() != teams.get(1).size()) return -1;
         java.util.Map<String, Integer> side = new java.util.HashMap<>();
         for (int i = 0; i < 2; i++) for (Agent b : teams.get(i)) side.put(b.name(), i);
-        int[] pop = new int[2], army = new int[2];
+        // by population, not heads: a zombie is 1 pop and a vindicator 3, so counting heads called
+        // equal monster/villager armies 3:1 and ended cross-faction games for the monsters (11-23)
+        double[] pop = new double[2], army = new double[2];
         for (var e : new ArrayList<>(com.solegendary.reignofnether.unit.UnitServerEvents.getAllUnits())) {
             if (!(e instanceof com.solegendary.reignofnether.unit.interfaces.Unit u) || !e.isAlive()) continue;
             Integer s = side.get(u.getOwnerName());
             if (s == null) continue;
-            pop[s]++;
+            double pv = UnitEval.popValue(e);
+            pop[s] += pv;
             if (!(e instanceof com.solegendary.reignofnether.unit.interfaces.WorkerUnit) && !u.isScout()
-                    && !(e instanceof com.solegendary.reignofnether.unit.units.villagers.MilitiaUnit)) army[s]++;
+                    && !(e instanceof com.solegendary.reignofnether.unit.units.villagers.MilitiaUnit)) army[s] += pv;
         }
         for (int s = 0; s < 2; s++)
             if (pop[s] >= ratio * Math.max(1, pop[1 - s]) && army[s] >= army[1 - s] && army[s] >= 5) return s;

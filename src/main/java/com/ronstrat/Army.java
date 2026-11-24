@@ -748,6 +748,7 @@ public final class Army {
                 targetPos = tp.targetPos;
                 tp.members.add(bot.name);
                 teamPlan = tp;
+                jointAttacks++;
                 bot.log("team plan: joining on " + target + " with army pop " + (int) armyPop);
                 return true;
             }
@@ -2700,7 +2701,7 @@ public final class Army {
     int fightIdles, creeperBlasts, spreadSwitches, returnFires;
     final java.util.Set<Integer> woundedHome = new java.util.HashSet<>();
     /** v14 counters of the user's ideas: wounded sent home / back healed, ally defences, joint attacks */
-    int woundedSent, woundedHealed, allyHelps, jointAttacks, helpCalls;
+    int woundedSent, woundedHealed, allyHelps, jointAttacks, helpCalls, witchHeals;
     private long lastHelpCall = -100000;
     /** id -> {tick of the last health gain, health then}: soldiers do not heal by themselves in RON (only witches'
      *  potions, life steal and the healing fountain) - one that gains nothing for 60 s goes back to the
@@ -2739,6 +2740,10 @@ public final class Army {
      */
     private BlockPos healSpot(Intel in, Mob u) {
         if (!bot.plan.villagers) return rally(in);
+        // a witch heals only with the healing potions researched: before that the walk to her was wasted (v14 stats:
+        // 4-5 wounded a game sent, none healed)
+        if (!com.solegendary.reignofnether.research.ResearchServerEvents.playerHasResearch(bot.name,
+                com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HEALING_POTIONS)) return null;
         Mob best = null;
         for (Mob w : in.army)
             if (w != u && w.getClass().getSimpleName().equals("WitchUnit") && (best == null || w.distanceToSqr(u) < best.distanceToSqr(u))) best = w;

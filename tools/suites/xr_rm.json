@@ -1,0 +1,45 @@
+{
+ "description": "RON villagers vs our monsters (RON villagers share)",
+ "items": [
+  {
+   "name": "villagers first",
+   "spec": "expert@ron vs expert#monsters readied nohandicap night",
+   "us": 0,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "monsters first",
+   "spec": "expert#monsters vs expert@ron readied nohandicap night",
+   "us": 1,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}

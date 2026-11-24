@@ -186,6 +186,7 @@ final class Casters {
         }
         if (worst != null) {
             Orders.ability(bot.name, UnitAction.THROW_HEALING_POTION, worst.getId(), List.of(w), worst.blockPosition());
+            bot.army.witchHeals++;
             lastCast.put(w.getId(), bot.now);
             if (bot.verbose) bot.log("witch heals " + worst.getType().toShortString() + " at " + (int) (100 * worst.getHealth() / worst.getMaxHealth()) + "% health");
         }
