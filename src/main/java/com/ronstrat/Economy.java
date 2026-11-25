@@ -511,7 +511,7 @@ public final class Economy {
         // How many fields to build still follows the uncapped wish (farmsWanted below).
         // oneHunter: a food place for the hunter on top of the fields, all game, while game is in reach
         if (p.b("oneHunter") && animalsNearHome > 0 && bot.difficulty == Difficulty.EXPERT) {
-            int need = Math.min(gatherers, in.built(bot.plan.farm) + 1);
+            int need = Math.min(gatherers, in.built(bot.plan.farm) + maxHunters(in));
             if (want[0] < need) { int add = need - want[0]; int fromWood = Math.min(add, want[1]); want[1] -= fromWood; want[0] += fromWood; }
         }
         rawFoodWant = want[0];
@@ -979,7 +979,15 @@ public final class Economy {
 
     private int maxHunters(Intel in) {
         // oneHunter (the user: one hunter is enough - all game long, the first food, then the gap before the fields, then extra)
-        if (bot.params.b("oneHunter")) return 1;
+        if (bot.params.b("oneHunter")) {
+            // earlyHunters (v16, the user's 2v2s: they hunt about twice the AI's animals in the first 8 minutes -
+            // 15 vs 7 on 4Rivers, 9 vs 4 on Corporate Warfare - while the AI starved 40-70% of minutes 0-10):
+            // more hunters while the opening lasts and there is game in reach, then back to one
+            int early = bot.params.i("earlyHunters");
+            if (early > 1 && bot.difficulty == Difficulty.EXPERT && BuildOrder.minutes() < bot.params.get("earlyHuntMin")
+                    && farGame >= 2 * early) return early;
+            return 1;
+        }
         int h = Math.max(2, bot.params.i("hunters"));
         // a map rich in game (parameter huntFar): the hunters stay on, one per three animals in reach
         if (farGame >= 0 && bot.difficulty == Difficulty.EXPERT && bot.params.b("huntFar") && in.workers.size() >= 12)
@@ -1054,6 +1062,9 @@ public final class Economy {
         boolean fixed = bot.difficulty == Difficulty.EXPERT && (bot.params.b("fixedHunters") || bot.params.b("oneHunter"));
         if (fixed) {
             hunterIds.removeIf(id -> in.workers.stream().noneMatch(o -> o.getId() == id));
+            // the opening's extra hunters stop being fixed hunters once the opening is over
+            int maxH = maxHunters(in);
+            if (hunterIds.size() > maxH) { var it = hunterIds.iterator(); while (hunterIds.size() > maxH && it.hasNext()) { int id = it.next(); if (id != w.getId()) it.remove(); } }
             if (!hunterIds.contains(w.getId()) && hunterIds.size() >= maxHunters(in)) hunting = Integer.MAX_VALUE;
         }
         if (hunting < Math.max(1, maxHunters(in))) {

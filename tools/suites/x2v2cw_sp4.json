@@ -1,0 +1,28 @@
+{
+ "description": "v16 2v2 villagers+villagers vs monsters+piglins on 4Rivers, 4Mountains, Corporate Warfare: stockpiles urgent from 4 fields",
+ "items": [
+  {
+   "name": "villagers team",
+   "spec": "expert:sp4,expert:sp4 vs expert#monsters,expert#piglins readied nohandicap night",
+   "us": 0,
+   "pair": "2v2",
+   "maps": [
+    "4Rivers",
+    "4Mountains",
+    "Corporate_Warfare"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110
+   ]
+  }
+ ]
+}
