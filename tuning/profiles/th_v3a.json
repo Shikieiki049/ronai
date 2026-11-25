@@ -1,6 +1,6 @@
 {
  "attackAdvantage": 1.35,
- "retreatRatio": 0.5,
+ "retreatRatio": 0.595,
  "modelAttackMin": 0.116,
  "attackMinArmyPop": 26.0,
  "attackWaveCooldown": 45.0

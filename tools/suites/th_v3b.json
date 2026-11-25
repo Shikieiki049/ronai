@@ -1,9 +1,9 @@
 {
- "description": "tuner th_v3b vs b224",
+ "description": "tuner th_v3b vs b226",
  "items": [
   {
    "name": "new first",
-   "spec": "expert:th_v3b vs expert@b224 readied nohandicap night",
+   "spec": "expert:th_v3b vs expert@b226 readied nohandicap night",
    "us": 0,
    "pair": "h2h",
    "maps": [
@@ -23,7 +23,7 @@
   },
   {
    "name": "old first",
-   "spec": "expert@b224 vs expert:th_v3b readied nohandicap night",
+   "spec": "expert@b226 vs expert:th_v3b readied nohandicap night",
    "us": 1,
    "pair": "h2h",
    "maps": [
