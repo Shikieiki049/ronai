@@ -1,0 +1,27 @@
+{
+ "description": "2v2 villagers+villagers vs monsters+piglins, villagers with smithOreLate",
+ "items": [
+  {
+   "name": "villagers team",
+   "spec": "expert:sol,expert:sol vs expert#monsters,expert#piglins readied nohandicap night",
+   "us": 0,
+   "pair": "2v2",
+   "maps": [
+    "4Rivers",
+    "4Mountains"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110
+   ]
+  }
+ ]
+}

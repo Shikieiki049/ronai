@@ -1,0 +1,45 @@
+{
+ "description": "cross-faction villagers vs monsters round 2 - villagers with arm4 (arm3 + blacksmith priority 99)",
+ "items": [
+  {
+   "name": "villagers first",
+   "spec": "expert:arm4 vs expert#monsters readied nohandicap night",
+   "us": 0,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    104,
+    105,
+    106
+   ]
+  },
+  {
+   "name": "monsters first",
+   "spec": "expert#monsters vs expert:arm4 readied nohandicap night",
+   "us": 1,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    104,
+    105,
+    106
+   ]
+  }
+ ]
+}

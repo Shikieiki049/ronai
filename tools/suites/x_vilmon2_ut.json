@@ -1,0 +1,45 @@
+{
+ "description": "cross-faction villagers vs monsters round 2 - villagers with ut (chain + sharpness)",
+ "items": [
+  {
+   "name": "villagers first",
+   "spec": "expert:ut vs expert#monsters readied nohandicap night",
+   "us": 0,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    104,
+    105,
+    106
+   ]
+  },
+  {
+   "name": "monsters first",
+   "spec": "expert#monsters vs expert:ut readied nohandicap night",
+   "us": 1,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    104,
+    105,
+    106
+   ]
+  }
+ ]
+}

@@ -496,6 +496,10 @@ public final class Economy {
             boolean smith = in.built(com.solegendary.reignofnether.building.Buildings.BLACKSMITH) > 0;
             // the blacksmith itself costs 300 ore: mine for it first, then for the armour
             int oreW = smith ? (int) Math.round(gatherers * p.get("phase2Ore")) : (in.ore < 350 ? Math.max(2, (int) Math.round(gatherers * 0.12)) : 0);
+            // smithOreLate (the user's Corporate Warfare 2v2, 11-25: a villager teammate with no game near home mined
+            // 2 workers from minute 5 and sat on 400 ore while starving for food at 19 villagers and 6 fields): no ore
+            // for the blacksmith before two minutes ahead of its minute (smithFrom), nor while food is short
+            if (!smith && p.b("smithOreLate") && (BuildOrder.minutes() < p.get("smithFrom") - 2 || in.food < 100)) oreW = 0;
             if (in.ore > 600) oreW = 0;
             want[0] = foodW;
             want[2] = Math.min(oreW, Math.max(0, gatherers - foodW));
@@ -519,7 +523,7 @@ public final class Economy {
         // armour: the blacksmith from minute smithFrom - its ore is mined for it first (nothing else mines
         // in an even game, so it came in 29 of 80 games, at 23:48 on average, and 1% of soldiers had armour)
         if (bot.plan.villagers && bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && BuildOrder.minutes() >= p.get("smithFrom") - 1.5
-                && bot.army.sinceThreat() > 600 && !popMaxed(in)) {
+                && (bot.army.sinceThreat() > 600 || p.b("smithUnderThreat")) && !popMaxed(in)) {
             Building smith = com.solegendary.reignofnether.building.Buildings.BLACKSMITH;
             int needOre = in.total(smith) == 0 ? smith.cost.ore + 50 : 300;
             int minOre = in.ore < needOre ? (int) p.get("smithMiners") : 0;

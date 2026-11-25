@@ -1,0 +1,45 @@
+{
+ "description": "cross-faction villagers vs monsters - villagers with ut8 (chain + sharpness)",
+ "items": [
+  {
+   "name": "villagers first",
+   "spec": "expert:ut8 vs expert#monsters readied nohandicap night",
+   "us": 0,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "monsters first",
+   "spec": "expert#monsters vs expert:ut8 readied nohandicap night",
+   "us": 1,
+   "pair": "villagersmonsters",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}

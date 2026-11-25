@@ -80,7 +80,10 @@ final class Upgrades {
 
     /** a chestplate costs 30 ore and nothing else: it must not wait for wood as well */
     private boolean armourRich(Intel in) {
-        boolean r = in.ore >= (wasArmourRich ? 30 : bot.economy.popMaxed(in) ? 40 : 80);
+        // armourOre (v15): the bar to switch it on. Villagers vs monsters had 1.7 of 11 soldiers armoured at 14 min
+        // (ore rarely reached 80), while arena chain on 12 vindicators turned an even fight into +0.23
+        int on = (int) bot.params.get("armourOre");
+        boolean r = in.ore >= (wasArmourRich ? Math.min(30, on) : bot.economy.popMaxed(in) ? Math.min(40, on) : on);
         wasArmourRich = r;
         return r;
     }

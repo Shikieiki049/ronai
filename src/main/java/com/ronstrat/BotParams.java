@@ -270,6 +270,10 @@ public final class BotParams {
         p.put("openingBreak",               0,     0,      0,     1.5);   // end the opening once a seen enemy army is this many soldiers ahead (0 = never)
         p.put("smithFrom",                  99,    99,     99,    11);   // even expert: blacksmith (and miners for it) from this minute
         p.put("smithMiners",                3,     3,      3,     3);
+        p.put("armourOre",                  80,    80,     80,    80);   // ore banked before the blacksmith hands out chestplates
+        p.put("smithOreLate",               0,     0,      0,     0);    // phase 2: no ore for the blacksmith before smithFrom - 2 or while food < 100
+        p.put("smithPrio",                  89,    89,     89,    89);  // build priority of the blacksmith (fields ~97-100, barracks ~95-101)
+        p.put("smithUnderThreat",           0,     0,      0,     0);   // the blacksmith's miners stay on while raided (vs monsters the threat never ends)
         p.put("woodDropFrom",               8,     8,      8,     8);   // ...from this minute on
         p.put("woodDropSlack",              6,     6,      6,     8);   // ...longer than dropDistance plus this
         p.put("rebalanceSlack",             4,     3,      2,     1);    // how far worker split may drift before reassigning

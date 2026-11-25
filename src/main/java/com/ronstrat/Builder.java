@@ -244,8 +244,8 @@ public final class Builder {
             // armour from minute smithFrom (even expert): the blacksmith once a barracks stands and its ore is in
             if (plan.villagers && bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && BuildOrder.minutes() >= p.get("smithFrom")
                     && in.total(com.solegendary.reignofnether.building.Buildings.BLACKSMITH) == 0 && in.built(plan.barracks) >= 1
-                    && in.ore >= com.solegendary.reignofnether.building.Buildings.BLACKSMITH.cost.ore && bot.army.sinceThreat() > 600)
-                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.BLACKSMITH, 89, home, 12, 30));
+                    && in.ore >= com.solegendary.reignofnether.building.Buildings.BLACKSMITH.cost.ore && (bot.army.sinceThreat() > 600 || p.b("smithUnderThreat")))
+                reqs.add(new Request(com.solegendary.reignofnether.building.Buildings.BLACKSMITH, (int) p.get("smithPrio"), home, 12, 30));
             // monsters (monsterCounter): the dungeon is the core of the army (wraiths dodge half of all damage,
             // creepers) - right after the first graveyard, ahead of fields and catalysts; it sat at priority 44-69
             // behind every field for 20 minutes
