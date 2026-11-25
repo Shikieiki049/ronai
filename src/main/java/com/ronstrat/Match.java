@@ -96,7 +96,43 @@ public final class Match {
                 }
             }
         }
+        seedAnimals(level, seats);
         startTick = PlayerServerEvents.rtsGameTicks;
+    }
+
+    /**
+     * -Dronstrat.seedAnimals=N: N huntable animals round every seat, placed the way a RON capitol spawns them
+     * (within 35 blocks, on dry ground no more than 5 blocks above or below the seat). The user's own saves carry
+     * the game that capitols spawned in earlier games (10-17 animals near home at the start, 7-15 hunts per player
+     * in 8 minutes); the clean test maps have about one, so hunting could not be judged in self-play.
+     */
+    private void seedAnimals(ServerLevel level, List<BlockPos> seats) {
+        int n = Integer.getInteger("ronstrat.seedAnimals", 0);
+        if (n <= 0) return;
+        java.util.Random r = new java.util.Random(seed * 31 + 7);
+        net.minecraft.world.entity.EntityType<?>[] kinds = { net.minecraft.world.entity.EntityType.SHEEP,
+                net.minecraft.world.entity.EntityType.COW, net.minecraft.world.entity.EntityType.PIG };
+        int placed = 0;
+        for (int s = 0; s < spec.players() && s < seats.size(); s++) {
+            BlockPos seat = seats.get(s);
+            int got = 0;
+            for (int tries = 0; got < n && tries < n * 40; tries++) {
+                double ang = r.nextDouble() * Math.PI * 2, dist = 14 + r.nextDouble() * 21;
+                int x = seat.getX() + (int) Math.round(Math.cos(ang) * dist), z = seat.getZ() + (int) Math.round(Math.sin(ang) * dist);
+                if (!level.getWorldBorder().isWithinBounds(new BlockPos(x, 0, z))) continue;
+                int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+                BlockPos below = new BlockPos(x, y - 1, z);
+                var bs = level.getBlockState(below);
+                if (!bs.getFluidState().isEmpty() || !bs.isSolid() || Math.abs(y - seat.getY()) > 5) continue;
+                var e = kinds[r.nextInt(kinds.length)].create(level);
+                if (e == null) continue;
+                e.moveTo(x + 0.5, y, z + 0.5, r.nextFloat() * 360, 0);
+                level.addFreshEntity(e);
+                got++;
+            }
+            placed += got;
+        }
+        RonStrategist.LOG.info("RON Strategist: seeded {} animals round {} seats", placed, spec.players());
     }
 
     public List<Integer> aliveTeams() {

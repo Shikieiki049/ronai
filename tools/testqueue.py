@@ -52,8 +52,16 @@ def run(parts):
         if fl.startswith("t") and fl[1:].isdigit():
             args += ["-TimeoutMinutes", fl[1:]]
     # rec: the match recorder on (ronstrat_matches/*.jsonl in each work dir: tools/human_diff.py, tools/battles.py)
+    extra = []
     if "rec" in flags:
-        args += ["-Extra", "-Dronstrat.recorder=true"]
+        extra.append("-Dronstrat.recorder=true")
+    # gameNN: NN huntable animals placed round every seat at the start (the user's own saves carry the game RON's
+    # capitols spawned in earlier games: 10-17 animals near home, the clean test maps ~1)
+    for fl in flags:
+        if fl.startswith("game") and fl[4:].isdigit():
+            extra.append("-Dronstrat.seedAnimals=" + fl[4:])
+    if extra:
+        args += ["-Extra", " ".join(extra)]
     if "ron" in flags:
         args += ["-AltRon", "-Full"]
     else:
