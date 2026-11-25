@@ -100,6 +100,27 @@ public final class Match {
         startTick = PlayerServerEvents.rtsGameTicks;
     }
 
+    /** -Dronstrat.animalDiag: huntable animals near every seat (all / inside 40, 80, 120 blocks) and in the whole level */
+    public void logAnimals(ServerLevel level) {
+        StringBuilder sb = new StringBuilder("animal diag t=" + (PlayerServerEvents.rtsGameTicks - startTick) / 20 + "s:");
+        int all = 0;
+        for (var e : level.getAllEntities()) if (e instanceof net.minecraft.world.entity.animal.Animal && !(e instanceof com.solegendary.reignofnether.unit.interfaces.Unit)) all++;
+        sb.append(" level ").append(all);
+        for (List<Agent> t : teams) for (Agent a : t) {
+            BlockPos p = a.startPos();
+            int[] c = new int[3];
+            for (var e : level.getEntitiesOfClass(net.minecraft.world.entity.animal.Animal.class, new net.minecraft.world.phys.AABB(p).inflate(120, 40, 120))) {
+                if (e instanceof com.solegendary.reignofnether.unit.interfaces.Unit) continue;
+                double d = Math.sqrt(e.distanceToSqr(p.getX(), e.getY(), p.getZ()));
+                if (d <= 40) c[0]++;
+                if (d <= 80) c[1]++;
+                c[2]++;
+            }
+            sb.append(" | ").append(a.name()).append(" ").append(c[0]).append("/").append(c[1]).append("/").append(c[2]);
+        }
+        RonStrategist.LOG.info("RON Strategist: {}", sb);
+    }
+
     /**
      * -Dronstrat.seedAnimals=N: N huntable animals round every seat, placed the way a RON capitol spawns them
      * (within 35 blocks, on dry ground no more than 5 blocks above or below the seat). The user's own saves carry

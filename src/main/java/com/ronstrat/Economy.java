@@ -984,6 +984,9 @@ public final class Economy {
             // 15 vs 7 on 4Rivers, 9 vs 4 on Corporate Warfare - while the AI starved 40-70% of minutes 0-10):
             // more hunters while the opening lasts and there is game in reach, then back to one
             int early = bot.params.i("earlyHunters");
+            // earlyHuntersTeam: only with an ally (the AI teammate of a 2v2 - with game near home: 2v2 +3.4 and
+            // the opening starved under 15%; 1v1 it cost: mirror 45.9%, vs RON -6.5)
+            if (early <= 1 && bot.params.b("earlyHuntersTeam") && !in.allies.isEmpty()) early = 2;
             if (early > 1 && bot.difficulty == Difficulty.EXPERT && BuildOrder.minutes() < bot.params.get("earlyHuntMin")
                     && farGame >= 2 * early) return early;
             return 1;

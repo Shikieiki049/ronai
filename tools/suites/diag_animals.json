@@ -1,0 +1,19 @@
+{
+ "description": "animal diagnosis: one game per map",
+ "items": [
+  {
+   "name": "villagers team",
+   "spec": "expert,expert vs expert#monsters,expert#piglins readied nohandicap night",
+   "us": 0,
+   "pair": "2v2",
+   "maps": [
+    "4Mountains",
+    "4Rivers",
+    "Corporate_Warfare"
+   ],
+   "seeds": [
+    101
+   ]
+  }
+ ]
+}

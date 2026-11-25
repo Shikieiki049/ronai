@@ -1,0 +1,28 @@
+{
+ "description": "v16 night: hf",
+ "items": [
+  {
+   "name": "villagers team",
+   "spec": "expert:hf,expert:hf vs expert#monsters,expert#piglins readied nohandicap night",
+   "us": 0,
+   "pair": "2v2",
+   "maps": [
+    "4Rivers",
+    "4Mountains",
+    "Corporate_Warfare"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110
+   ]
+  }
+ ]
+}

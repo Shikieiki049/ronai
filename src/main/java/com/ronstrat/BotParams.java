@@ -273,6 +273,7 @@ public final class BotParams {
         p.put("armourOre",                  80,    80,     80,    80);   // ore banked before the blacksmith hands out chestplates
         p.put("earlyHunters",               1,     1,      1,     1);    // v16: hunters before earlyHuntMin while game is in reach (oneHunter on)
         p.put("earlyHuntMin",               6,     6,      6,     6);
+        p.put("earlyHuntersTeam",           0,     0,      0,     0);    // two early hunters only with an ally (team games)
         p.put("smithOreLate",               0,     0,      0,     0);   // phase 2: no ore for the blacksmith before smithFrom - 2 or while food < 100
         p.put("smithPrio",                  89,    89,     89,    89);  // build priority of the blacksmith (fields ~97-100, barracks ~95-101)
         p.put("smithUnderThreat",           0,     0,      0,     0);   // the blacksmith's miners stay on while raided (vs monsters the threat never ends)
@@ -444,6 +445,8 @@ public final class BotParams {
         // 2v2 +10 (20 pairs). With witchLate as well: mirror 54.8% but vs RON 85.1% (R225 90.5%, -5.4 paired) and 2v2
         // 9 vs 12 of 19 - witchLate stays off.
         p.put("foodCap.villagers",          0,     0,      0,     1);
+        // build227 (v16): the villager AI as a teammate - two hunters in the opening when it has an ally
+        p.put("earlyHuntersTeam.villagers", 0,     0,      0,     0);   // off: real (unseeded) 2v2 -16.7
         p.put("militiaCall",                0,     0,      0,     0);   // villagers attacked run to the town centre and take up arms (the user)
         p.put("kiting",                     0,     0,      0,     1);
         p.put("retreatWounded",             0,     0,      0,     1);

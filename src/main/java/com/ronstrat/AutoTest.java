@@ -348,6 +348,7 @@ public final class AutoTest {
         // decisive stop: once a side has no army left and is out-scored 5:1 for two straight minutes,
         // razing the remaining houses only costs wall time
         if (gameTicks % 200 == 0) match.trackPeaks();
+        if (Boolean.getBoolean("ronstrat.animalDiag") && (gameTicks == 20 || gameTicks == 600 || gameTicks == 1200 || gameTicks == 3600)) match.logAnimals(net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer().overworld());
         Telemetry.tick(gameTicks, BotManager.bots());
         if (gameTicks % 200 == 0 && gameTicks > 20 * 60 * 8 && !match.spec.ffa && !match.spec.solo) {
             int lead = match.dominantTeam(5.0);
