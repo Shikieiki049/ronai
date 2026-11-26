@@ -37,7 +37,7 @@ public final class Telemetry {
     private int armySamples, witchSamples; private double evokerSum;
     private java.util.Map<String, Integer> prof10, profEnd;
     private int potionsAt = -1;
-    static final String[] IDEAS = { "penBreaks", "penReturns", "woundedSent", "woundedHealed", "allyHelps", "jointAttacks", "helpCalls", "witchHeals", "allyFollows" };
+    static final String[] IDEAS = { "penBreaks", "penReturns", "woundedSent", "woundedHealed", "allyHelps", "jointAttacks", "helpCalls", "witchHeals", "allyFollows", "creeperShots", "creeperDodges", "lightningStrikes" };
     private final java.util.Map<String, Integer> ideas = new java.util.LinkedHashMap<>();
     private int tcSamples, tcIdle, tcIdleFood, tcIdlePop, tcIdleFree; // while the villager count is under 38 (the expert's cap)
     private int placeFails;

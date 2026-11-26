@@ -363,6 +363,22 @@ public final class Production {
 
     /** desired share of army population per role */
     Map<FactionPlan.Role, Double> roleMix(Intel in) {
+        Map<FactionPlan.Role, Double> m = roleMix1(in);
+        // v18 chargedCreepers: the rod is up - creepers at least chargedCreeperShare, taken from zombies and skeletons
+        double cs = bot.params.get("chargedCreeperShare");
+        if (cs > 0 && bot.lightning.on() && bot.lightning.rod() && m.getOrDefault(FactionPlan.Role.SIEGE, 0.0) < cs) {
+            double add = cs - m.getOrDefault(FactionPlan.Role.SIEGE, 0.0);
+            double z = m.getOrDefault(FactionPlan.Role.MELEE, 0.0), sk = m.getOrDefault(FactionPlan.Role.RANGED, 0.0);
+            if (z + sk > add) {
+                m.put(FactionPlan.Role.MELEE, z - add * z / (z + sk));
+                m.put(FactionPlan.Role.RANGED, sk - add * sk / (z + sk));
+                m.put(FactionPlan.Role.SIEGE, cs);
+            }
+        }
+        return m;
+    }
+
+    private Map<FactionPlan.Role, Double> roleMix1(Intel in) {
         if (bot.plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS && bot.params.b("monsterCounter")) return monsterCounter(in);
         Map<FactionPlan.Role, Double> m = roleMix0(in);
         // monsters (the user's rule): the enemy fields evokers - no wraiths, their share goes to the rest

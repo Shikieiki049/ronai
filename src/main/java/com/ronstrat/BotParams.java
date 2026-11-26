@@ -462,6 +462,9 @@ public final class BotParams {
         p.put("allyFollowPop",              6,     6,      6,     6);
         p.put("allyFollowUnits",            8,     8,      8,     8);
         p.put("allyTarget",                 0,     0,      0,     0);    // v17: own attacks go for the enemy our allies fight (last 3 min)
+        p.put("creeperDefence",             0,     0,      0,     0);    // v18: enemy creeper close - ranged shoot it first, melee step out of the blast
+        p.put("chargedCreepers",            0,     0,      0,     0);    // v18 monsters: laboratory + lightning rod, lightning on our own creepers
+        p.put("chargedCreeperShare",        0,     0,      0,     0.15); // ...creepers' share of the mix once the rod is up
         p.put("allyTurtle",                 0,     0,      0,     0);    // v17: no attacks of our own while the allies' army is far bigger
         p.put("allyTurtleRatio",            2,     2,      2,     2);
         p.put("allySpend",                  0,     0,      0,     0);    // v17: a bank of allySpendBank late on in a team game: one more barracks

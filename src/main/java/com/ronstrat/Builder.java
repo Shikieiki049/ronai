@@ -687,6 +687,7 @@ public final class Builder {
                 && !com.solegendary.reignofnether.research.ResearchServerEvents.playerHasResearch(bot.name,
                         com.solegendary.reignofnether.building.production.ProductionItems.RESEARCH_HUSKS))
             reqs.add(new Request(lab, 90, home, 10, 26));
+        if (bot.lightning.wantLab(in)) reqs.add(new Request(lab, 86, home, 10, 26));
         if (p.b("catalystHouse") && in.total(cat) < p.i("catalystMax")) {
             for (int i = 0; i < reqs.size(); i++) {
                 Request r = reqs.get(i);

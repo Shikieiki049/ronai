@@ -2582,7 +2582,7 @@ public final class Army {
     void micro(Intel in) {
         BotParams p = bot.params;
         boolean focus = p.b("focusFire"), kite = p.b("kiting"), save = p.b("retreatWounded");
-        if (!focus && !kite && !save && !p.b("fightIdle") && !p.b("creeperMicro") && !p.b("returnFire")) return;
+        if (!focus && !kite && !save && !p.b("fightIdle") && !p.b("creeperMicro") && !p.b("returnFire") && !p.b("creeperDefence")) return;
         Vec3 home = Vec3.atCenterOf(in.home());
         // spreadFire: who is already being hit and how hard - every soldier picking the same "best" target left
         // a dozen on one enemy (overkill, then all of them walking to the next) while the rest hit us freely
@@ -2686,6 +2686,36 @@ public final class Army {
                 }
                 continue;
             }
+            // v18 creeperDefence (the user's 11-26 game: two charged creepers blew up his whole skeleton and zombie
+            // army): an enemy creeper close - the ranged shoot it first (20 health), the melee step out of its blast
+            if (p.b("creeperDefence")) {
+                LivingEntity cr = null;
+                double crd = 1e9;
+                for (LivingEntity e : near) {
+                    if (!(e instanceof com.solegendary.reignofnether.unit.units.monsters.CreeperUnit c)) continue;
+                    double d = e.distanceToSqr(u) - (c.isPowered() ? 40 : 0);
+                    if (d < crd) { crd = d; cr = e; }
+                }
+                if (cr != null) {
+                    boolean powered = ((com.solegendary.reignofnether.unit.units.monsters.CreeperUnit) cr).isPowered();
+                    double d = Math.sqrt(cr.distanceToSqr(u));
+                    if (ranged && d <= 12 && u instanceof AttackerUnit && ((Unit) u).getTargetGoal().getTarget() != cr) {
+                        LivingEntity tgt = cr;
+                        creeperShots++;
+                        order(u, () -> Orders.attack(bot.name, List.of(u), tgt));
+                        continue;
+                    }
+                    double blast = powered ? 8 : 6;
+                    if (!ranged && d <= blast && !(u instanceof com.solegendary.reignofnether.unit.units.monsters.CreeperUnit)) {
+                        Vec3 away = u.position().subtract(cr.position());
+                        double len = Math.max(0.5, Math.sqrt(away.x * away.x + away.z * away.z));
+                        BlockPos to = BlockPos.containing(u.getX() + away.x / len * 7, u.getY(), u.getZ() + away.z / len * 7);
+                        creeperDodges++;
+                        order(u, () -> Orders.move(bot.name, List.of(u), to));
+                        continue;
+                    }
+                }
+            }
             // very hurt: this one soldier goes home to heal, alone - the rest fight on (the user); back at 60%
             if (save && bot.params.b("woundedHome") && !(u instanceof com.solegendary.reignofnether.unit.interfaces.HeroUnit) && u.getHealth() < u.getMaxHealth() * 0.25 && !noHeal.contains(u.getId())
                     // not on an attack (M11_wh2 -11.0%: wins turned into 40-minute timeouts - the push never broke
@@ -2782,7 +2812,7 @@ public final class Army {
         }
     }
 
-    int fightIdles, creeperBlasts, spreadSwitches, returnFires;
+    int fightIdles, creeperBlasts, spreadSwitches, returnFires, creeperShots, creeperDodges;
     final java.util.Set<Integer> woundedHome = new java.util.HashSet<>();
     /** v14 counters of the user's ideas: wounded sent home / back healed, ally defences, joint attacks */
     int woundedSent, woundedHealed, allyHelps, jointAttacks, helpCalls, witchHeals, allyFollows;

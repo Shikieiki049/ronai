@@ -32,6 +32,7 @@ public final class Bot implements Agent {
     public final Builder builder = new Builder(this);
     public final Production production = new Production(this);
     public final Army army = new Army(this);
+    final Lightning lightning = new Lightning(this);
     public final Trader trader = new Trader(this);
     public final Bridger bridger = new Bridger(this);
     final Upgrades upgrades = new Upgrades(this);
@@ -135,6 +136,9 @@ public final class Bot implements Agent {
             case "allyHelps": return army.allyHelps;
             case "jointAttacks": return army.jointAttacks;
             case "allyFollows": return army.allyFollows;
+            case "creeperShots": return army.creeperShots;
+            case "creeperDodges": return army.creeperDodges;
+            case "lightningStrikes": return lightning.strikes;
             case "helpCalls": return army.helpCalls;
             case "witchHeals": return army.witchHeals;
             default: return 0;
@@ -208,6 +212,7 @@ public final class Bot implements Agent {
             nextMicro = now + (army.mode == Army.Mode.GATHER ? 3 * mt : mt);
             intel.refresh(now);
             army.micro(intel);
+            lightning.tick(intel);
         }
     }
 

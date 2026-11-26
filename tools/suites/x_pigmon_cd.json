@@ -1,0 +1,45 @@
+{
+ "description": "v18 piglins creeperDefence vs monsters",
+ "items": [
+  {
+   "name": "monsters first",
+   "spec": "expert#monsters vs expert#piglins:cd readied nohandicap night",
+   "us": 1,
+   "pair": "monsterspiglins",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "piglins first",
+   "spec": "expert#piglins:cd vs expert#monsters readied nohandicap night",
+   "us": 0,
+   "pair": "monsterspiglins",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}
