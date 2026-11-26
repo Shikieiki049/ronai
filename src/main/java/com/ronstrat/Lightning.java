@@ -29,13 +29,25 @@ final class Lightning {
                 && bot.plan.faction == com.solegendary.reignofnether.faction.Factions.MONSTERS;
     }
 
+    /** the rod is the laboratory's own upgrade (level 1), not a player research (smoke 3: researched, never seen) */
     boolean rod() {
-        return ResearchServerEvents.playerHasResearch(bot.name, ProductionItems.RESEARCH_LAB_LIGHTNING_ROD);
+        if (bot.intel == null) return false;
+        for (BuildingPlacement b : bot.intel.own)
+            if (b.getBuilding() == Buildings.LABORATORY && b.isBuilt && b.getUpgradeLevel() > 0) return true;
+        return false;
+    }
+
+    /** a laboratory researching the rod right now */
+    private boolean rodBusy(Intel in) {
+        for (BuildingPlacement b : in.own)
+            if (b.getBuilding() == Buildings.LABORATORY && b instanceof ProductionPlacement pp && !pp.productionQueue.isEmpty()
+                    && pp.productionQueue.get(0).item == ProductionItems.RESEARCH_LAB_LIGHTNING_ROD) return true;
+        return false;
     }
 
     /** the laboratory stands and the rod is still to be researched: its ore is saved for (Economy, Production) */
     boolean wantsRod(Intel in) {
-        return on() && !rod() && in.built(Buildings.LABORATORY) > 0;
+        return on() && !rod() && !rodBusy(in) && in.built(Buildings.LABORATORY) > 0;
     }
 
     /** Builder: a laboratory once the dungeon stands and creepers are part of the army */
@@ -55,8 +67,8 @@ final class Lightning {
         for (BuildingPlacement b : in.own) {
             if (b.getBuilding() != Buildings.LABORATORY || !b.isBuilt) continue;
             // the research: once, while nothing else is being made there
-            if (!rod()) {
-                if (b instanceof ProductionPlacement pp && pp.productionQueue.isEmpty() && b.getUpgradeLevel() == 0) {
+            if (b.getUpgradeLevel() == 0) {
+                if (!rod() && !rodBusy(in) && b instanceof ProductionPlacement pp && pp.productionQueue.isEmpty()) {
                     var item = ProductionItems.RESEARCH_LAB_LIGHTNING_ROD;
                     var c = Production.cost(item);
                     if (c != null && in.canAfford(c.food, c.wood, c.ore) && pp.startProductionItem(item)) {
@@ -68,7 +80,7 @@ final class Lightning {
                 }
                 continue;
             }
-            if (b.getUpgradeLevel() == 0 || !b.isAbilityOffCooldown(UnitAction.CALL_LIGHTNING)) continue;
+            if (!b.isAbilityOffCooldown(UnitAction.CALL_LIGHTNING)) continue;
             BlockPos lab = b.centrePos;
             Mob best = null;
             int bestN = 0;
