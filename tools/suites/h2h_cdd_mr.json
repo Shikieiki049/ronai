@@ -1,0 +1,65 @@
+{
+ "description": "v18b monsters cdd vs b228 (rest of the paused run)",
+ "items": [
+  {
+   "name": "new first Post-Youth 103",
+   "spec": "expert#monsters:cdd vs expert#monsters@b228 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "Post-Youth"
+   ],
+   "seeds": [
+    103
+   ]
+  },
+  {
+   "name": "new first Oceanborn 103",
+   "spec": "expert#monsters:cdd vs expert#monsters@b228 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "Oceanborn"
+   ],
+   "seeds": [
+    103
+   ]
+  },
+  {
+   "name": "old first Cabana_Republic 103",
+   "spec": "expert#monsters@b228 vs expert#monsters:cdd readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "Cabana_Republic"
+   ],
+   "seeds": [
+    103
+   ]
+  },
+  {
+   "name": "old first Post-Youth 103",
+   "spec": "expert#monsters@b228 vs expert#monsters:cdd readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "Post-Youth"
+   ],
+   "seeds": [
+    103
+   ]
+  },
+  {
+   "name": "old first Oceanborn 103",
+   "spec": "expert#monsters@b228 vs expert#monsters:cdd readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "Oceanborn"
+   ],
+   "seeds": [
+    103
+   ]
+  }
+ ]
+}

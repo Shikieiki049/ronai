@@ -1,0 +1,65 @@
+{
+ "description": "v18b monsters cdf vs b228 (rest of the paused run)",
+ "items": [
+  {
+   "name": "new first Post-Youth 103",
+   "spec": "expert#monsters:cdf vs expert#monsters@b228 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "Post-Youth"
+   ],
+   "seeds": [
+    103
+   ]
+  },
+  {
+   "name": "new first Oceanborn 103",
+   "spec": "expert#monsters:cdf vs expert#monsters@b228 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "Oceanborn"
+   ],
+   "seeds": [
+    103
+   ]
+  },
+  {
+   "name": "old first Infinity_Isle 103",
+   "spec": "expert#monsters@b228 vs expert#monsters:cdf readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "Infinity_Isle"
+   ],
+   "seeds": [
+    103
+   ]
+  },
+  {
+   "name": "old first Post-Youth 103",
+   "spec": "expert#monsters@b228 vs expert#monsters:cdf readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "Post-Youth"
+   ],
+   "seeds": [
+    103
+   ]
+  },
+  {
+   "name": "old first Oceanborn 103",
+   "spec": "expert#monsters@b228 vs expert#monsters:cdf readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "Oceanborn"
+   ],
+   "seeds": [
+    103
+   ]
+  }
+ ]
+}
