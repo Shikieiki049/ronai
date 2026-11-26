@@ -463,6 +463,7 @@ public final class BotParams {
         p.put("allyFollowUnits",            8,     8,      8,     8);
         p.put("allyTarget",                 0,     0,      0,     1);    // v17 (build228: 2v2 150 pairs 85 vs 73, mirror 52%): own attacks go for the enemy our allies fight (last 3 min)
         p.put("creeperDefence",             0,     0,      0,     0);    // v18 (mirror 34/84 = 40.5% - off): enemy creeper close - ranged shoot it first, melee step out of the blast
+        p.put("creeperDodge",               0,     0,      0,     0);    // v18b: melee step out of a CHARGED creeper's blast (with creeperDefence)
         p.put("chargedCreepers",            0,     0,      0,     0);    // v18 monsters (mirror 39/84 = 46.4% - off): laboratory + lightning rod, lightning on our own creepers
         p.put("chargedCreeperShare",        0,     0,      0,     0.15); // ...creepers' share of the mix once the rod is up
         p.put("allyTurtle",                 0,     0,      0,     0);    // v17: no attacks of our own while the allies' army is far bigger

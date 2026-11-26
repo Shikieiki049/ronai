@@ -2699,14 +2699,16 @@ public final class Army {
                 if (cr != null) {
                     boolean powered = ((com.solegendary.reignofnether.unit.units.monsters.CreeperUnit) cr).isPowered();
                     double d = Math.sqrt(cr.distanceToSqr(u));
-                    if (ranged && d <= 12 && u instanceof AttackerUnit && ((Unit) u).getTargetGoal().getTarget() != cr) {
+                    if (ranged && d <= (powered ? 14 : 10) && u instanceof AttackerUnit && ((Unit) u).getTargetGoal().getTarget() != cr) {
                         LivingEntity tgt = cr;
                         creeperShots++;
                         order(u, () -> Orders.attack(bot.name, List.of(u), tgt));
                         continue;
                     }
-                    double blast = powered ? 8 : 6;
-                    if (!ranged && d <= blast && !(u instanceof com.solegendary.reignofnether.unit.units.monsters.CreeperUnit)) {
+                    // v2 (v1 mirror 34/84: 26k dodges in 42 games, the melee never fought): only a charged creeper is
+                    // dodged (creeperDodge), only from inside its 5-block blast, and only while it is not burning down
+                    double blast = 5;
+                    if (p.b("creeperDodge") && powered && !ranged && d <= blast && !(u instanceof com.solegendary.reignofnether.unit.units.monsters.CreeperUnit)) {
                         Vec3 away = u.position().subtract(cr.position());
                         double len = Math.max(0.5, Math.sqrt(away.x * away.x + away.z * away.z));
                         BlockPos to = BlockPos.containing(u.getX() + away.x / len * 7, u.getY(), u.getZ() + away.z / len * 7);

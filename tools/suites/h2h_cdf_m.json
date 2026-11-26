@@ -1,0 +1,45 @@
+{
+ "description": "v18b monsters cdf vs b228",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert#monsters:cdf vs expert#monsters@b228 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  },
+  {
+   "name": "old first",
+   "spec": "expert#monsters@b228 vs expert#monsters:cdf readied nohandicap night",
+   "us": 1,
+   "pair": "h2h",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle",
+    "Snowplow",
+    "Post-Youth",
+    "Oceanborn"
+   ],
+   "seeds": [
+    101,
+    102,
+    103
+   ]
+  }
+ ]
+}
