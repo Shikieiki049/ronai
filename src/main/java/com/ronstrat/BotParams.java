@@ -458,7 +458,7 @@ public final class BotParams {
         p.put("styleBarracksAtWorkers",     0,     0,      0,     0);    // first barracks at this many villagers, top priority; a second six later
         p.put("teamV2",                     0,     0,      0,     1);    // allied experts attack as one: shared target, assembly point, going in together
         p.put("teamJoinPop",                0,     0,      0,     10);   // army pop needed to join a team plan already running
-        p.put("allyFollow",                 0,     0,      0,     0);    // v17: go and fight next to an ally's army at an enemy base
+        p.put("allyFollow",                 0,     0,      0,     1);    // v17 (build227: 2v2 +6 and +4 with a monster ally, +1 and +1 villager pair, mirror 50%): go and fight next to an ally's army at an enemy base
         p.put("allyFollowPop",              6,     6,      6,     6);
         p.put("allyFollowUnits",            8,     8,      8,     8);
         p.put("allyTurtle",                 0,     0,      0,     0);    // v17: no attacks of our own while the allies' army is far bigger
