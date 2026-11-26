@@ -1,6 +1,7 @@
 """v17: how much an AI teammate contributes in a 2v2, from results/<label>.jsonl.
 
 usage: py tools/teammate.py LABEL [LABEL...] [--seat N]
+       py tools/teammate.py --match FILE_server.jsonl   (a recorded game, real ones too: every player)
 Seat: which player of team 0 to report (default: every expert with no faction suffix in the spec = villagers).
 Per label: wins, and averaged over games for the chosen seat(s):
   army10/15/20  army pop at 10/15/20 min      wk15/wk20  workers at 15/20 min
@@ -45,8 +46,39 @@ def seat_stats(pl):
     }
 
 
+def match_stats(path):
+    """the same numbers per player from a recorder file (snap events: t in seconds, army = units by type)"""
+    snaps, deaths = {}, {}
+    for line in open(path, encoding="utf-8"):
+        e = json.loads(line)
+        if e.get("ev") == "snap":
+            snaps.setdefault(e["p"], []).append(e)
+    keys = ["army10", "army15", "army20", "wk15", "wk20", "wkLoss", "bank15"]
+    print("%-16s " % "player" + " ".join("%7s" % k for k in keys))
+    for p, ss in snaps.items():
+        def at(t, f):
+            v = 0
+            for e in ss:
+                if e["t"] <= t:
+                    v = f(e)
+            return v
+        army = lambda e: sum(e.get("army", {}).values())
+        wk = lambda e: e.get("workers", 0)
+        peak, pt = 0, 0
+        for e in ss:
+            if 720 <= e["t"] <= 1440 and wk(e) > peak:
+                peak, pt = wk(e), e["t"]
+        low = min([wk(e) for e in ss if e["t"] >= pt] or [peak])
+        late = [max(e["bank"]) for e in ss if e["t"] >= 900]
+        row = [at(600, army), at(900, army), at(1200, army), at(900, wk), at(1200, wk), peak - low, sum(late) / len(late) if late else 0]
+        print("%-16s " % p[:16] + " ".join("%7.2f" % v for v in row))
+
+
 def main():
     args = sys.argv[1:]
+    if args and args[0] == "--match":
+        match_stats(args[1])
+        return
     seat = None
     if "--seat" in args:
         k = args.index("--seat")
