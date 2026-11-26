@@ -1143,6 +1143,28 @@ public final class Army {
         if (f >= 2) bot.log("giving up on " + name + " for " + len / 1200 + " min (failed " + f + "x)");
     }
 
+    /** v17 allyTarget: the enemy an ally's army (human or bot) fought last - 4+ fighters at its base - within 3 minutes */
+    private String allyFocusName;
+    private long allyFocusAt = -100000;
+
+    private String allyFocus(Intel in) {
+        if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("allyTarget") || in.allies.isEmpty()) return null;
+        String best = null;
+        int bestN = 3;
+        for (Intel.EnemyMemory em : in.enemies.values()) {
+            if (!em.alive || em.buildings.isEmpty()) continue;
+            for (String h : in.allies) {
+                if (h.equals(bot.name)) continue;
+                int n = allyFightersAt(h, em);
+                if (n > bestN) { bestN = n; best = em.name; }
+            }
+        }
+        if (best != null) { allyFocusName = best; allyFocusAt = bot.now; }
+        if (bot.now - allyFocusAt > 20 * 180) return null;
+        Intel.EnemyMemory m = allyFocusName == null ? null : in.enemies.get(allyFocusName);
+        return m != null && m.alive ? allyFocusName : null;
+    }
+
     String chooseTarget(Intel in) {
         String t = chooseTarget(in, false);
         // every enemy left is one we could not get at: try the one that failed least, rather than idle
@@ -1154,9 +1176,13 @@ public final class Army {
         String best = null;
         double bestScore = -1e18;
         double own = Math.max(1, UnitEval.strength(in.army));
+        String focus = allyFocus(in);
         for (Intel.EnemyMemory m : in.enemies.values()) {
             if (!m.alive) continue;
             if (!fallback && bot.now < enemyBlacklist.getOrDefault(m.name, -1L)) continue;
+            // v17 allyTarget (the user's 11-26 2v2: the AI hit the other enemy three times on its own and was
+            // beaten back each time while the user's army fought the piglins): the enemy our allies fight comes first
+            if (m.name.equals(focus) && m.anyBuilding() != null) return m.name;
             BlockPos b = m.anyBuilding();
             if (b == null) continue;
             double dist = Math.sqrt(b.distSqr(h));

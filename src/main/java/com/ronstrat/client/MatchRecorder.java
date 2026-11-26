@@ -32,7 +32,7 @@ import java.util.TreeMap;
  * Client only: records multiplayer games (a remote server, not the own single player world - those have the
  * server log) so the AI can learn from other players' build orders. It only writes what this client already
  * received from the server - buildings placed / finished / gone (RON sends every placement to every client),
- * the units in sight once a minute, the players and their factions - to
+ * the units in sight every 10 s, units seen dying, the own bank every 10 s, the server's game messages, the players and their factions - to
  * .minecraft/.../ronstrat_matches/<time>.jsonl. Nothing is shown in game, nothing is sent anywhere.
  * Time t is RON's game clock in seconds.
  */
@@ -48,7 +48,8 @@ public final class MatchRecorder {
     private static int tickCounter;
 
     private static boolean multiplayer(Minecraft mc) {
-        return mc.level != null && mc.player != null && !mc.hasSingleplayerServer() && mc.getCurrentServer() != null;
+        // (11-26: play.reignofnether.net moves players between instances - getCurrentServer() is not relied on)
+        return mc.level != null && mc.player != null && !mc.hasSingleplayerServer();
     }
 
     @SubscribeEvent
@@ -60,6 +61,8 @@ public final class MatchRecorder {
         try {
             long gt = PlayerClientEvents.rtsGameTicks;
             boolean active = !PlayerClientEvents.rtsPlayers.isEmpty() && gt > 0;
+            if (!active && out == null && tickCounter % 1200 == 0)
+                RonStrategist.LOG.info("RON Strategist: match recorder waiting (rts players {}, clock {})", PlayerClientEvents.rtsPlayers.size(), gt);
             // a new game: the clock went back (or the first game seen) - start a new file
             if (active && (out == null || gt < lastGameTicks - 200)) open(mc);
             if (!active) { lastGameTicks = gt; return; }
@@ -67,7 +70,8 @@ public final class MatchRecorder {
             int t = (int) (gt / 20);
             players(t);
             buildings(t);
-            if (lastUnits < 0 || gt - lastUnits >= 1200) { lastUnits = gt; units(t); }
+            deaths(t);
+            if (lastUnits < 0 || gt - lastUnits >= 200) { lastUnits = gt; units(t); bank(t); }
             out.flush();
         } catch (Exception ex) {
             RonStrategist.LOG.warn("RON Strategist: match recorder stopped ({})", ex.toString());
@@ -83,7 +87,7 @@ public final class MatchRecorder {
         out = Files.newBufferedWriter(dir.resolve(name), StandardCharsets.UTF_8);
         String server = mc.getCurrentServer() == null ? "" : mc.getCurrentServer().ip;
         write("{\"ev\":\"start\",\"server\":" + q(server) + ",\"me\":" + q(mc.player.getName().getString()) + "}");
-        seen.clear(); finished.clear(); playersSig = ""; lastUnits = -1;
+        seen.clear(); finished.clear(); playersSig = ""; lastUnits = -1; dead.clear();
         RonStrategist.LOG.info("RON Strategist: recording this multiplayer game to {}", dir.resolve(name));
     }
 
@@ -153,6 +157,35 @@ public final class MatchRecorder {
         write(sb.append("}}").toString());
     }
 
+    private static final Set<Integer> dead = new HashSet<>();
+
+    /** units of any owner in sight that are dying (health 0 shows for a second before the server removes them) */
+    private static void deaths(int t) throws IOException {
+        for (LivingEntity e : UnitClientEvents.getAllUnits()) {
+            if (!(e instanceof Unit u) || !e.isDeadOrDying() || !dead.add(e.getId())) continue;
+            String owner = u.getOwnerName() == null ? "" : u.getOwnerName();
+            String type = net.minecraft.world.entity.EntityType.getKey(e.getType()).getPath();
+            write("{\"t\":" + t + ",\"ev\":\"death\",\"owner\":" + q(owner) + ",\"u\":" + q(type) + ",\"x\":" + e.getBlockX() + ",\"z\":" + e.getBlockZ() + "}");
+        }
+        if (dead.size() > 20000) dead.clear();
+    }
+
+    /** the own bank (RON sends every player's resources to every client; only our own is written) */
+    private static void bank(int t) throws IOException {
+        com.solegendary.reignofnether.resources.Resources r = com.solegendary.reignofnether.resources.ResourcesClientEvents.getOwnResources();
+        if (r == null) return;
+        write("{\"t\":" + t + ",\"ev\":\"bank\",\"food\":" + r.food + ",\"wood\":" + r.wood + ",\"ore\":" + r.ore + "}");
+    }
+
+    /** the server's game messages (hero deaths, defeats, surrender, night and day) */
+    @SubscribeEvent
+    public static void chat(net.minecraftforge.client.event.ClientChatReceivedEvent e) {
+        if (out == null || e.getMessage() == null) return;
+        String m = e.getMessage().getString();
+        if (m.isBlank() || m.length() > 200) return;
+        try { write("{\"t\":" + (int) (PlayerClientEvents.rtsGameTicks / 20) + ",\"ev\":\"msg\",\"text\":" + q(m) + "}"); out.flush(); } catch (IOException ignored) {}
+    }
+
     private static void write(String line) throws IOException {
         if (out == null) return;
         out.write(line);
@@ -160,6 +193,6 @@ public final class MatchRecorder {
     }
 
     private static String q(String s) {
-        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"").replace('\n', ' ').replace('\r', ' ').replace('\t', ' ') + "\"";
     }
 }

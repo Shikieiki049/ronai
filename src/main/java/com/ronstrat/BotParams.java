@@ -461,6 +461,7 @@ public final class BotParams {
         p.put("allyFollow",                 0,     0,      0,     1);    // v17 (build227: 2v2 +6 and +4 with a monster ally, +1 and +1 villager pair, mirror 50%): go and fight next to an ally's army at an enemy base
         p.put("allyFollowPop",              6,     6,      6,     6);
         p.put("allyFollowUnits",            8,     8,      8,     8);
+        p.put("allyTarget",                 0,     0,      0,     0);    // v17: own attacks go for the enemy our allies fight (last 3 min)
         p.put("allyTurtle",                 0,     0,      0,     0);    // v17: no attacks of our own while the allies' army is far bigger
         p.put("allyTurtleRatio",            2,     2,      2,     2);
         p.put("allySpend",                  0,     0,      0,     0);    // v17: a bank of allySpendBank late on in a team game: one more barracks
