@@ -99,6 +99,9 @@ final class Lightning {
             for (Mob m : in.army) {
                 if (!(m instanceof CreeperUnit c) || c.isPowered() || !m.isAlive()) continue;
                 if (m.blockPosition().distSqr(lab) > 23 * 23) continue;
+                // the bolt lands on the highest block of the column: a creeper under a tree or a roof is never hit
+                // (smoke 5: one creeper called four times at the same spot, never charged)
+                if (bot.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, m.getBlockX(), m.getBlockZ()) > m.getBlockY() + 1) continue;
                 int others = 0, creepersHere = 0;
                 for (Mob o : in.army) {
                     if (o == m || o.distanceToSqr(m) > 3.2 * 3.2) continue;
@@ -113,7 +116,17 @@ final class Lightning {
                 for (Mob m : in.army) {
                     if (!(m instanceof CreeperUnit c) || c.isPowered() || !((com.solegendary.reignofnether.unit.interfaces.Unit) m).isIdle()) continue;
                     if (m.blockPosition().distSqr(lab) <= 23 * 23) continue;
-                    BlockPos to = lab.offset(Integer.signum(m.getBlockX() - lab.getX()) * 7, 0, Integer.signum(m.getBlockZ() - lab.getZ()) * 7);
+                    BlockPos to = null;
+                    // an open-sky spot 7-10 blocks from the laboratory, on the creeper's side first
+                    double a0 = Math.atan2(m.getZ() - lab.getZ(), m.getX() - lab.getX());
+                    for (int k = 0; k < 8 && to == null; k++) {
+                        double a = a0 + (k % 2 == 0 ? 1 : -1) * ((k + 1) / 2) * Math.PI / 4;
+                        int x = lab.getX() + (int) Math.round(Math.cos(a) * 9), z = lab.getZ() + (int) Math.round(Math.sin(a) * 9);
+                        int y = bot.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+                        if (bot.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, x, z) <= y
+                                && Math.abs(y - lab.getY()) <= 4 && bot.level.getFluidState(new BlockPos(x, y - 1, z)).isEmpty()) to = new BlockPos(x, y, z);
+                    }
+                    if (to == null) break;
                     Orders.move(bot.name, java.util.List.of(m), to);
                     break;
                 }
