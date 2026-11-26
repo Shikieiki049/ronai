@@ -1,0 +1,28 @@
+{
+ "description": "v17: monster teammate, 3 maps (seeds 111-120) (seeds 121-130)",
+ "items": [
+  {
+   "name": "villagers team",
+   "spec": "expert#monsters,expert vs expert#monsters,expert#piglins readied nohandicap night",
+   "us": 0,
+   "pair": "2v2",
+   "maps": [
+    "4Rivers",
+    "4Mountains",
+    "Corporate_Warfare"
+   ],
+   "seeds": [
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130
+   ]
+  }
+ ]
+}
