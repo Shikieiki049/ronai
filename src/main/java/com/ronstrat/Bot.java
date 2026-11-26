@@ -134,6 +134,7 @@ public final class Bot implements Agent {
             case "woundedHealed": return army.woundedHealed;
             case "allyHelps": return army.allyHelps;
             case "jointAttacks": return army.jointAttacks;
+            case "allyFollows": return army.allyFollows;
             case "helpCalls": return army.helpCalls;
             case "witchHeals": return army.witchHeals;
             default: return 0;

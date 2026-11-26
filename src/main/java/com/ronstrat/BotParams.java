@@ -458,6 +458,14 @@ public final class BotParams {
         p.put("styleBarracksAtWorkers",     0,     0,      0,     0);    // first barracks at this many villagers, top priority; a second six later
         p.put("teamV2",                     0,     0,      0,     1);    // allied experts attack as one: shared target, assembly point, going in together
         p.put("teamJoinPop",                0,     0,      0,     10);   // army pop needed to join a team plan already running
+        p.put("allyFollow",                 0,     0,      0,     0);    // v17: go and fight next to an ally's army at an enemy base
+        p.put("allyFollowPop",              6,     6,      6,     6);
+        p.put("allyFollowUnits",            8,     8,      8,     8);
+        p.put("allyTurtle",                 0,     0,      0,     0);    // v17: no attacks of our own while the allies' army is far bigger
+        p.put("allyTurtleRatio",            2,     2,      2,     2);
+        p.put("allySpend",                  0,     0,      0,     0);    // v17: a bank of allySpendBank late on in a team game: one more barracks
+        p.put("allySpendMin",               15,    15,     15,    15);
+        p.put("allySpendBank",              600,   600,    600,   600);
         p.put("armyV2",                     0,     0,      0,     0);    // attack and retreat by fight forecast (CombatSim) instead of strength ratios
         p.put("v2Leave",                    0,     0,      0,     1);    // armyV2 also decides when to leave (0 = only retreats by forecast)
         p.put("v2Retreat",                  0,     0,      0,     1);    // armyV2 also decides retreats (0 = old retreat rule)

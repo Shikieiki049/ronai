@@ -324,12 +324,63 @@ public final class Army {
     }
 
     /**
+     * v17 allyFollow (the user's 2v2s: the AI teammate stayed home while the user's army fought): an ally's
+     * army - human or bot - at an enemy base with allyFollowUnits fighters or more, and ours idle with
+     * allyFollowPop or more: go there and fight next to it, whatever the attack size rules say.
+     */
+    private boolean allyFollow(Intel in, double armyPop) {
+        if (bot.difficulty != Difficulty.EXPERT || !bot.params.b("allyFollow") || in.allies.isEmpty()) return false;
+        if (armyPop < bot.params.get("allyFollowPop") || bot.now - lastAttackEnd < 200) return false;
+        String bestEnemy = null, bestAlly = null;
+        int bestN = 0;
+        for (Intel.EnemyMemory em : in.enemies.values()) {
+            if (!em.alive || em.buildings.isEmpty() || em.anyBuilding() == null) continue;
+            for (String h : in.allies) {
+                if (h.equals(bot.name)) continue;
+                int n = allyFightersAt(h, em);
+                if (n > bestN) { bestN = n; bestEnemy = em.name; bestAlly = h; }
+            }
+        }
+        if (bestEnemy == null || bestN < bot.params.get("allyFollowUnits")) return false;
+        target = bestEnemy;
+        targetPos = in.enemies.get(bestEnemy).anyBuilding();
+        joinedHuman = bestAlly;
+        jointAttacks++;
+        allyFollows++;
+        bot.log("ally follow: " + bestAlly + " has " + bestN + " units at " + bestEnemy + ", going with army pop " + (int) armyPop);
+        return true;
+    }
+
+    /** an ally's fighters within 40 blocks of one of the enemy's buildings */
+    private static int allyFightersAt(String ally, Intel.EnemyMemory em) {
+        int n = 0;
+        for (LivingEntity e : com.solegendary.reignofnether.unit.UnitServerEvents.getAllUnits()) {
+            if (!(e instanceof Unit u) || !ally.equals(u.getOwnerName()) || !e.isAlive() || UnitEval.isWorker(e) || UnitEval.isScout(e)) continue;
+            for (BlockPos b : em.buildings.keySet()) if (e.blockPosition().distSqr(b) < 40 * 40) { n++; break; }
+        }
+        return n;
+    }
+
+    /** the army pop of all allies' fighters together (allyTurtle) */
+    private double allyArmyPop(Intel in) {
+        double s = 0;
+        for (LivingEntity e : com.solegendary.reignofnether.unit.UnitServerEvents.getAllUnits()) {
+            if (!(e instanceof Unit u) || !e.isAlive() || UnitEval.isWorker(e) || UnitEval.isScout(e)) continue;
+            String o = u.getOwnerName();
+            if (o == null || o.equals(bot.name) || !in.allies.contains(o)) continue;
+            s += UnitEval.popValue(e);
+        }
+        return s;
+    }
+
+    /**
      * Join an allied expert's attack the moment it starts, with whatever army is at home:
      * the two waves land together instead of one after the other.
      */
     private String joinedHuman;
 
     private boolean joinPartner(Intel in, double armyPop) {
+        if (allyFollow(in, armyPop)) return true;
         if (bot.difficulty != Difficulty.EXPERT || armyPop < 15 || bot.now - lastAttackEnd < 300) return false;
         // a human teammate fighting at an enemy base: go and help
         for (String h : in.allies) {
@@ -755,6 +806,13 @@ public final class Army {
         }
         if (joinPartner(in, armyPop)) return true;
         if (bot.now - lastAttackEnd < p.get("attackWaveCooldown") * 20) return false;
+        // v17 allyTurtle: an ally far stronger than us - no attacks of our own, we keep the workers safe and
+        // go along with the ally's attacks (allyFollow / joinPartner) instead; maxed out we still go
+        if (bot.difficulty == Difficulty.EXPERT && p.b("allyTurtle") && !in.allies.isEmpty() && in.pop < 140
+                && allyArmyPop(in) >= p.get("allyTurtleRatio") * Math.max(4, armyPop)) {
+            whyNot(in, "ally turtle: the ally's army is far bigger, waiting to go with it");
+            return false;
+        }
         boolean maxed = in.pop >= 140;
         // 1vN: hit the nearest opponent while the field is still empty, before the weak bots have
         // armies, then the next one - defeating them in detail instead of waiting for all of them
@@ -2701,7 +2759,7 @@ public final class Army {
     int fightIdles, creeperBlasts, spreadSwitches, returnFires;
     final java.util.Set<Integer> woundedHome = new java.util.HashSet<>();
     /** v14 counters of the user's ideas: wounded sent home / back healed, ally defences, joint attacks */
-    int woundedSent, woundedHealed, allyHelps, jointAttacks, helpCalls, witchHeals;
+    int woundedSent, woundedHealed, allyHelps, jointAttacks, helpCalls, witchHeals, allyFollows;
     private long lastHelpCall = -100000;
     /** id -> {tick of the last health gain, health then}: soldiers do not heal by themselves in RON (only witches'
      *  potions, life steal and the healing fountain) - one that gains nothing for 60 s goes back to the

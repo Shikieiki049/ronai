@@ -1,0 +1,28 @@
+{
+ "description": "v17: villager pair at",
+ "items": [
+  {
+   "name": "villagers team",
+   "spec": "expert:at,expert:at vs expert#monsters,expert#piglins readied nohandicap night",
+   "us": 0,
+   "pair": "2v2",
+   "maps": [
+    "4Rivers",
+    "4Mountains",
+    "Corporate_Warfare"
+   ],
+   "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110
+   ]
+  }
+ ]
+}

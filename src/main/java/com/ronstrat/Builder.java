@@ -200,6 +200,11 @@ public final class Builder {
             boolean foodBarracks = bot.difficulty == Difficulty.EXPERT && p.b("foodBarracks") && barracks >= 1 && workers >= 14
                     && in.food >= p.get("foodBarracksFood") && bot.production.allBarracksBusy(in) && in.built(plan.barracks) == barracks;
             if (foodBarracks) wantBarracks = Math.max(wantBarracks, Math.min(p.i("maxBarracks") + 2, barracks + 1));
+            // v17 allySpend (team games: banks of 600+ late on): one more barracks, every barracks busy or not
+            boolean allySpend = bot.difficulty == Difficulty.EXPERT && p.b("allySpend") && !in.allies.isEmpty() && barracks >= 1
+                    && BuildOrder.minutes() >= p.get("allySpendMin") && Math.max(in.food, Math.max(in.wood, in.ore)) >= p.get("allySpendBank")
+                    && in.built(plan.barracks) == barracks;
+            if (allySpend) wantBarracks = Math.max(wantBarracks, Math.min(p.i("maxBarracks") + 2, barracks + 1));
             // boomDone (parameter boomBarracks): the town centre is near the villager cap - from here food goes to
             // the army, so the barracks it needs go up ahead of more fields (the user: three barracks by minute 11,
             // the expert one at minute 10 while every 150 wood went to field after field)
@@ -225,7 +230,7 @@ public final class Builder {
                 double pri = rushDef || campRush ? 106 : earlyArmy ? (barracks == 0 ? 95 : 84) : (barracks == 0 ? 80 : 62) - barracks * 4;
                 if (evenExpert && workers >= 18) pri = barracks < 2 ? 95 : 88;
                 if (styleNow) pri = 105;
-                if (foodBarracks || boomDone) pri = Math.max(pri, 101);
+                if (foodBarracks || boomDone || allySpend) pri = Math.max(pri, 101);
                 if (beastTrouble || (evenExpert && barracks == 0 && workers >= 10 && in.built(plan.farm) >= 2 && (!bot.army.safeToBoom(in) || bot.army.homeCampStrength(in) > 0))) pri = 105;
                 reqs.add(new Request(plan.barracks, pri, pushed ? bot.army.rearAnchor(in) : bot.army.frontAnchor(in), 10, 24));
             }
