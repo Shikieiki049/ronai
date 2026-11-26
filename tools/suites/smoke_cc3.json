@@ -1,0 +1,19 @@
+{
+ "description": "v18 smoke 5: rod block present before calling lightning",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert#monsters:cc vs expert#monsters@b227 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "Berlingrad_Classic",
+    "Mirs_Landing"
+   ],
+   "seeds": [
+    101,
+    102
+   ]
+  }
+ ]
+}

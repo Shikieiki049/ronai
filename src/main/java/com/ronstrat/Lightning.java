@@ -20,7 +20,7 @@ import net.minecraft.world.entity.Mob;
 final class Lightning {
     private final Bot bot;
     int strikes, rodsStarted;
-    private long lastTry = -1000;
+    private long lastTry = -1000, lastRepair = -100000;
 
     Lightning(Bot bot) { this.bot = bot; }
 
@@ -81,6 +81,18 @@ final class Lightning {
                 continue;
             }
             if (!b.isAbilityOffCooldown(UnitAction.CALL_LIGHTNING)) continue;
+            // the upgraded laboratory's rod block has to stand, or the call only starts the cooldown (smoke 4: three
+            // calls onto one creeper, none charged it) - builders finish the upgrade
+            if (((com.solegendary.reignofnether.building.buildings.monsters.Laboratory) b.getBuilding()).getLightningRodPos(b) == null) {
+                if (bot.now - lastRepair > 600 && !in.workers.isEmpty()) {
+                    lastRepair = bot.now;
+                    java.util.List<Mob> ws = new java.util.ArrayList<>(in.workers);
+                    ws.sort(java.util.Comparator.comparingDouble(w -> w.blockPosition().distSqr(b.centrePos)));
+                    Orders.buildRepair(bot.name, ws.subList(0, Math.min(2, ws.size())), b.originPos);
+                    bot.log("laboratory: no lightning rod block yet - 2 builders sent");
+                }
+                continue;
+            }
             BlockPos lab = b.centrePos;
             Mob best = null;
             int bestN = 0;
