@@ -1,0 +1,18 @@
+{
+ "description": "v18 smoke: chargedCreepers, 2 games",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert#monsters:cc vs expert#monsters@b227 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic"
+   ],
+   "seeds": [
+    101
+   ]
+  }
+ ]
+}

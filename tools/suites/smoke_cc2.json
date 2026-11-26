@@ -1,0 +1,20 @@
+{
+ "description": "v18 smoke 2: chargedCreepers, rod first",
+ "items": [
+  {
+   "name": "new first",
+   "spec": "expert#monsters:cc vs expert#monsters@b227 readied nohandicap night",
+   "us": 0,
+   "pair": "h2h",
+   "maps": [
+    "Mirs_Landing",
+    "Berlingrad_Classic",
+    "Cabana_Republic",
+    "Infinity_Isle"
+   ],
+   "seeds": [
+    101
+   ]
+  }
+ ]
+}

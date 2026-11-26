@@ -186,6 +186,9 @@ public final class Production {
                     && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore) bags = true;
             if (tier && in.food >= c.food && in.wood >= c.wood && in.ore >= c.ore) bags = true;
             if (!bags && (f < c.food + margin || w < c.wood + margin || o < c.ore + margin / 2)) continue;
+            // v18 chargedCreepers: the lightning rod first (smoke test: husks, strays and poison spiders kept the
+            // laboratory busy - RON allows one such research per building - and the rod never came)
+            if (r.at == com.solegendary.reignofnether.building.Buildings.LABORATORY && bot.lightning.on() && !bot.lightning.rod()) continue;
             for (BuildingPlacement b : in.own) {
                 if (!b.isBuilt || b.getBuilding() != r.at || !(b instanceof ProductionPlacement pp)) continue;
                 if (perBuilding && b.getUpgradeLevel() > 0) continue;

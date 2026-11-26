@@ -55,6 +55,8 @@ def run(parts):
     extra = []
     if "rec" in flags:
         extra.append("-Dronstrat.recorder=true")
+    if "verbose" in flags:
+        extra.append("-Dronstrat.verbose=true")
     # gameNN: NN huntable animals placed round every seat at the start (the user's own saves carry the game RON's
     # capitols spawned in earlier games: 10-17 animals near home, the clean test maps ~1)
     for fl in flags:

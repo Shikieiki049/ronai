@@ -78,7 +78,18 @@ final class Lightning {
                 if (others > 0) continue;
                 if (best == null || creepersHere + 1 > bestN) { best = m; bestN = creepersHere + 1; }
             }
-            if (best == null) continue;
+            if (best == null) {
+                // no creeper by the laboratory: one idle at home walks there to be charged (not during an attack)
+                if (bot.army.mode == Army.Mode.ATTACK) continue;
+                for (Mob m : in.army) {
+                    if (!(m instanceof CreeperUnit c) || c.isPowered() || !((com.solegendary.reignofnether.unit.interfaces.Unit) m).isIdle()) continue;
+                    if (m.blockPosition().distSqr(lab) <= 23 * 23) continue;
+                    BlockPos to = lab.offset(Integer.signum(m.getBlockX() - lab.getX()) * 7, 0, Integer.signum(m.getBlockZ() - lab.getZ()) * 7);
+                    Orders.move(bot.name, java.util.List.of(m), to);
+                    break;
+                }
+                continue;
+            }
             strikes++;
             bot.log("lightning onto " + bestN + " creeper(s) at " + best.blockPosition().toShortString());
             // the building from selectedBuildingPos, the clicked block from preselectedBlockPos (UnitActionItem)
