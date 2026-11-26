@@ -33,6 +33,11 @@ final class Lightning {
         return ResearchServerEvents.playerHasResearch(bot.name, ProductionItems.RESEARCH_LAB_LIGHTNING_ROD);
     }
 
+    /** the laboratory stands and the rod is still to be researched: its ore is saved for (Economy, Production) */
+    boolean wantsRod(Intel in) {
+        return on() && !rod() && in.built(Buildings.LABORATORY) > 0;
+    }
+
     /** Builder: a laboratory once the dungeon stands and creepers are part of the army */
     boolean wantLab(Intel in) {
         return on() && in.total(Buildings.LABORATORY) == 0 && in.built(Buildings.DUNGEON) > 0 && creepers(in) >= 2;

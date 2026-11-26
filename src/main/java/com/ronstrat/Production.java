@@ -227,6 +227,8 @@ public final class Production {
             }
         }
 
+        // v18: the army leaves the lightning rod's 400 ore in the bank
+        if (bot.lightning.wantsRod(in)) o -= Math.min(o, 400);
         if (techSave != null) { f -= techSave.food; w -= techSave.wood; o -= techSave.ore; if (bot.verbose && bot.now % 1200 < 5) bot.log("army leaves " + techSave.food + "/" + techSave.wood + "/" + techSave.ore + " for a unit upgrade"); }
         // ---- army: what is left after villagers and escrow, or the army fund if that is more
         if (L.on()) {

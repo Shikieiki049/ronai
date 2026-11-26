@@ -520,6 +520,12 @@ public final class Economy {
             int cap = in.built(bot.plan.farm) + hunt + (in.food < 200 ? 2 : 0);
             if (want[0] > cap) { want[1] += want[0] - cap; want[0] = cap; }
         }
+        // v18 chargedCreepers: the lightning rod costs 400 ore (smoke tests: banks of 200-370, never researched) -
+        // three miners from wood until it is in the bank
+        if (bot.lightning.wantsRod(in) && in.ore < 450 && want[2] < 3) {
+            int add = Math.min(3 - want[2], want[1]);
+            want[1] -= add; want[2] += add;
+        }
         // armour: the blacksmith from minute smithFrom - its ore is mined for it first (nothing else mines
         // in an even game, so it came in 29 of 80 games, at 23:48 on average, and 1% of soldiers had armour)
         if (bot.plan.villagers && bot.difficulty == Difficulty.EXPERT && !bot.outnumbered() && BuildOrder.minutes() >= p.get("smithFrom") - 1.5
